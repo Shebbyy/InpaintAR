@@ -1,4 +1,14 @@
 \chapter{Introduction}
 \label{cha:Introduction}
 
+While many still consider Augmented Reality (AR) a nieche, the user-numbers tell a different story. In 2023 Statista reported about 983 Million users to be using AR on their mobile devices. This number is set to grow to 1.187 Billion users until 2028 \cite{Statista2024}.
 
+One of the issues still common in AR Applications is the overload of information. Whenever users are supposed to focus on the virtual objects at hand, the visibility of physical objects may serve as a distraction. (cf. Cheng et. al. \cite{ChengYiFei2022TUDR})
+
+An existing solution is the use of Diminished Reality. This Concept aims to hide certain physical objects from the viewport, which can in this case be used to reduce the visual clutter.
+
+\section{Motivation}
+
+Whilst many solutions for this problem, using Inpainting have already been implemented and proven, the topic of the inpainting algorithm has largely been disregarded. Most Papers only use one specific algorithm and focus more on the detection of the objects, user studies or optimizations of smaller visual artifacts, like lighting errors created by the inpainting methods. This Thesis aims to analyze multiple different algorithms and approaches to the resolution of the inpainting step of the Diminished Reality processing pipeline
+
+The goal of this analysis is to provide an easy to reference comparison of the different methodologies to be compared in terms of both performance and quality. Therefore developers can make an educated choice on which methodology to use for their usecase, be it high fidelity in usecases like PC-Powered AR Systems or low energy, high performance systems, more suited for mobile devices, be they mobile phones or standalone Mixed Reality Headsets
