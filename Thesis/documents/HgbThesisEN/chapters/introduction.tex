@@ -10,7 +10,7 @@ An existing solution is the use of Diminished Reality. This Concept aims to hide
 \section{Motivation}
 
 While there are many existing solutions for achieving Diminished Reality using Inpainting , the topic of which inpainting method for not only this usecase, but Inpainting in a 3-Dimensional Real-Time Environment has largely been disregarded as of now. Most Papers put the focus on different components of the system like the detection of the objects, user studies or optimizations of smaller visual artifacts.
-Over the last years there have been numerous achievements in the space of Inpainting methods, ranging from low-cost, small area optimized algorithms like the fast marching algorithm \cite{Weiwei2021} to machine-learning assisted large area approaches like the DeepFill Deep-Learning model.\cite{MuziHao2023}
+Over the last years there have been numerous achievements in the space of Inpainting methods, ranging from classic, low-cost, algorithms like the fast marching algorithm \cite{Weiwei2021} or the usage of matching textures using gaussian weighting to fill the affected regions \cite{DingRam2019} to high fidelity machine-learning assisted approaches like the DeepFill Deep-Learning model.\cite{MuziHao2023}
 
 The main goal of this analysis is to provide an easy to reference comparison of the different methodologies to be compared in terms of both performance and quality. Through this analysis, developers can make an educated choice on which methodology to use for their usecase, be it high fidelity in usecases like PC-Powered AR Systems or low energy, low performance systems, more suited for mobile devices, be they mobile phones or standalone Mixed-Reality Head-Mounted Displays.
 In addition, the tool built for this evaluation should be easy to extend for newer inpainting methods whilst staying easy to integrate into existing applications.
@@ -20,18 +20,23 @@ In addition, the tool built for this evaluation should be easy to extend for new
 This work includes an introduction to the underlying concepts and analyzed inpainting methods, followed by the conceptualization and implementation of the tool as well as the performance and quality evaluation for each of the analyzed inpainting methods. These topics are elaborated upon in the following five chapters:
 
 \begin{itemize}
-\item Chapter 2: Fundamentals and Related Work
+\item \textbf{Chapter 2: Fundamentals and Related Work}
+
 Provides an introduction into visual clutter and why it matters to the domain of Augmented Reality, an introduction to the term of Diminished reality aswell as the underlying logic of each of the inpainting methods. 
 
-\item Chapter 3: Concept
+\item \textbf{Chapter 3: Concept}
+
 Elaborates on the architecture and design chosen for this tool and provides an overview on a few example usecases for which the tool might be used
 
-\item Chapter 4: Implementation
+\item \textbf{Chapter 4: Implementation}
+
 The focus lies on providing an explanation on each of the classes contained in this tool and how it can be implemented into existing projects to be used. In Addition some of the tools and principles used during the implementation are going to be elaborated on.
 
-\item Chapter 5: Evaluation
+\item \textbf{Chapter 5: Evaluation}
+
 After providing an overview of the testing setup and how visual clutter and performance are measured, the test scenarios will be presented, followed by the results for each of the analyzed methods.
 
-\item Chapter 6: Conclusion
+\item \textbf{Chapter 6: Conclusion}
+
 Presents the findings of the evaluation in a summed up manner and goes into detail on how the tool might be expanded in the future to improve the tool to provide an even better user and developer experience
 \end{itemize}
