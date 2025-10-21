@@ -1,19 +1,28 @@
 \chapter{Introduction}
 \label{cha:Introduction}
 
-The Domain of Augmented Reality (AR)  spans all kinds of real-time visualization approaches wherein an otherwise real environment gets augmented with virtual objects \cite{Milgram1994}
-While many still consider Augmented Reality a nieche, the user-numbers tell a different story. In 2023 Statista reported about 983 Million users to be using AR on their mobile devices. This number is set to grow to 1.187 Billion users until 2028 \cite{Statista2024}.
+The domain of Augmented Reality (AR)  spans all kinds of real-time visualization approaches wherein an otherwise real environment is augmented with virtual objects \cite{Milgram1994}
+While many still considerAR a nieche, the user-numbers tell a different story. In 2023 Statista reported about 983 Million users to be using AR on their mobile devices. \cite{Statista2024}.
 
 One of the issues still common in AR Applications is the overload of information. Whenever users are supposed to focus on the virtual objects at hand, the visibility of physical objects may serve as a distraction. (cf. Cheng et. al. \cite{ChengYiFei2022TUDR})
-An existing solution is the use of Diminished Reality. This Concept aims to hide certain physical objects from the viewport, which can in this case be used to reduce the visual clutter.
+An existing solution is the use of Diminished Reality (DR). This concept can be interpreted as a specific usecase of AR, which aims to hide or remove certain physical objects from the viewport in real time.\cite{Mann2002} \ref{fig:figDR}. In the case of the tool presented in this thesis, DR can be used to reduce the visual clutter.
+
+To achieve this the visual clutter from the viewport is intentionally drawn over, artificially damaging the frame shown to the user on the display. To fix such damaged images, image inpainting is one of the techniques available and the one used in this paper.
+
+\begin{figure}[h!]
+  \includegraphics{figDR.png}
+  \caption{Real and Diminished scene. This example serves as an example of how DR may be used to reduce visual clutter. (a) shows the regular environment, (b) shows the same image with the visual clutter overdrawn, whilst (c) shows the cleaned up DR image, achieved through inpainting}
+  \label{fig:figDR}
+\end{figure}
 
 \section{Motivation}
+\textbf{TODO ADD SMALL PART ABOUT VISUAL CLUTTER}
 
-While there are many existing solutions for achieving Diminished Reality using Inpainting , the topic of which inpainting method for not only this usecase, but Inpainting in a 3-Dimensional Real-Time Environment has largely been disregarded as of now. Most Papers put the focus on different components of the system like the detection of the objects, user studies or optimizations of smaller visual artifacts.
-Over the last years there have been numerous achievements in the space of Inpainting methods, ranging from classic, low-cost, algorithms like the fast marching algorithm \cite{Weiwei2021} or the usage of matching textures using gaussian weighting to fill the affected regions \cite{DingRam2019} to high fidelity machine-learning assisted approaches like the DeepFill Deep-Learning model.\cite{MuziHao2023}
+While there are existing solutions for achieving DR using inpainting, see \cite{ThiryGuillaume2024TORM}, the topic of which inpainting method for not only this usecase, but inpainting in a 3-Dimensional Real-Time Environment has largely been disregarded as of now. Most publications put the focus on different components of the system like the detection of the objects, user studies or optimizations of smaller visual artifacts.
+Over the last years there have been numerous achievements in the space of inpainting methods. Ranging from classic, low-cost algorithms like the fast marching algorithm \cite{Weiwei2021} or the usage of matching textures using gaussian weighting to fill the affected regions \cite{DingRam2019} to more modern machine-learning assisted high fidelity approaches like the DeepFill Deep-Learning model \cite{MuziHao2023}.
 
-The main goal of this analysis is to provide an easy to reference comparison of the different methodologies to be compared in terms of both performance and quality. Through this analysis, developers can make an educated choice on which methodology to use for their usecase, be it high fidelity in usecases like PC-Powered AR Systems or low energy, low performance systems, more suited for mobile devices, be they mobile phones or standalone Mixed-Reality Head-Mounted Displays.
-In addition, the tool built for this evaluation should be easy to extend for newer inpainting methods whilst staying easy to integrate into existing applications.
+The main goal of this analysis is to provide an easy to reference comparison of the different methodologies to be compared in terms of both performance and quality. Through this analysis, developers can make an educated choice on which methodology to use for their usecase, be it high fidelity in usecases like PC-powered AR systems or low energy, low performance systems, more suited for mobile devices, be they mobile phones or standalone Mixed-Reality Head-Mounted Displays (HMDs).
+In addition, the tool built for this evaluation should be easy to extend for newer inpainting methods whilst staying easy to integrate into existing applications to allow for a quick and efficient tool to provide the clutter removal functionality to other AR projects.
 
 \section{Overview}
 
@@ -22,21 +31,22 @@ This work includes an introduction to the underlying concepts and analyzed inpai
 \begin{itemize}
 \item \textbf{Chapter 2: Fundamentals and Related Work}
 
-Provides an introduction into visual clutter and why it matters to the domain of Augmented Reality, an introduction to the term of Diminished reality aswell as the underlying logic of each of the inpainting methods. 
+At the start of the thesis, this chapter serves to provide an introduction into visual clutter and why it matters to the domain of Augmented Reality. The term of DR is explored into further detail as well as the underlying logic of each of the analyzed inpainting methods.
 
 \item \textbf{Chapter 3: Concept}
 
-Elaborates on the architecture and design chosen for this tool and provides an overview on a few example usecases for which the tool might be used
+The concept chapter goes into further detail on the architecture and design chosen for this tool and provides an overview on a few example use cases for which the tool might be used.
 
 \item \textbf{Chapter 4: Implementation}
 
-The focus lies on providing an explanation on each of the classes contained in this tool and how it can be implemented into existing projects to be used. In Addition some of the tools and principles used during the implementation are going to be elaborated on.
+In this chapter each of the classes contained in this tool gets a brief explanation. In addition a small guide is being provided, as to how the tool could be implemented into existing projects to be used. Some of the tools and principles used during the implementation are going to be elaborated on as well.
 
 \item \textbf{Chapter 5: Evaluation}
 
 After providing an overview of the testing setup and how visual clutter and performance are measured, the test scenarios will be presented, followed by the results for each of the analyzed methods.
 
-\item \textbf{Chapter 6: Conclusion}
+\item \textbf{Chapter 6: Conclusion and future Work}
 
-Presents the findings of the evaluation in a summed up manner and goes into detail on how the tool might be expanded in the future to improve the tool to provide an even better user and developer experience
+At the end of the thesis all the results and the everything mentioned in the previous chapters is briefly summed up. Afterwards further ideas on how to expand and improve the tool in the future are provided to improve both the developer and user experience even further.
 \end{itemize}
+
