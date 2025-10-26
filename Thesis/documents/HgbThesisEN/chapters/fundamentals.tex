@@ -38,9 +38,24 @@ oftentimes allowing objects to be placed freely in the environment and therefore
 \end{figure}
 
 \section{Diminished Reality}
-qwerqwerqwerqwer
+DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality, due to the concept of software mediating both the physical and virtual objects the user gets to see.
+DR aims to remove or diminish real world objects from the perception of the user by hiding them from their view. This can range from completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
+but it is less perceived when looking at different objects \cite{ChengYiFei2022TUDR}.
+
+Many experiments have been done using DR already. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.
+
+These works use similar concepts to the one implemented in the tool built for this thesis, working with inpainting algorithms to hide physical objects for the users benefit, be it decision making for interior designs, increasing driver safety during overtaking, or in the case of this thesis, in reducing distractions caused by clutter.
+
+There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments done in \cite{ChengYiFei2022TUDR} opacity reduction and outlining provides the best results.
+This can be interpreted to mean, the less a user notices objects the less they are distracted by them.
+In addition another experiment measured how users react to being able to decide which objects should be hidden compared to every object being detected and hidden automatically. The findings of this experiment have shown a preference for the users to decide for themselves, which objects should be hidden and which should stay \cite{ChengYiFei2022TUDR}.
+
+These findings were directly involved in the conceptualization of the InpaintAR tool, as to how objects should be hidden and allowing for the user to select the areas and therefore the objects they want to hide for themselves instead of the software deciding.
 
 \section{Inpainting}
+\label{cha:Inpainting}
+
+
 
 \subsection{What is inpainting}
 
