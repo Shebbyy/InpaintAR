@@ -55,9 +55,24 @@ These findings were directly involved in the conceptualization of the InpaintAR 
 \section{Inpainting}
 \label{cha:Inpainting}
 
-
+Whilst DR itself is a great concept for the usecase of reducing clutter, the problem remains of what to overlay over the objects to hide them. Whilst a single color block would prove for the easiest solution it would ruin the users immersion and could prove to be even more distracting than the objects which were in the area beforehand.
+Therefore inpainting provides a good solution to fill these regions of the viewport and create believable overlays.
 
 \subsection{What is inpainting}
+Image inpainting is based on the concept of recovering and completing missing regions in an image or removing objects in it. This concept has been around for many years, having been used in image restoration or removing damage caused by deterioration.
+In recent years it has gained more popularity due to the improvement of image processing tools and the advances of digital image editing. To achieve this several methods have been developed to achieve this effect automatically. These range from 
+static sequential algorithms over CNN-based approaches, using neural networks with automatic deep learning up to GAN-based solutions using Generative adversarial networks for training the images of specialized inpainting models \cite{ElharroussOmar2020IIAR}.
+
+These categories and many of the provided methods provide adequate results for the inpainting of images, DR requires these methods to perform the inpainting as quickly as possible to adjust to the users movement and provide believable results. 
+Therefore there are several methods specialized specific use of real-time inpainting. Some examples are the usage of edge-computing to outsource the inpainting work to a separate server, as seen in \cite{ZhangYunfan2022IRDI} or to improve the inpainting process through concepts such as feature reuse and mask propagation, as seen in \cite{LiuWeimin2025Rtai}.
+
+\begin{figure}[htb!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{InpaintingExample.png}
+    \caption{An example of inpainting, (a) original image, (b) image with synthetic damage, (c) image fixed with texture synthesis of surrounding area pixels}
+    \label{fig:inpaintExample}
+  \end{center}
+\end{figure}
 
 \subsection{Methods analyzed in this thesis}
 
