@@ -75,13 +75,32 @@ Therefore there are several methods specialized specific use of real-time inpain
 \end{figure}
 
 \subsection{Methods analyzed in this thesis}
+As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and be outdated quickly. Therefore, only a few candidates for each of the larger categories of inpainting methodologies are being looked at in detail to provide an overview.
+
+From gaining an understanding, which categories correlate to certain desired benefits, readers may get a rough estimation of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
 \subsubsection{Fast Marching Method}
+Having first been proposed back in 2000 by Sethian, the Fast Marching Method (FMM) is an analytical method, which was first developed to solve boundary problems.
+
+FMM has been proven by Telea to also be applicable to pixel-based problems, like inpainting.
+The algorithm works by creating an image smoothness estimator, which estimates the image smoothness of a given neighborhood to fill. These are used as a level set for the FMM algorithm to propagate the image information \cite{TeleaFastMarching2004}.
+
+The advantages of the algorithm are both its easy-to-implement nature, allowing for an easy understanding of the algorithm, as well as its efficiency and quality considering the simplicity.
+
+One of the disadvantages, which is present for most algorithmic methodologies, is the issue of larger missing regions. There have been proposals and solutions for this disadvantage for the FMM method though. 
+Nurmala, Horikawa and Du proposed a solution using segmentation of the large missing region through structure propagation to split the missing region into multiple smaller missing image regions \cite{Weiwei2021}. This makes the algorithm very attractive for real time DR use cases, as it is both performant and 
+can handle missing regions of variable sizes
+
+\begin{figure}[hbt!]
+  \begin{center}
+    \includegraphics[width=0.5\textwidth]{FastMarching.png}
+    \caption{Taken from \cite{TeleaFastMarching2004}; Concept of the Fast-Marching Inpainting}
+    \label{fig:fastMarching}
+  \end{center}
+
+\end{figure}
 
 \subsubsection{Texture Synthesis and Region Segmentation}
-
-\subsubsection{Nonlocal Texture Matching and nonlinear filtering}
-Still TBD, depends if too similar to Texture Synthesis or not
 
 \subsubsection{Nearest Neighbor Pixel Filling}
 
