@@ -13,7 +13,7 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
 \begin{figure}[htb!]
   \begin{center}
     \includegraphics[width=0.45\textwidth]{ClutterToReactionTime.PNG}
-    \caption{Taken from \cite{RosenholtzRuth2007Mvc}, Page 3; It shows a comparison between reaction time and clutter to predict performance. The difficulty of the given task may also change the increase in reaction time compared to the clutter, therefore 3 curves are provided instead of one.}
+    \caption{Cited from \cite{RosenholtzRuth2007Mvc}, Page 3; It shows a comparison between reaction time and clutter to predict performance. The difficulty of the given task may also change the increase in reaction time compared to the clutter, therefore 3 curves are provided instead of one.}
     \label{fig:ClutterToReactionTime}
   \end{center}
 \end{figure}
@@ -80,7 +80,7 @@ As there are many different methods currently available regarding inpainting, an
 From gaining an understanding, which categories correlate to certain desired benefits, readers may get a rough estimation of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
 \subsubsection{Fast Marching Method}
-Having first been proposed back in 2000 by Sethian, the Fast Marching Method (FMM) is an analytical method, which was first developed to solve boundary problems.
+Having first been proposed back in 1999 by Sethian, see \cite{Sethian1999}, the Fast Marching Method (FMM) is an analytical method, which was first developed to solve boundary problems.
 
 FMM has been proven by Telea to also be applicable to pixel-based problems, like inpainting.
 The algorithm works by creating an image smoothness estimator, which estimates the image smoothness of a given neighborhood to fill. These are used as a level set for the FMM algorithm to propagate the image information \cite{TeleaFastMarching2004}.
@@ -94,11 +94,36 @@ can handle missing regions of variable sizes
 \begin{figure}[hbt!]
   \begin{center}
     \includegraphics[width=0.5\textwidth]{FastMarching.png}
-    \caption{Taken from \cite{TeleaFastMarching2004}; Concept of the Fast-Marching Inpainting}
+    \caption{Cited from \cite{TeleaFastMarching2004}; Concept of the Fast-Marching Inpainting}
     \label{fig:fastMarching}
   \end{center}
 
 \end{figure}
+
+The mathematical formula for the calculation of a single pixels value can be boiled down to this:
+
+\[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]
+
+$B\epsilon$ in this case describes the known area around the pixel. These points are all summed up and weighted by a normalizing function $w$.
+$\Delta I$ is the image gradient, which is estimated by the central differences of the neighboring pixels.
+
+The weight function can be described as such
+
+\[w(p,q) = dir(p,q) \times dst(p,q) \times lev(p,q)\]
+
+whereas these three factors have the following formulas:
+
+\[dir(p,q) = \dfrac{p-q}{||p-q||} \times N(p)\]
+\[dst(p,q) = \dfrac{d_0^2}{||p-q||^2}\]
+\[lev(p,q) = \dfrac{T_0}{1 + |T(p) - T(q)|}\]
+
+$dir(p,q)$ in this case calculates the priority of the analyzed pixel $q$ in correlation to the pixel $p$s normal direction $N = \Delta T$.
+$dst(p,q)$ defines the distance between the known pixel $q$ and the yet unknown pixel $p$. Closer pixels should be weighted stronger than pixels which are further away.
+$lev(p,q)$ lastly is the level set distance of the two pixels, ensuring that pixels closer to the contour of $p$ contribute more to the resulting value of $p$ than those further away.
+
+$d_0 and T_0$ reference the relative interpixel distance, usually set to 1. It was based on the model of manual inpainting heuristics first introduced by Bertalimo, see \cite{Bertalimo2000}, on how to paint a point by introducing colors from a small region around it \cite{TeleaFastMarching2004}.
+
+This algorithm itself can only calculate a value for one color channel. By applying it to all 3 channels of the RGB spectrum the algorithm can be used to calculate pixels for colored video frames.
 
 \subsubsection{Texture Synthesis and Region Segmentation}
 
