@@ -105,15 +105,13 @@ can handle missing regions of variable sizes
 
 The mathematical formula for the calculation of a single pixels value can be boiled down to this:
 
-\[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]
-
+\[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]\\
 $B\epsilon$ in this case describes the known area around the pixel. These points are all summed up and weighted by a normalizing function $w$.
 $\Delta I$ is the image gradient, which is estimated by the central differences of the neighboring pixels.
 
 The weight function can be described as such
 
-\[w(p,q) = dir(p,q) \times dst(p,q) \times lev(p,q)\]
-
+\[w(p,q) = dir(p,q) \times dst(p,q) \times lev(p,q)\]\\
 whereas these three factors have the following formulas:
 
 \[dir(p,q) = \dfrac{p-q}{||p-q||} \times N(p)\]
@@ -122,11 +120,12 @@ whereas these three factors have the following formulas:
 
 $dir(p,q)$ in this case calculates the priority of the analyzed pixel $q$ in correlation to the pixel $p$s normal direction $N = \Delta T$.
 $dst(p,q)$ defines the distance between the known pixel $q$ and the yet unknown pixel $p$. Closer pixels should be weighted stronger than pixels which are further away.
-$lev(p,q)$ lastly is the level set distance of the two pixels, ensuring that pixels closer to the contour of $p$ contribute more to the resulting value of $p$ than those further away.
-
+$lev(p,q)$ lastly is the level set distance of the two pixels, ensuring that pixels closer to the contour of $p$ contribute more to the resulting value of $p$ than those further away.\\
 $d_0 and T_0$ reference the relative interpixel distance, usually set to 1. It was based on the model of manual inpainting heuristics first introduced by Bertalimo, see \cite{Bertalimo2000}, on how to paint a point by introducing colors from a small region around it \cite{TeleaFastMarching2004}.
 
 This algorithm itself can only calculate a value for one color channel. By applying it to all 3 channels of the RGB spectrum the algorithm can be used to calculate pixels for colored video frames.
+
+\subsubsection{Nearest Neighbor Pixel Filling}
 
 \subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
 \label{cha:NonlocalTexture}
@@ -136,10 +135,16 @@ Whilst this approach is a lot more complex compared to the rather simple FMM, it
 It accomplishes this by first prioritizing the patches to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch.
 
 The priority function is defined as
-\[P(\Psi_p) = C(\Psi_p) \times D(\Psi_p), p \in \delta\Omega\]
-
+\[P(\Psi_p) = C(\Psi_p) \times D(\Psi_p), p \in \delta\Omega\]\\
 In this function, $\Psi_p$ is defined as the selected patch, whereas the pixel p is defined as the center point of the patch, which is a part of the unknown area boundaries $\delta\Omega$.
-$C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known pixels within the given patch. $D(\Psi_p)$ is defined as the dot product of the isophote vector. This vector is defined to go along the direction of equal pixel intensity lines of the known area.
+$C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known pixels within the given patch. $D(\Psi_p)$ is defined as the dot product of the isophote vector of p ($\Delta I_p$). This vector is defined to go along the direction of equal pixel intensity lines of the known area.
+
+\[D(\Psi_p) = \dfrac{\Delta I_p \times n_p}{I_{max}}\]
+\[\Delta I_p = \dfrac{1}{2I_{max}} \{[I(x_p, y_p - 1) - I(x_p, y_p + 1)] \times i + [I(x_p + 1, y_p) - I(x_p - 1, y_p)] \times j\}\]
+\[n_p = [M(x_p + 1, y_p) - M(x_p - 1, y_p)] \times i + [M(x_p, y_p + 1) - M(x_p, y_p - 1)] \times j \]
+\\
+$n_p$ in this case defines the normal vector at the center pixel $p$. $M$ returns 1, in case the given coordinate in the parameters is inside of the known pixels, and 0 in case it is at the position of an unknown pixel.
+Lastly, i and j are defined as unit vectors in the x and y direction.
 
 After the prioritized target patch is chosen, a nonlocal texture similarity (NLTS) measure is used to select canidate patches as sources for filling the target region.
 This NLTS is defined as such:
@@ -149,20 +154,15 @@ $G_p$ is the Gaussian kernel over the target patch with p at its center.
 
 Using this NLTS measure, a number of source regions may be collected. The more canidates the following algorithm has, the less error prone the inpainting.
 
-After deciding on which canidate patches to pick, for each of the missing pixels, the mean value of all the canidates corresponding pixels is calculated and applied to the target pixel.
-
+After deciding on which canidate patches to pick, for each of the missing pixels, the mean value of all the canidates corresponding pixels is calculated and applied to the target pixel.\\
 To support color, the isophote vector, used for the priority calculation, is computed as the average of all three color channels. The NLTS formular too is changed slightly, to sum up the value above for each of the three color channels \cite{DingRam2019}.
 
-\subsubsection{Nearest Neighbor Pixel Filling}
-
 \subsubsection{Exemplar-Based Image Inpainting with modified priorities}
-This method was first proposed 2015 by Deng, see \cite{DengLiang-Jian2015EIIU}.
-
+This method was first proposed 2015 by Deng, see \cite{DengLiang-Jian2015EIIU}.\\
 For this method, many approaches are similar to the nonlocal texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
-
 Therefore these two algorithms are used as a comparison of such exemplar-based inpainting algorithms compared to other methodologies.
 
-For this method, the priority function is overhauled to the following:
+Compared to the approach of the prior chapter, the priority function is overhauled to the following:
 
 \[
   P(p) = 
@@ -170,13 +170,11 @@ For this method, the priority function is overhauled to the following:
     \text{D(p),} & \text{first phase}\\
     \text{C(p),} & \text{second phase}\\
   \end{cases}
-\]
-
-As for how many steps each phase gets, the first phase needs to be estimated or set statically. Afterwards the second phase may go on until the missing region is filled out completely.
-
+\]\\
+As for how many steps each phase gets, the first phase needs to be estimated or set statically. Afterwards the second phase may go on until the missing region is filled out completely.\\
 To reduce the computational load of the similarity between two patches, the formula was changed accordingly:
 
-\[\Psi_q = arg min d(\Psi_p, \Psi_q)\]
+\[\Psi_q = argmin\ d(\Psi_p, \Psi_q)\]
 $d(\Psi_p, \Psi_q)$ in this case describes the sum of squared differences of the known pixels between the two patches.
 
 After finding the patch with the highest similarity, this patch is used to fill the missing pixels of the target patch. This is one of the methodologies in which it differs to the approach of \ref{cha:NonlocalTexture}. Instead of picking multiple source patches and using mean values it only considers one \cite{DengLiang-Jian2015EIIU}.
