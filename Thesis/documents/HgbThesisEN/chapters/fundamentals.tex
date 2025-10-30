@@ -2,7 +2,7 @@
 \label{cha:Fundamentals}
 
 Before starting with the introduction to the InpaintAR tool some general knowledge and information needs to be further elaborated upon.
-All of the concepts relevant for the tool, and which algorithms and logics it uses to achieve its goal of reducing the users distraction are being presented, starting from a more detailed explanation on Visual Clutter and why it is relevant in MR, 
+All of the concepts relevant for the tool as well as which algorithms and methods it uses to achieve its goal of reducing the users distraction are being presented, starting from a more detailed explanation on Visual Clutter and why it is relevant in Mixed Reality (MR), 
 to a more detailed introduction to DR, inpainting, how those two concepts can be combined and the inpainting methods analyzed in the tool and this thesis.
 
 \section{What is Visual Clutter}
@@ -19,11 +19,10 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
 \end{figure}
 
 \subsection{Why does it matter for Mixed Reality}
-Mixed Reality (MR), as defined by Paul Milgram in 1994, can be seen as an environment in which real and virtual objects are presented together through a single display. Therefore AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum which spans a completely real environment to a completely virtual one \cite{Milgram1994MR}.
+MR, as defined by Paul Milgram in 1994, can be seen as an environment in which real and virtual objects are presented together through a single display. Therefore AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
 
-As defined by S. Mann and J.Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users perception \cite{Mann2002}.
-
-Whilst during the design of traditional software and information visualization, information overload and clear user interfaces need to be carefully considered.
+As defined by S. Mann and J.Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users perception \cite{Mann2002}.\\
+During the design of traditional software and information visualization, information overload and clear user interfaces need to be carefully considered.
 In these domains all of the factors which may induce clutter and information overload can be controlled internally in the visualization or software \cite{RosenholtzRuth2007Mvc}.
 
 AR is uniquely flawed in that regard due to it enhancing the surrounding environment of the user. This in turn means there could be a lot of external factors which may cause clutter, starting from the pure concept and interactivity of AR
@@ -38,12 +37,11 @@ oftentimes allowing objects to be placed freely in the environment and therefore
 \end{figure}
 
 \section{Diminished Reality}
-DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality, due to the concept of software mediating both the physical and virtual objects the user gets to see.
-DR aims to remove or diminish real world objects from the perception of the user by hiding them from their view. This can range from completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
-but it is less perceived when looking at different objects \cite{ChengYiFei2022TUDR}.
+DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality, due to the concept of software mediating both the physical and virtual objects the user is allowed to see.
+DR aims to remove or diminish real world objects from the perception of the user by hiding them from their view. This can be accomplished by either from completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
+however perceives its presence less when looking at different objects \cite{ChengYiFei2022TUDR}.
 
-Many experiments have been done using DR already. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.
-
+Many experiments have been done using DR already. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
 These works use similar concepts to the one implemented in the tool built for this thesis, working with inpainting algorithms to hide physical objects for the users benefit, be it decision making for interior designs, increasing driver safety during overtaking, or in the case of this thesis, in reducing distractions caused by clutter.
 
 There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments done in \cite{ChengYiFei2022TUDR} opacity reduction and outlining provides the best results.
@@ -60,7 +58,7 @@ Therefore this overlay needs to be filled with a plausible background. Inpaintin
 
 \subsection{What is inpainting}
 Image inpainting is based on the concept of recovering and completing missing regions in an image or removing objects in it. This concept has been around for many years, having been used in image restoration or removing damage caused by deterioration.
-In recent years it has gained more popularity due to the improvement of image processing tools and the advances of digital image editing. To achieve this several methods have been developed to achieve this effect automatically. These range from 
+In recent years it has gained more popularity due to the improvement of image processing tools and the advances of digital image editing. To achieve this, several methods have been developed to create such an effect automatically. These range from 
 static sequential algorithms over CNN-based approaches, using neural networks with automatic deep learning up to GAN-based solutions using Generative adversarial networks for training the images of specialized inpainting models \cite{ElharroussOmar2020IIAR}.
 
 These categories and many of the provided methods provide adequate results for the inpainting of images, DR requires these methods to perform the inpainting as quickly as possible to adjust to the users movement and provide believable results. 
@@ -74,12 +72,9 @@ Therefore there are several methods specialized specific use of real-time inpain
   \end{center}
 \end{figure}
 \subsection{Methods analyzed in this thesis}
-As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and be outdated quickly. Therefore, only a few candidates for each of the larger categories of inpainting methodologies are being looked at in detail to provide an overview.
+As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and be outdated quickly. Therefore, only a few select candidates which promise sufficient performance for DR are being looked at in detail to provide an overview.
 
 From gaining an understanding, which categories correlate to certain desired benefits, readers may get a rough estimation of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
-
-Many of the current inpainting methods are made to use trained models, which are fed large amounts of example data to receive good results. Since this does not seem very practical in practice, when trying to implement inpainting as a part of a larger system or project, the focus has therefore been put on
-regular algorithms and self-training models.
 
 \subsubsection{Fast Marching Method}
 Having first been proposed back in 1999 by Sethian, see \cite{Sethian1999}, the Fast Marching Method (FMM) is an analytical method, which was first developed to solve boundary problems.
@@ -105,32 +100,29 @@ The mathematical formula for the calculation of a single pixels value can be boi
 
 \[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]\\
 $B\epsilon$ in this case describes the known area around the pixel. These points are all summed up and weighted by a normalizing function $w$.
-$\Delta I$ is the image gradient, which is estimated by the central differences of the neighboring pixels.
-
+$\Delta I$ is the image gradient, which is estimated by the central differences of the neighboring pixels.\\
 The weight function can be described as such
 
 \[w(p,q) = dir(p,q) \times dst(p,q) \times lev(p,q)\]\\
-whereas these three factors have the following formulas:
+whereas these three factors have the following formulas:\\
 
 \[dir(p,q) = \dfrac{p-q}{||p-q||} \times N(p)\]
 \[dst(p,q) = \dfrac{d_0^2}{||p-q||^2}\]
 \[lev(p,q) = \dfrac{T_0}{1 + |T(p) - T(q)|}\]
-
 $dir(p,q)$ in this case calculates the priority of the analyzed pixel $q$ in correlation to the pixel $p$s normal direction $N = \Delta T$.
 $dst(p,q)$ defines the distance between the known pixel $q$ and the yet unknown pixel $p$. Closer pixels should be weighted stronger than pixels which are further away.
 $lev(p,q)$ lastly is the level set distance of the two pixels, ensuring that pixels closer to the contour of $p$ contribute more to the resulting value of $p$ than those further away.\\
-$d_0 and T_0$ reference the relative interpixel distance, usually set to 1. It was based on the model of manual inpainting heuristics first introduced by Bertalimo, see \cite{Bertalimo2000}, on how to paint a point by introducing colors from a small region around it \cite{TeleaFastMarching2004}.
-
-This algorithm itself can only calculate a value for one color channel. By applying it to all 3 channels of the RGB spectrum the algorithm can be used to calculate pixels for colored video frames.
+$d_0$ and $T_0$ reference the relative interpixel distance, usually set to 1 \cite{TeleaFastMarching2004}. \\
+It was based on the model of manual inpainting heuristics first introduced by Bertalimo, on how to paint a point by introducing colors from a small region around it \cite{Bertalimo2000}.\\\\
+This algorithm alone can only calculate a value for one color channel. By applying it to all 3 channels of the RGB spectrum it can easily be adjusted to calculate pixels for colored video frames.
 
 \subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
 \label{cha:NonlocalTexture}
 Proposed back in 2019, see \cite{DingRam2019}, this method aims to find existing neighboring areas, which match the existing surrounding texture to find a pixels value.
-Whilst this approach is a lot more complex compared to the rather simple FMM, it promises higher quality results, due to working through batches of pixels and trying to keep a consistent pattern within it.
+Whilst this approach is a lot more complex compared to the rather simple FMM, it promises higher quality results, due to working through patches of pixels and trying to keep a consistent pattern within it.
 
-It accomplishes this by first prioritizing the patches to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch.
-
-The priority function is defined as
+It accomplishes this by first prioritizing the patches to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch.\\
+The priority function is defined as:
 \[P(\Psi_p) = C(\Psi_p) \times D(\Psi_p), p \in \delta\Omega\]\\
 In this function, $\Psi_p$ is defined as the selected patch, whereas the pixel p is defined as the center point of the patch, which is a part of the unknown area boundaries $\delta\Omega$.
 $C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known pixels within the given patch. $D(\Psi_p)$ is defined as the dot product of the isophote vector of p ($\Delta I_p$). This vector is defined to go along the direction of equal pixel intensity lines of the known area.
@@ -139,12 +131,11 @@ $C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known 
 \[\Delta I_p = \dfrac{1}{2I_{max}} \{[I(x_p, y_p - 1) - I(x_p, y_p + 1)] \times i + [I(x_p + 1, y_p) - I(x_p - 1, y_p)] \times j\}\]
 \[n_p = [M(x_p + 1, y_p) - M(x_p - 1, y_p)] \times i + [M(x_p, y_p + 1) - M(x_p, y_p - 1)] \times j \]
 \\
-$n_p$ in this case defines the normal vector at the center pixel $p$. $M$ returns 1, in case the given coordinate in the parameters is inside of the known pixels, and 0 in case it is at the position of an unknown pixel.
-Lastly, i and j are defined as unit vectors in the x and y direction.
-
+$n_p$ in this case defines the normal vector at the center pixel $p$. $M$ returns 1, in case the given coordinate in the parameters is inside of the known pixels and 0 in case it is at the position of an unknown pixel.
+Lastly, i and j are defined as unit vectors in the x and y direction.\\
 After the prioritized target patch is chosen, a nonlocal texture similarity (NLTS) measure is used to select canidate patches as sources for filling the target region.
 This NLTS is defined as such:
-\[NLTS(I_p, I_q) = \dfrac{-||(I_p^2-I_q^2) o G_p||1}{h^2}\]
+\[NLTS(I_p, I_q) = \dfrac{-||(I_p^2-I_q^2)\ o\ G_p||1}{h^2}\]
 $o$ is in this case defined at the element-wise product operator, whilst h is a user-selected parameter, which should be proportionately larger than the maximum color value (usually 255).
 $G_p$ is the Gaussian kernel over the target patch with p at its center.
 
@@ -167,7 +158,7 @@ Compared to the approach of the prior chapter, the priority function is overhaul
     \text{C(p),} & \text{second phase}\\
   \end{cases}
 \]\\
-As for how many steps each phase gets, the first phase needs to be estimated or set statically. Afterwards the second phase may go on until the missing region is filled out completely.\\
+As for how many steps each phase is given, the first phase needs to be estimated or set statically. Afterwards the second phase may go on until the missing region is filled out completely.\\
 To reduce the computational load of the similarity between two patches, the formula was changed accordingly:
 
 \[\Psi_q = argmin\ d(\Psi_p, \Psi_q)\]
@@ -202,15 +193,15 @@ The first of the loss functions concerns itself with perceptual loss. This funct
 The second function puts its focus on the adversarial loss, focussing on generating naturally looking details. It accomplishes this by using a discriminator, which discriminates between the existing and the generated patches. Thanks to the perceptual loss of the first function, this generator quickly learns to copy the existing areas of the image.
 
 In the final step a gradient penalty is applied to stabilize the training data. It has also been proven to in some cases slightly improve performance \cite{SuvorovRoman2022RLMI}\\\\
-Due to the existence of pre-trained models, the focus in this paper lies on the integration of the model into a real-time inpainting process.
+Due to the existence of pre-trained models, the focus in this paper lies on the integration and evaluation of the model inside a real-time inpainting process.
 
 Thanks to the easy to improve nature of these models the quality metrics of the evaluation might be less relevant though. With more training data and time the results might be improved even further, although the extension of the model might come with a reduction in performance.
 
 \subsection{Inpainting in Diminished Reality}
 Inpainting using deep learning models, like LaMa and algorithmic methods, like the fast-marching method are very common in the image space for object reduction. DR however comes with its own set of challenges for these methods.
 
-They have to be be highly efficient and light on resource use, to allow for the usage of these methods on user devices, like phones, video-based HMDs or regular desktop PCs, whilst at the same time managing real-time framerates of 30-60+ FPS (30 FPS for regular displays, 60+ should be aimed for when using HMDs to reduce motion sickness \cite{WangQile2023Asro})
+These methods have to be be highly efficient and light on resource use, to allow for the usage of these methods on user devices, like phones, video-based HMDs or regular desktop PCs, whilst at the same time managing real-time framerates of 30-60+ FPS (At least 30 FPS for regular displays, 60+ should be aimed for when using HMDs to reduce motion sickness \cite{WangQile2023Asro})
 
-In addition to this, the results need to be believable enough to not be noticable to the end user. The advantage of the tool built in the later chapters is the use case. By only hiding objects from the background and/or overlaying it with virtual objects, the visual quality does not need to be photorealistic, due to the user not focussing on the inpainted area.
-These results should have as little temporal artifacts as possible, meaning the inpainted region should not change majorly between frames to avoid flickering \cite{GsaxnerChristina2024DDSR}.
+In addition to this, the results need to be believable enough to not be noticable to the end user. By only hiding objects from the background and/or overlaying it with virtual objects, the visual quality does not need to be photorealistic, due to the user not focussing on the inpainted area. Therefore this might soften up the quality requirements a bit.
+These results should in addition have as little temporal artifacts as possible, meaning the inpainted region should not change majorly between frames to avoid flickering \cite{GsaxnerChristina2024DDSR}.
 
