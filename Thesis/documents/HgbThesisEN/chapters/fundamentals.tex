@@ -79,6 +79,9 @@ As there are many different methods currently available regarding inpainting, an
 
 From gaining an understanding, which categories correlate to certain desired benefits, readers may get a rough estimation of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
+Many of the current inpainting methods are made to use trained models, which are fed large amounts of example data to receive good results. Since this does not seem very practical in practice, when trying to implement inpainting as a part of a larger system or project, the focus has therefore been put on
+regular algorithms and self-training models.
+
 \subsubsection{Fast Marching Method}
 Having first been proposed back in 1999 by Sethian, see \cite{Sethian1999}, the Fast Marching Method (FMM) is an analytical method, which was first developed to solve boundary problems.
 
@@ -125,11 +128,60 @@ $d_0 and T_0$ reference the relative interpixel distance, usually set to 1. It w
 
 This algorithm itself can only calculate a value for one color channel. By applying it to all 3 channels of the RGB spectrum the algorithm can be used to calculate pixels for colored video frames.
 
-\subsubsection{Texture Synthesis and Region Segmentation}
+\subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
+\label{cha:NonlocalTexture}
+Proposed back in 2019, see \cite{DingRam2019}, this method aims to find existing neighboring areas, which match the existing surrounding texture to find a pixels value.
+Whilst this approach is a lot more complex compared to the rather simple FMM, it promises higher quality results, due to working through batches of pixels and trying to keep a consistent pattern within it.
+
+It accomplishes this by first prioritizing the patches to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch.
+
+The priority function is defined as
+\[P(\Psi_p) = C(\Psi_p) \times D(\Psi_p), p \in \delta\Omega\]
+
+In this function, $\Psi_p$ is defined as the selected patch, whereas the pixel p is defined as the center point of the patch, which is a part of the unknown area boundaries $\delta\Omega$.
+$C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known pixels within the given patch. $D(\Psi_p)$ is defined as the dot product of the isophote vector. This vector is defined to go along the direction of equal pixel intensity lines of the known area.
+
+After the prioritized target patch is chosen, a nonlocal texture similarity (NLTS) measure is used to select canidate patches as sources for filling the target region.
+This NLTS is defined as such:
+\[NLTS(I_p, I_q) = \dfrac{-||(I_p^2-I_q^2) o G_p||1}{h^2}\]
+$o$ is in this case defined at the element-wise product operator, whilst h is a user-selected parameter, which should be proportionately larger than the maximum color value (usually 255).
+$G_p$ is the Gaussian kernel over the target patch with p at its center.
+
+Using this NLTS measure, a number of source regions may be collected. The more canidates the following algorithm has, the less error prone the inpainting.
+
+After deciding on which canidate patches to pick, for each of the missing pixels, the mean value of all the canidates corresponding pixels is calculated and applied to the target pixel.
+
+To support color, the isophote vector, used for the priority calculation, is computed as the average of all three color channels. The NLTS formular too is changed slightly, to sum up the value above for each of the three color channels \cite{DingRam2019}.
 
 \subsubsection{Nearest Neighbor Pixel Filling}
 
-\subsubsection{DeepLearning}
+\subsubsection{Exemplar-Based Image Inpainting with modified priorities}
+This method was first proposed 2015 by Deng, see \cite{DengLiang-Jian2015EIIU}.
+
+For this method, many approaches are similar to the nonlocal texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
+
+Therefore these two algorithms are used as a comparison of such exemplar-based inpainting algorithms compared to other methodologies.
+
+For this method, the priority function is overhauled to the following:
+
+\[
+  P(p) = 
+  \begin{cases}
+    \text{D(p),} & \text{first phase}\\
+    \text{C(p),} & \text{second phase}\\
+  \end{cases}
+\]
+
+As for how many steps each phase gets, the first phase needs to be estimated or set statically. Afterwards the second phase may go on until the missing region is filled out completely.
+
+To reduce the computational load of the similarity between two patches, the formula was changed accordingly:
+
+\[\Psi_q = arg min d(\Psi_p, \Psi_q)\]
+$d(\Psi_p, \Psi_q)$ in this case describes the sum of squared differences of the known pixels between the two patches.
+
+After finding the patch with the highest similarity, this patch is used to fill the missing pixels of the target patch. This is one of the methodologies in which it differs to the approach of \ref{cha:NonlocalTexture}. Instead of picking multiple source patches and using mean values it only considers one \cite{DengLiang-Jian2015EIIU}.
+
+This should therefore reduce the computational complexity, reducing the runtime of the process. In return this will causes the method to be a bit more error prone and for the output to potentially be of lower quality.
 
 \subsubsection{Regression}
 
