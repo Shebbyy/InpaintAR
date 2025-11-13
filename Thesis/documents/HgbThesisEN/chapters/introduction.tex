@@ -1,13 +1,14 @@
 \chapter{Introduction}
 \label{cha:Introduction}
 
-The domain of Augmented Reality (AR)  spans all kinds of real-time visualization approaches wherein an otherwise real environment is augmented with virtual objects \cite{Milgram1994}.
+The term Augmented Reality (AR) can be defined as "augmenting natural feedback to the operator with simulated cues". This definition includes not only Head-Mounted-Displays (HMDs), for which the term has been commonly used as of late, but also Monitor-Based systems, in which computer generated images are overlaid onto live or stored videos \cite{Milgram1994}.
 While many still consider AR a nieche, the user-numbers tell a different story. In 2023 Statista reported about 983 Million users to be using AR on their mobile devices. \cite{Statista2024}.
 
-One of the issues still common in AR applications is the overload of information. Whenever users are supposed to focus on the virtual objects at hand, the visibility of physical objects may serve as a distraction (cf. Cheng et. al. \cite{ChengYiFei2022TUDR}).\\
-An existing solution is the use of Diminished Reality (DR). This concept can be interpreted as a specific use case of AR, which aims to hide or remove certain physical objects from the viewport in real time.\cite{Mann2002} (see \ref{fig:figDR}). In the case of the tool presented in this thesis, DR can be used to reduce the visual clutter.
+AR applications are, due to their nature of adding additional objects onto the users viewing area, very prone to information overload. Whenever users are supposed to focus on the virtual objects at hand, the visibility of physical objects may serve as a distraction (cf. Cheng et. al. \cite{ChengYiFei2022TUDR}).
+\\
+An existing solution is the use of Diminished Reality (DR). This concept can be interpreted as a specific use case of AR, which aims to hide or remove certain physical objects from the viewport in real time.\cite{Mann2002} (see \ref{fig:figDR}). By using an approach similar to the one presented in this thesis, DR may be used to reduce the visual clutter caused by the real environment.
 
-To achieve this, the visual clutter from the viewport is intentionally drawn over, artificially damaging the frame shown to the user on the display. To fix such damaged images, image inpainting is one of the techniques available and the one used in this thesis.
+To achieve this, the visual clutter from the viewport is intentionally drawn over, artificially damaging the frame shown to the user on the display. To fix these visual artifacts, image inpainting is one of the techniques available and the one used in this thesis.
 
 \begin{figure}[h!]
   \includegraphics{figDR.png}
@@ -16,41 +17,45 @@ To achieve this, the visual clutter from the viewport is intentionally drawn ove
 \end{figure}
 
 \section{Motivation}
-Clutter is an ever present phenomenon in our daily lives. The description of what exactly counts as clutter in terms of features, attributes or how to identify it objectively is still difficult to define \cite{RosenholtzRuth2007Mvc}. It has been proven through multiple experiments and studies that reducing visual distractions such as clutter improves a persons ability to focus and keep a longer attention span, see for example \cite{MaXiaojin2023VDSL}
+Clutter is an ever present phenomenon in our daily lives. It is still rather difficult to clearly automatically detect visual clutter, as there is still a lack of clear understanding, which factors, features and attributes are relevant \cite{RosenholtzRuth2007Mvc}. It has been shown through multiple experiments and studies that reducing visual distractions such as clutter improves a persons ability to focus and keep a longer attention span, see for example \cite{MaXiaojin2023VDSL}
 
-Distraction cannot only be caused by visual input, but also through sound. During the last few years the technology of noise cancellation has matured enough to allow the mass production of high-quality headphones with acoustic noise cancellation, therefore overcoming this negative effect.
-At the current moment there is very little awareness about the visual noise though. During an experiment done on which visual factors might impact focus, next to lighting and motions, information overload as well as distractions caused by objects such as food, animals, large textures or bright spots have been pointed out by the participants \cite{HongJunlei2024VNCE}.
+Over the last years there have been several solutions for reducing distractions caused by real world interference, most of them for sound. Recently, the technology of noise cancellation has matured enough to allow the mass production of high-quality headphones with acoustic noise cancellation, therefore overcoming this negative effect.
+However, at the current moment there is very little awareness about the distraction caused through visual noise, not to mention a severe lack of universal solutions for it. During an experiment on which visual factors might impact focus, next to lighting and motions, information overload as well as distractions caused by objects such as food, animals, large textures or bright spots have been pointed out by the participants \cite{HongJunlei2024VNCE}.
 
 While there are existing solutions for achieving DR using inpainting, as seen for example in "DeepDR", a project to provide structure-aware RGB-D inpainting for DR \cite{GsaxnerChristina2024DDSR}, the evaluation of which of the existing inpainting methods to use for not only this domain, but inpainting in a 3-dimensional real-time environment has largely been disregarded as of now.
 
-Most publications put the focus on different components of the system like the detection of the objects, depth detection, user studies or optimizations of smaller visual artifacts. At most some evaluation is done when presenting new state of the art algorithms and solutions for inpainting, but a large overview of existing algorithms and solutions and the evaluation in a real-time setting has been missing as of now.
-Over the last years there have been numerous achievements in the space of inpainting methods. Ranging from classic, low-cost algorithms like the fast marching algorithm \cite{Weiwei2021} or the usage of matching textures using gaussian weighting to fill the affected regions \cite{DingRam2019} to more modern machine-learning assisted high fidelity approaches like the DeepFill \cite{MuziHao2023} or another Deep-Learning model, LaMa, which is being evaluated in this thesis \cite{SuvorovRoman2022RLMI}, due to the available pre-trained small size models.
+Most publications put the focus on different components of the system like the detection of the objects, depth detection, user studies or optimizations of smaller visual artifacts. At most there are some evaluations for comparison, when presenting new state of the art algorithms and solutions for inpainting, but a large overview of existing algorithms and solutions and the evaluation in a real-time setting has been missing as of now.
+Over the last years there have been numerous achievements in the space of inpainting methods. Ranging from classic, low-cost algorithms like the fast marching algorithm \cite{Weiwei2021} or the usage of matching textures using gaussian weighting to fill the affected regions \cite{DingRam2019} to more modern machine learning assisted high fidelity approaches like the DeepFill \cite{MuziHao2023} or another machine learning model, LaMa, which is being evaluated in this thesis \cite{SuvorovRoman2022RLMI}, due to the available pre-trained small size models.
 
-The main goal of this analysis is to provide an easy to reference comparison of the different methodologies to be compared in terms of both performance and quality. Through this analysis, developers can make an educated choice on which methodology to use for their use case, be it high fidelity in use cases like PC-powered AR systems or low energy, low performance systems, more suited for mobile devices, be they mobile phones or standalone Mixed-Reality Head-Mounted Displays (HMDs).
+These methodologies have largely only been evaluated in simple image inpainting scenarios, even though some of these approaches seem practicable for a real time inpainting use case.
+
+The main goal of this analysis is therefore to provide an easy to reference comparison of the different methodologies to be compared in terms of both performance and quality in a real time setting. Through this analysis, developers can make an educated choice on which methodology to use for their implementations, be it high fidelity in use cases like PC-powered AR systems or low energy, low performance systems, more suited for mobile devices, like mobile phones or standalone Mixed-Reality HMDs.
 In addition, the tool built for this evaluation should be easy to extend for newer inpainting methods whilst staying easy to integrate into existing applications to allow for a quick and efficient tool to provide the clutter removal functionality to other AR projects.
 
 \section{Overview}
 
-This work includes an introduction to the underlying concepts and analyzed inpainting methods, followed by the conceptualization and implementation of the tool as well as the performance and quality evaluation for each of the analyzed inpainting methods. These topics are elaborated upon in the following five chapters:
+This work includes an introduction to the underlying concepts and analyzed inpainting methods, followed by the conceptualization and implementation of the presented solution as well as the performance and quality evaluation for each of the analyzed inpainting methods. These topics are elaborated upon in the following five chapters:
 
 \begin{itemize}
 \item \textbf{Chapter 2: Fundamentals and Related Work}
 
-At the start of the thesis, this chapter serves to provide an introduction into visual clutter and why it matters to the domain of AR. The term of DR is explored into further detail, as well as the underlying logic of each of the analyzed inpainting methods and the challenges of inpainting, specifically in DR.
+Initially, an introduction into visual clutter and why it is of such high importance, explicitly to the domain of AR is provided. The term of DR is explored into further detail, as well as the underlying logic of each of the analyzed inpainting methods and the challenges of inpainting, specifically in DR.
 
 \item \textbf{Chapter 3: Concept}
 
-The concept chapter goes into further detail on the architecture and design chosen for this tool. Next to explaining the different requirements and code libraries needed for the usage of the tool, some domains and usecases in which the tool might be used are also elaborated upon.
+Further details on the architecture and design chosen for the Unity3D solution are presented here. Next to explaining the different requirements and code libraries needed for the usage of the tool, some domains and usecases in which the tool might be used are also elaborated upon.
 
 \item \textbf{Chapter 4: Implementation}
 
-In this chapter each of the classes contained in this tool is explained briefly. In addition a small guide is being provided, as to how the tool could be implemented for the usage in existing projects. Some of the tools and principles used during the implementation are going to be elaborated on as well.
+Each of the classes contained in the implementation is explained briefly. In addition a small guide is being provided, as to how it could be implemented into existing projects. Some of the existing tools and principles used during the implementation are going to be elaborated on as well.
 
 \item \textbf{Chapter 5: Evaluation}
 
 After providing an overview of the testing setup and how visual clutter and performance are measured, the test scenarios will be presented, followed by the results for each of the analyzed methods.
 
 \item \textbf{Chapter 6: Conclusion and Future Work}
+
+\b{TODO STILL FURTHER ELABORATE AFTER CHAPTER IS WRITTEN}
 
 At the end of the thesis all the results and the everything mentioned in the previous chapters is briefly summed up. Afterwards further ideas on how to expand and improve the tool in the future are provided to improve both the developer and user experience even further.
 \end{itemize}

@@ -3,28 +3,20 @@
 
 Go into Detail about the overview, how it is built architecturally, what are the components, explained in further sections
 
-\section{Components}
+\subsection{Area Selection}
+- Area Selection using Hand-Gesture-Recognition (just a quick introduction on why it makes sense for easy usage, not how)
+
+- Area-Finetuning and Tracking using the Snakes algorithm (allows boundaries of objects to be detected in an area of interest and be tracked between frames)
+-> Quick introduction to how the Snakes algorithm works / why Finetuning might be interesting (less pixels to inpaint -> higher performance + automatic boundary adjustment on movements)
+
+\subsection{Inpainting}
+- Inpainting Factory, which then splits into its sub-classes for each of the methodologies
+
+\subsection{Masking the Camera Feed}
+- Inpainting Mask which automatically adjusts itself to the back-edge of the virtual cameras frustum, so nothing needs to be configured by developers integrating it
+
+\subsection{Wrapping it up into one configurable script}
+- How this is all wrapped up into one simple Script to be added to a Camera Object in Unity, with Options in the Properties Tab to allow for Inpainting Method Switching per Dropdown in the Unity Editor
 
 \section{Requirements}
-
-Small explanation of what requirements exist, unity
-
-\subsection{Hardware}
-go into detail about meta quest 3
-
-\subsection{Meta AR Library}
-Explain the AR Library, how it is used / why needed
-
-\subsection{Unity XR Hand-Tracking Library}
-Explain Gestures / Hand Pose Recognition
-
-\section{Usecases}
-Go into Detail about how the tool might prove useful
-
-\subsection{Interactive Analysis}
-Maybe ask canthes if i can reference some of the interactive analysis projects from HIVE as references / images
-
-\subsection{AR Training Simulations}
-
-\subsection{Entertainment Purposes}
-TODO add Image with virtual Chessboard on cluttered desk
+Small explanation of what requirements exist, unity, XR-Hand-Tracking Support
