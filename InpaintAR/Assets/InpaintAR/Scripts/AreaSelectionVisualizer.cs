@@ -1,3 +1,4 @@
+using Meta.XR;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -19,13 +20,14 @@ namespace InpaintAR.Scripts {
         private RectTransform m_rightCornerBox;
         private Canvas m_canvas;
         
-        private Image FillArea { get; set; }
+        private RawImage FillArea { get; set; }
         
         [Header("Debug Data")]
         public bool showDebugRect = true;
 
-        private Ray textureTopLeft;
-        private Ray textureTopRight;
+        private Ray m_textureTopLeft;
+        private Ray m_textureBottomRight;
+        private PassthroughCameraAccess m_cameraAccess;
 
         private void Start() {
             if (!areaDetection) {
@@ -34,6 +36,10 @@ namespace InpaintAR.Scripts {
             }
 
             CreateUICanvasAndCorners();
+
+            m_cameraAccess = gameObject.AddComponent<PassthroughCameraAccess>();
+            m_cameraAccess.CameraPosition = PassthroughCameraAccess.CameraPositionType.Left;
+            m_cameraAccess.RequestedResolution = new Vector2Int(1280, 960);
         }
 
         void Update() {
@@ -57,13 +63,35 @@ namespace InpaintAR.Scripts {
                 && areaDetection.LeftHandCornerScreenPos.Value.x <= areaDetection.RightHandCornerScreenPos.Value.x
                 && areaDetection.LeftHandCornerScreenPos.Value.y >= areaDetection.RightHandCornerScreenPos.Value.y)  {
                 FillRect.gameObject.SetActive(true);
-                
-                var leftPos = m_leftCornerBox.localPosition;
-                var rightPos = m_rightCornerBox.localPosition;
-                
-                Vector2 bottomLeft = new Vector2(Mathf.Min(leftPos.x, rightPos.x), Mathf.Min(leftPos.y, rightPos.y));
-                Vector2 topRight = new Vector2(Mathf.Max(leftPos.x, rightPos.x), Mathf.Max(leftPos.y, rightPos.y));
 
+                m_textureTopLeft = m_cameraAccess.ViewportPointToRay(new Vector2(0, 0));
+                m_textureBottomRight = m_cameraAccess.ViewportPointToRay(new Vector2(1, 1));
+                
+                // Convert ray origins of passthrough camera to screen space and then to local UI coordinates of actual main camera
+                Vector3 topLeftWorldPos = m_textureTopLeft.origin + m_textureTopLeft.direction * (m_canvas.worldCamera.farClipPlane - 0.1f);
+                Vector3 bottomRightWorldPos = m_textureBottomRight.origin + m_textureBottomRight.direction * (m_canvas.worldCamera.farClipPlane - 0.1f);
+                Vector3 topLeftScreenPos = m_canvas.worldCamera.WorldToScreenPoint(topLeftWorldPos);
+                Vector3 bottomRightScreenPos = m_canvas.worldCamera.WorldToScreenPoint(bottomRightWorldPos);
+                
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    (RectTransform)m_canvas.transform,
+                    topLeftScreenPos,
+                    m_canvas.worldCamera,
+                    out Vector2 topLeftLocalPos
+                );
+                
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    (RectTransform)m_canvas.transform,
+                    bottomRightScreenPos,
+                    m_canvas.worldCamera,
+                    out Vector2 bottomRightLocalPos
+                );
+                
+                Vector2 bottomLeft = new Vector2(Mathf.Min(topLeftLocalPos.x, bottomRightLocalPos.x), Mathf.Min(topLeftLocalPos.y, bottomRightLocalPos.y));
+                Vector2 topRight = new Vector2(Mathf.Max(topLeftLocalPos.x, bottomRightLocalPos.x), Mathf.Max(topLeftLocalPos.y, bottomRightLocalPos.y));
+                
+                FillArea.texture = m_cameraAccess.GetTexture();
+                FillArea.SetNativeSize();
                 FillRect.localPosition = bottomLeft;
                 FillRect.sizeDelta = topRight - bottomLeft;
             }
@@ -93,9 +121,9 @@ namespace InpaintAR.Scripts {
         private void CreateUICanvasAndCorners() {
             GameObject canvasObj = new GameObject("AreaSelectionUICanvas");
             m_canvas = canvasObj.AddComponent<Canvas>();
-            // set in front of camera, due to ui being rendered separately from world -> plane distance fine
             m_canvas.renderMode = RenderMode.ScreenSpaceCamera;
             m_canvas.worldCamera = Camera.main;
+            // place at far clipping pane -> no virtual objects are hidden
             m_canvas.planeDistance = Camera.main.farClipPlane - 0.1f;
             
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
@@ -127,8 +155,8 @@ namespace InpaintAR.Scripts {
             FillRect.anchorMin = FillRect.anchorMax = new Vector2(0.5f, 0.5f);
 
             // Add an Image to fill it with red initially
-            FillArea = fillObj.AddComponent<Image>();
-            FillArea.color = showDebugRect ? Color.red : Color.clear;
+            FillArea = fillObj.AddComponent<RawImage>();
+            FillArea.color = showDebugRect ? Color.red : Color.white;
 
             // Start hidden
             FillRect.gameObject.SetActive(false);
