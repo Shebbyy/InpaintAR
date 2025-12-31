@@ -3,7 +3,7 @@ using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 
 namespace InpaintAR.Scripts {
-    public class AreaDetection : MonoBehaviour {
+    public class AreaSelectionGestureHandler : MonoBehaviour {
         [Header("Hand Skeletons")] 
         [Tooltip("Left Hand of the OVRSkeleton")]
         public OVRSkeleton leftHandSkeleton;
@@ -108,7 +108,7 @@ namespace InpaintAR.Scripts {
             var indexTip = bones[8].Transform.position;
 
             // Thumb: Bone 3 (Thumb1) to 5 (Thumb3) more stable than proximal/distal
-            var thumbKnuckle = bones[3].Transform.position;
+            var thumbKnuckle = bones[4].Transform.position;
             var thumbTip = bones[5].Transform.position;
 
             // Finger direction Vectors + normalization

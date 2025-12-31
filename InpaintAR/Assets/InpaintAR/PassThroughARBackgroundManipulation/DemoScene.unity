@@ -481,7 +481,7 @@ GameObject:
   - component: {fileID: 858783771}
   - component: {fileID: 858783770}
   m_Layer: 0
-  m_Name: AreaDetector
+  m_Name: AreaSelectionGestureHandler
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -503,7 +503,7 @@ MonoBehaviour:
   rightHandSkeleton: {fileID: 1433277164}
   minAngle: 60
   maxAngle: 130
-  showDebugData: 1
+  showDebugData: 0
 --- !u!4 &858783771
 Transform:
   m_ObjectHideFlags: 0
@@ -894,6 +894,7 @@ MonoBehaviour:
   areaDetection: {fileID: 858783770}
   cornerSpriteSize: 128
   cornerSpriteThickness: 15
+  showDebugRect: 1
 --- !u!4 &1324206872
 Transform:
   m_ObjectHideFlags: 0

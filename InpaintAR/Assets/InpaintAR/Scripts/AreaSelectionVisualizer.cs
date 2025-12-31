@@ -5,7 +5,7 @@ namespace InpaintAR.Scripts {
     public class AreaSelectionVisualizer : MonoBehaviour {
         [Header("RequiredData")] 
         [Tooltip("Area Detection Object. If null, attempts to find it in the scene.")]
-        public AreaDetection areaDetection;
+        public AreaSelectionGestureHandler areaDetection;
 
         [Tooltip("Size of the corner sprites image")]
         public int cornerSpriteSize = 128;
@@ -23,6 +23,9 @@ namespace InpaintAR.Scripts {
         
         [Header("Debug Data")]
         public bool showDebugRect = true;
+
+        private Ray textureTopLeft;
+        private Ray textureTopRight;
 
         private void Start() {
             if (!areaDetection) {
@@ -125,12 +128,7 @@ namespace InpaintAR.Scripts {
 
             // Add an Image to fill it with red initially
             FillArea = fillObj.AddComponent<Image>();
-            if (showDebugRect) {
-                FillArea.color = Color.red;
-            }
-            else {
-                FillArea.color = Color.clear;
-            }
+            FillArea.color = showDebugRect ? Color.red : Color.clear;
 
             // Start hidden
             FillRect.gameObject.SetActive(false);
