@@ -1,4 +1,5 @@
 using System;
+using InpaintAR.Scripts.Inpainting;
 using JetBrains.Annotations;
 using Meta.XR;
 using UnityEngine;
@@ -26,7 +27,11 @@ namespace InpaintAR.Scripts {
         [Tooltip("Pixels per unit for the world space canvas")]
         public float pixelsPerUnit = 1000f;
 
-        public RectTransform FillRectMask { get; private set; }
+        [Header("Inpainting Settings")] 
+        [Tooltip("Which algorithm to use for the inpainting")] 
+        public InpaintingAlgorithms InpaintingAlgorithm;
+
+        private RectTransform FillRectMask { get; set; }
 
         // Internal references to the generated UI elements
         private RectTransform m_leftCornerBox;
