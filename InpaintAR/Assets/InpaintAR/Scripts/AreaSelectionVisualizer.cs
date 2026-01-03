@@ -14,6 +14,16 @@ namespace InpaintAR.Scripts {
         [Tooltip("Thickness of the corner sprite lines")]
         public int cornerSpriteThickness = 50;
 
+        [Header("World Space Canvas Settings")]
+        [Tooltip("Physical width of the canvas in world units")]
+        public float canvasWidth = 2.0f;
+        
+        [Tooltip("Physical height of the canvas in world units")]
+        public float canvasHeight = 1.5f;
+        
+        [Tooltip("Pixels per unit for the world space canvas")]
+        public float pixelsPerUnit = 1000f;
+
         public RectTransform FillRectMask { get; private set; }
 
         // Internal references to the generated UI elements
@@ -31,6 +41,7 @@ namespace InpaintAR.Scripts {
         private Ray m_textureBottomRight;
         private PassthroughCameraAccess m_cameraAccess;
         private RectTransform m_fillImageRect; // rect transform of the child RawImage
+        private Camera m_mainCam;
 
         private void Start() {
             if (!areaDetection) {
@@ -43,6 +54,7 @@ namespace InpaintAR.Scripts {
             m_cameraAccess = gameObject.AddComponent<PassthroughCameraAccess>();
             m_cameraAccess.CameraPosition = PassthroughCameraAccess.CameraPositionType.Left;
             m_cameraAccess.RequestedResolution = new Vector2Int(1280, 960);
+            m_mainCam = Camera.main;
         }
 
         void Update() {
@@ -61,32 +73,35 @@ namespace InpaintAR.Scripts {
             );
 
             // only update if rectangle is valid
-            if (areaDetection.LeftHandCornerScreenPos.HasValue
+            if (   areaDetection.LeftHandCornerScreenPos.HasValue
                 && areaDetection.RightHandCornerScreenPos.HasValue
                 && areaDetection.LeftHandCornerScreenPos.Value.x <= areaDetection.RightHandCornerScreenPos.Value.x
                 && areaDetection.LeftHandCornerScreenPos.Value.y >= areaDetection.RightHandCornerScreenPos.Value.y) {
                 FillRectMask.gameObject.SetActive(true);
+                // Update canvas position to follow camera
+                UpdateCanvasWorldPosition();
 
                 // Image position calculation so it matches with the passthrough background as close as possible
                 m_textureTopLeft = m_cameraAccess.ViewportPointToRay(new Vector2(0, 0));
                 m_textureBottomRight = m_cameraAccess.ViewportPointToRay(new Vector2(1, 1));
 
-                Vector3 topLeftWorldPos = m_textureTopLeft.origin + m_textureTopLeft.direction * (m_canvas.worldCamera.farClipPlane - 0.1f);
-                Vector3 bottomRightWorldPos = m_textureBottomRight.origin + m_textureBottomRight.direction * (m_canvas.worldCamera.farClipPlane - 0.1f);
-                Vector3 topLeftScreenPos = m_canvas.worldCamera.WorldToScreenPoint(topLeftWorldPos);
-                Vector3 bottomRightScreenPos = m_canvas.worldCamera.WorldToScreenPoint(bottomRightWorldPos);
+                float distance = GetCameraDistance();
+                Vector3 topLeftWorldPos = m_textureTopLeft.origin + m_textureTopLeft.direction * distance;
+                Vector3 bottomRightWorldPos = m_textureBottomRight.origin + m_textureBottomRight.direction * distance;
+                Vector3 topLeftScreenPos = m_mainCam.WorldToScreenPoint(topLeftWorldPos);
+                Vector3 bottomRightScreenPos = m_mainCam.WorldToScreenPoint(bottomRightWorldPos);
 
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     (RectTransform)m_canvas.transform,
                     topLeftScreenPos,
-                    m_canvas.worldCamera,
+                    m_mainCam,
                     out Vector2 topLeftLocalPos
                 );
 
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     (RectTransform)m_canvas.transform,
                     bottomRightScreenPos,
-                    m_canvas.worldCamera,
+                    m_mainCam,
                     out Vector2 bottomRightLocalPos
                 );
 
@@ -97,14 +112,14 @@ namespace InpaintAR.Scripts {
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     (RectTransform)m_canvas.transform,
                     areaDetection.LeftHandCornerScreenPos.Value,
-                    m_canvas.worldCamera,
+                    m_mainCam,
                     out Vector2 selLeftLocal
                 );
 
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(
                     (RectTransform)m_canvas.transform,
                     areaDetection.RightHandCornerScreenPos.Value,
-                    m_canvas.worldCamera,
+                    m_mainCam,
                     out Vector2 selRightLocal
                 );
 
@@ -126,7 +141,11 @@ namespace InpaintAR.Scripts {
                 m_fillImageRect.sizeDelta = topRight - bottomLeft;
             }
             else {
-                FillRectMask.gameObject.SetActive(false);
+                // Update to only adjust to camera angle
+                UpdateCanvasWorldPosition(false);
+                if (!showDebugRect) {
+                    FillImage.texture = m_cameraAccess.GetTexture();
+                }
             }
         }
 
@@ -141,24 +160,44 @@ namespace InpaintAR.Scripts {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 (RectTransform)cornerElem.parent,
                 screenPos.Value,
-                m_canvas.worldCamera,
+                m_mainCam,
                 out Vector2 localPos
             );
 
             cornerElem.localPosition = localPos;
         }
 
+        private void UpdateCanvasWorldPosition(bool withPosition = true) {
+            if (!m_canvas || !m_mainCam) return;
+            
+            // Position canvas at far clip plane of camera
+            Transform cam = m_mainCam.transform;
+            if (withPosition) {
+                float distance = GetCameraDistance();
+                m_canvas.transform.position = cam.position + cam.forward * distance;
+            }
+            m_canvas.transform.rotation = cam.rotation;
+        }
+
         private void CreateUICanvasAndCorners() {
             GameObject canvasObj = new GameObject("AreaSelectionUICanvas");
             m_canvas = canvasObj.AddComponent<Canvas>();
-            m_canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            m_canvas.worldCamera = Camera.main;
-            // place at far clipping pane -> no virtual objects are hidden
-            m_canvas.planeDistance = Camera.main.farClipPlane - 0.1f;
+            // Use World Space rendering
+            m_canvas.renderMode = RenderMode.WorldSpace;
+            
+            // Position canvas in world space
+            RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
+            canvasRect.sizeDelta = new Vector2(canvasWidth * pixelsPerUnit, canvasHeight * pixelsPerUnit);
+            
+            // Scale down to physical size
+            float scale = 1f / pixelsPerUnit;
+            canvasObj.transform.localScale = new Vector3(scale, scale, scale);
+            
+            // Position in front of camera (will be updated each frame)
+            UpdateCanvasWorldPosition();
 
             CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.dynamicPixelsPerUnit = pixelsPerUnit;
 
             canvasObj.AddComponent<GraphicRaycaster>();
 
@@ -253,6 +292,10 @@ namespace InpaintAR.Scripts {
 
             texture.Apply();
             return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        }
+
+        private float GetCameraDistance() {
+            return m_mainCam.farClipPlane - 0.3f;
         }
     }
 }
