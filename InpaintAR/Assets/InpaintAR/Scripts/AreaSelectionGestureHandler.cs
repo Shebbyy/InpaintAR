@@ -108,7 +108,7 @@ namespace InpaintAR.Scripts {
             var indexTip = bones[8].Transform.position;
 
             // Thumb: Bone 3 (Thumb1) to 5 (Thumb3) more stable than proximal/distal
-            var thumbKnuckle = bones[4].Transform.position;
+            var thumbKnuckle = bones[3].Transform.position;
             var thumbTip = bones[5].Transform.position;
 
             // Finger direction Vectors + normalization

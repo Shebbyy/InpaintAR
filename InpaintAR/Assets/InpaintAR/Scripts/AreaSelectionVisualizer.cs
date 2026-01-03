@@ -1,3 +1,5 @@
+using System;
+using JetBrains.Annotations;
 using Meta.XR;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,13 +42,16 @@ namespace InpaintAR.Scripts {
         private Ray m_textureTopLeft;
         private Ray m_textureBottomRight;
         private PassthroughCameraAccess m_cameraAccess;
-        private RectTransform m_fillImageRect; // rect transform of the child RawImage
+        private RectTransform m_fillImageRect; // rect transform of the RawImage which contains the inpainted content
         private Camera m_mainCam;
+        [CanBeNull] private Texture2D m_copiedTexture; // Copy of the passthrough texture for inpainting, etc.
+        [CanBeNull] private Texture2D m_inpaintMask;
+        [CanBeNull] private Texture2D m_inpaintedTexture;
+        private readonly SnakeEdgeDetection edgeDetector = new();
 
         private void Start() {
             if (!areaDetection) {
-                Debug.LogError("AreaSelectionVisualizer: AreaDetection not set!");
-                return;
+                throw new Exception("AreaDetection Object is required!");
             }
 
             CreateUICanvasAndCorners();
@@ -55,6 +60,12 @@ namespace InpaintAR.Scripts {
             m_cameraAccess.CameraPosition = PassthroughCameraAccess.CameraPositionType.Left;
             m_cameraAccess.RequestedResolution = new Vector2Int(1280, 960);
             m_mainCam = Camera.main;
+        }
+        
+        private void OnDestroy() {
+            if (m_copiedTexture) {
+                Destroy(m_copiedTexture);
+            }
         }
 
         void Update() {
@@ -72,81 +83,104 @@ namespace InpaintAR.Scripts {
                 areaDetection.RightHandCornerScreenPos
             );
 
+            bool isSelectionActive = false;
             // only update if rectangle is valid
             if (   areaDetection.LeftHandCornerScreenPos.HasValue
                 && areaDetection.RightHandCornerScreenPos.HasValue
                 && areaDetection.LeftHandCornerScreenPos.Value.x <= areaDetection.RightHandCornerScreenPos.Value.x
                 && areaDetection.LeftHandCornerScreenPos.Value.y >= areaDetection.RightHandCornerScreenPos.Value.y) {
+                isSelectionActive = true;
+                m_inpaintMask = null;
+                
                 FillRectMask.gameObject.SetActive(true);
                 // Update canvas position to follow camera
                 UpdateCanvasWorldPosition();
 
-                // Image position calculation so it matches with the passthrough background as close as possible
-                m_textureTopLeft = m_cameraAccess.ViewportPointToRay(new Vector2(0, 0));
-                m_textureBottomRight = m_cameraAccess.ViewportPointToRay(new Vector2(1, 1));
-
-                float distance = GetCameraDistance();
-                Vector3 topLeftWorldPos = m_textureTopLeft.origin + m_textureTopLeft.direction * distance;
-                Vector3 bottomRightWorldPos = m_textureBottomRight.origin + m_textureBottomRight.direction * distance;
-                Vector3 topLeftScreenPos = m_mainCam.WorldToScreenPoint(topLeftWorldPos);
-                Vector3 bottomRightScreenPos = m_mainCam.WorldToScreenPoint(bottomRightWorldPos);
-
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    (RectTransform)m_canvas.transform,
-                    topLeftScreenPos,
-                    m_mainCam,
-                    out Vector2 topLeftLocalPos
-                );
-
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    (RectTransform)m_canvas.transform,
-                    bottomRightScreenPos,
-                    m_mainCam,
-                    out Vector2 bottomRightLocalPos
-                );
-
-                Vector2 bottomLeft = new Vector2(Mathf.Min(topLeftLocalPos.x, bottomRightLocalPos.x), Mathf.Min(topLeftLocalPos.y, bottomRightLocalPos.y));
-                Vector2 topRight = new Vector2(Mathf.Max(topLeftLocalPos.x, bottomRightLocalPos.x), Mathf.Max(topLeftLocalPos.y, bottomRightLocalPos.y));
-
-                // Selection Rectangle Calculation
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    (RectTransform)m_canvas.transform,
-                    areaDetection.LeftHandCornerScreenPos.Value,
-                    m_mainCam,
-                    out Vector2 selLeftLocal
-                );
-
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    (RectTransform)m_canvas.transform,
-                    areaDetection.RightHandCornerScreenPos.Value,
-                    m_mainCam,
-                    out Vector2 selRightLocal
-                );
-
-                Vector2 selectionBottomLeft = new Vector2(Mathf.Min(selLeftLocal.x, selRightLocal.x),
-                    Mathf.Min(selLeftLocal.y, selRightLocal.y));
-                Vector2 selectionTopRight = new Vector2(Mathf.Max(selLeftLocal.x, selRightLocal.x),
-                    Mathf.Max(selLeftLocal.y, selRightLocal.y));
-
-                // Mask Update
-                FillRectMask.localPosition = selectionBottomLeft;
-                FillRectMask.sizeDelta = selectionTopRight - selectionBottomLeft;
-                
-                if (!showDebugRect) {
-                    FillImage.texture = m_cameraAccess.GetTexture();
-                }
-
-                // Readjust Child Image Position to adjust for FillRect Mask Update
-                m_fillImageRect.localPosition = bottomLeft - selectionBottomLeft;
-                m_fillImageRect.sizeDelta = topRight - bottomLeft;
+                UpdateSelectionMaskPosition(areaDetection.LeftHandCornerScreenPos.Value, areaDetection.RightHandCornerScreenPos.Value);
             }
             else {
                 // Update to only adjust to camera angle
                 UpdateCanvasWorldPosition(false);
-                if (!showDebugRect) {
-                    FillImage.texture = m_cameraAccess.GetTexture();
-                }
             }
+            
+            if (   showDebugRect
+                || !IsSelectionAreaWithinCameraView()) return;
+
+            UpdateImage(isSelectionActive);
+            
+        }
+
+        private void UpdateImage(bool isSelectionActive) {
+            Texture sourceTexture = m_cameraAccess.GetTexture();
+            if (sourceTexture) {
+                FillImage.texture = CopyTexture(sourceTexture);
+            }
+                
+            UpdatePassthroughImagePosition();
+                
+            if (!isSelectionActive) {
+                // todo set inpaint mask, then only display that of the texture
+                //m_inpaintMask = edgeDetector;
+            }
+        }
+
+        private void UpdateSelectionMaskPosition(Vector2 leftHandCornerScreenPos, Vector2 rightHandCornerScreenPos) {
+            // Selection Rectangle Calculation
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                (RectTransform)m_canvas.transform,
+                leftHandCornerScreenPos,
+                m_mainCam,
+                out Vector2 selLeftLocal
+            );
+
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                (RectTransform)m_canvas.transform,
+                rightHandCornerScreenPos,
+                m_mainCam,
+                out Vector2 selRightLocal
+            );
+
+            Vector2 selectionBottomLeft = new Vector2(Mathf.Min(selLeftLocal.x, selRightLocal.x),
+                Mathf.Min(selLeftLocal.y, selRightLocal.y));
+            Vector2 selectionTopRight = new Vector2(Mathf.Max(selLeftLocal.x, selRightLocal.x),
+                Mathf.Max(selLeftLocal.y, selRightLocal.y));
+
+            // Mask Update
+            FillRectMask.localPosition = selectionBottomLeft;
+            FillRectMask.sizeDelta = selectionTopRight - selectionBottomLeft;
+        }
+
+        private void UpdatePassthroughImagePosition() {
+            // Image position calculation so it matches with the passthrough background as close as possible
+            m_textureTopLeft = m_cameraAccess.ViewportPointToRay(new Vector2(0, 0));
+            m_textureBottomRight = m_cameraAccess.ViewportPointToRay(new Vector2(1, 1));
+
+            float distance = GetCameraDistance();
+            Vector3 topLeftWorldPos = m_textureTopLeft.origin + m_textureTopLeft.direction * distance;
+            Vector3 bottomRightWorldPos = m_textureBottomRight.origin + m_textureBottomRight.direction * distance;
+            Vector3 topLeftScreenPos = m_mainCam.WorldToScreenPoint(topLeftWorldPos);
+            Vector3 bottomRightScreenPos = m_mainCam.WorldToScreenPoint(bottomRightWorldPos);
+
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                (RectTransform)m_canvas.transform,
+                topLeftScreenPos,
+                m_mainCam,
+                out Vector2 topLeftLocalPos
+            );
+
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                (RectTransform)m_canvas.transform,
+                bottomRightScreenPos,
+                m_mainCam,
+                out Vector2 bottomRightLocalPos
+            );
+            
+            Vector2 bottomLeft = new Vector2(Mathf.Min(topLeftLocalPos.x, bottomRightLocalPos.x), Mathf.Min(topLeftLocalPos.y, bottomRightLocalPos.y));
+            Vector2 topRight = new Vector2(Mathf.Max(topLeftLocalPos.x, bottomRightLocalPos.x), Mathf.Max(topLeftLocalPos.y, bottomRightLocalPos.y));
+            
+            // Readjust Child Image Position to adjust for FillRect Mask Update
+            m_fillImageRect.localPosition = bottomLeft - (Vector2)FillRectMask.localPosition;
+            m_fillImageRect.sizeDelta = topRight - bottomLeft;
         }
 
         private void UpdateCorner(RectTransform cornerElem, Vector2? screenPos) {
@@ -172,10 +206,11 @@ namespace InpaintAR.Scripts {
             
             // Position canvas at far clip plane of camera
             Transform cam = m_mainCam.transform;
+            float distance = GetCameraDistance();
             if (withPosition) {
-                float distance = GetCameraDistance();
                 m_canvas.transform.position = cam.position + cam.forward * distance;
             }
+            // Make canvas always face the camera (billboard like)
             m_canvas.transform.rotation = cam.rotation;
         }
 
@@ -184,6 +219,9 @@ namespace InpaintAR.Scripts {
             m_canvas = canvasObj.AddComponent<Canvas>();
             // Use World Space rendering
             m_canvas.renderMode = RenderMode.WorldSpace;
+            
+            // Ensure canvas renders on top of passthrough background
+            m_canvas.sortingOrder = 32767; // Maximum sorting order to render on top
             
             // Position canvas in world space
             RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
@@ -295,7 +333,52 @@ namespace InpaintAR.Scripts {
         }
 
         private float GetCameraDistance() {
-            return m_mainCam.farClipPlane - 0.3f;
+            // use max dimension of canvas to avoid clipping due to rotation, etc. of canvas
+            return m_mainCam.farClipPlane - 5f;
+        }
+
+        private bool IsSelectionAreaWithinCameraView() {
+            if (!FillRectMask || !FillRectMask.gameObject.activeSelf) {
+                return false;
+            }
+
+            // Get the four corners of the selection rectangle in world space
+            Vector3[] corners = new Vector3[4];
+            FillRectMask.GetWorldCorners(corners);
+
+            // Check if all corners are within the camera's frustum and viewport
+            foreach (Vector3 corner in corners) {
+                Vector3 viewportPoint = m_mainCam.WorldToViewportPoint(corner);
+                
+                // Check if the point is in front of the camera and within viewport bounds
+                if (viewportPoint.z <= 0 || viewportPoint.x < 0 || viewportPoint.x > 1 || 
+                    viewportPoint.y < 0 || viewportPoint.y > 1) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private Texture2D CopyTexture(Texture source) {
+            if (m_copiedTexture) {
+                Destroy(m_copiedTexture);
+            }
+            m_copiedTexture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+
+            // Copy texture using RenderTexture
+            RenderTexture currentRT = RenderTexture.active;
+
+            // Source is usually RenderTexture when delivered from Quest
+            RenderTexture texture = source as RenderTexture;
+            RenderTexture.active = texture;
+            
+            m_copiedTexture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            m_copiedTexture.Apply();
+            
+            RenderTexture.active = currentRT;
+            
+            return m_copiedTexture;
         }
     }
 }

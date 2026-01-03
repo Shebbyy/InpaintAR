@@ -502,8 +502,8 @@ MonoBehaviour:
   leftHandSkeleton: {fileID: 1742697713}
   rightHandSkeleton: {fileID: 1433277164}
   minAngle: 60
-  maxAngle: 130
-  showDebugData: 0
+  maxAngle: 120
+  showDebugData: 1
 --- !u!4 &858783771
 Transform:
   m_ObjectHideFlags: 0
@@ -902,6 +902,9 @@ MonoBehaviour:
   areaDetection: {fileID: 858783770}
   cornerSpriteSize: 128
   cornerSpriteThickness: 15
+  canvasWidth: 2
+  canvasHeight: 1.5
+  pixelsPerUnit: 1000
   showDebugRect: 0
 --- !u!4 &1324206872
 Transform:
