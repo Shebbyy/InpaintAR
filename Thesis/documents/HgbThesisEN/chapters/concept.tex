@@ -9,6 +9,8 @@ Go into Detail about the overview, how it is built architecturally, what are the
 - Area-Finetuning and Tracking using the Snakes algorithm (allows boundaries of objects to be detected in an area of interest and be tracked between frames)
 -> Quick introduction to how the Snakes algorithm works / why Finetuning might be interesting (less pixels to inpaint -> higher performance + automatic boundary adjustment on movements)
 
+The Object Selection and tracking between frames is achieved in a similar manner to the proposed pipeline of Jan Herling and Wolfgang Broll back in 2010 (see \cite{HerlingJ2010Asor}).
+
 \subsection{Inpainting}
 - Inpainting Factory, which then splits into its sub-classes for each of the methodologies
 
