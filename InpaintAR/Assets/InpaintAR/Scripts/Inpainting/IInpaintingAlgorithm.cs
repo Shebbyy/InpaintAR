@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting {
 
@@ -10,6 +11,6 @@ namespace InpaintAR.Scripts.Inpainting {
     }
     
     public interface IInpaintingAlgorithm {
-        public Texture2D Inpaint(Texture2D source, Texture2D mask);
+        public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices);
     }
 }

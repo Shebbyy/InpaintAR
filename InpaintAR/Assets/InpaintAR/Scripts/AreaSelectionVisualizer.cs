@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using InpaintAR.Scripts.Inpainting;
 using JetBrains.Annotations;
 using Meta.XR;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace InpaintAR.Scripts {
@@ -29,7 +31,7 @@ namespace InpaintAR.Scripts {
 
         [Header("Inpainting Settings")] 
         [Tooltip("Which algorithm to use for the inpainting")] 
-        public InpaintingAlgorithms InpaintingAlgorithm;
+        public InpaintingAlgorithms inpaintingAlgorithmSelection;
 
         private RectTransform FillRectMask { get; set; }
 
@@ -50,9 +52,9 @@ namespace InpaintAR.Scripts {
         private RectTransform m_fillImageRect; // rect transform of the RawImage which contains the inpainted content
         private Camera m_mainCam;
         [CanBeNull] private Texture2D m_copiedTexture; // Copy of the passthrough texture for inpainting, etc.
-        [CanBeNull] private Texture2D m_inpaintMask;
+        [CanBeNull] private HashSet<int> m_inpaintMask;
         [CanBeNull] private Texture2D m_inpaintedTexture;
-        private readonly SnakeEdgeDetection edgeDetector = new();
+        private IInpaintingAlgorithm m_inpaintingAlgorithm;
 
         private void Start() {
             if (!areaDetection) {
@@ -61,6 +63,12 @@ namespace InpaintAR.Scripts {
 
             CreateUICanvasAndCorners();
 
+            InitializeCamera();
+            
+            m_inpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
+        }
+
+        private void InitializeCamera() {
             m_cameraAccess = gameObject.AddComponent<PassthroughCameraAccess>();
             m_cameraAccess.CameraPosition = PassthroughCameraAccess.CameraPositionType.Left;
             m_cameraAccess.RequestedResolution = new Vector2Int(1280, 960);
@@ -118,15 +126,21 @@ namespace InpaintAR.Scripts {
         private void UpdateImage(bool isSelectionActive) {
             Texture sourceTexture = m_cameraAccess.GetTexture();
             if (sourceTexture) {
-                FillImage.texture = CopyTexture(sourceTexture);
+                m_copiedTexture = CopyTexture(sourceTexture);
             }
                 
             UpdatePassthroughImagePosition();
-                
-            if (!isSelectionActive) {
-                // todo set inpaint mask, then only display that of the texture
-                //m_inpaintMask = edgeDetector;
+
+            // During Selection no Edge-Detection/Inpainting
+            if (isSelectionActive) {
+                FillImage.texture = m_copiedTexture;
+                return;
             }
+            
+            m_inpaintMask = SnakeEdgeDetection.GetContourMaskPixelIndices(FillImage.rectTransform, m_copiedTexture, FillRectMask);
+            m_inpaintedTexture = m_inpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask);
+            
+            FillImage.texture = m_inpaintedTexture;
         }
 
         private void UpdateSelectionMaskPosition(Vector2 leftHandCornerScreenPos, Vector2 rightHandCornerScreenPos) {
@@ -222,17 +236,15 @@ namespace InpaintAR.Scripts {
         private void CreateUICanvasAndCorners() {
             GameObject canvasObj = new GameObject("AreaSelectionUICanvas");
             m_canvas = canvasObj.AddComponent<Canvas>();
-            // Use World Space rendering
             m_canvas.renderMode = RenderMode.WorldSpace;
             
-            // Ensure canvas renders on top of passthrough background
-            m_canvas.sortingOrder = 32767; // Maximum sorting order to render on top
+            // Ensure canvas renders on top of passthrough background to avoid z-buffer fighting/clipping
+            m_canvas.sortingOrder = 500;
             
             // Position canvas in world space
             RectTransform canvasRect = canvasObj.GetComponent<RectTransform>();
             canvasRect.sizeDelta = new Vector2(canvasWidth * pixelsPerUnit, canvasHeight * pixelsPerUnit);
             
-            // Scale down to physical size
             float scale = 1f / pixelsPerUnit;
             canvasObj.transform.localScale = new Vector3(scale, scale, scale);
             
@@ -244,14 +256,13 @@ namespace InpaintAR.Scripts {
 
             canvasObj.AddComponent<GraphicRaycaster>();
 
-            // Left Corner
+            // Left Corner Icons for Selection
             GameObject leftObj = new GameObject("LeftCornerUI");
             leftObj.transform.SetParent(canvasObj.transform, false);
             m_leftCornerBox = leftObj.AddComponent<RectTransform>();
             SetupCornerImage(m_leftCornerBox, true);
             leftObj.SetActive(false);
 
-            // Right Corner
             GameObject rightObj = new GameObject("RightCornerUI");
             rightObj.transform.SetParent(canvasObj.transform, false);
             m_rightCornerBox = rightObj.AddComponent<RectTransform>();
@@ -266,7 +277,7 @@ namespace InpaintAR.Scripts {
             FillRectMask.pivot = new Vector2(0, 0);
             FillRectMask.anchorMin = FillRectMask.anchorMax = new Vector2(0.5f, 0.5f);
 
-            // Add a RectMask2D so children are clipped to this rectangle (window behavior)
+            // Adding RectMask2D; FillImage is clipped off, only showing content of FillObj
             fillObj.AddComponent<RectMask2D>();
 
             // Image Child Item -> RectTransform to allow for individual placement separate from FillRect Mask
@@ -276,7 +287,6 @@ namespace InpaintAR.Scripts {
             m_fillImageRect.anchorMin = m_fillImageRect.anchorMax = new Vector2(0, 0);
             m_fillImageRect.pivot = new Vector2(0, 0);
 
-            // Add a RawImage for passthrough texture
             FillImage = fillImageObj.AddComponent<RawImage>();
             FillImage.color = showDebugRect ? Color.red : Color.white;
 
@@ -298,7 +308,7 @@ namespace InpaintAR.Scripts {
             float anchorY = isLeft ? 1 : 0;
 
             target.anchorMin = target.anchorMax = new Vector2(anchorX, anchorY); // center canvas to camera
-            target.pivot = new Vector2(anchorX, anchorY); // center reference to image center
+            target.pivot = new Vector2(anchorX, anchorY);
             target.sizeDelta = new Vector2(cornerSpriteSize, cornerSpriteSize);
         }
 
@@ -371,7 +381,6 @@ namespace InpaintAR.Scripts {
             }
             m_copiedTexture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
 
-            // Copy texture using RenderTexture
             RenderTexture currentRT = RenderTexture.active;
 
             // Source is usually RenderTexture when delivered from Quest

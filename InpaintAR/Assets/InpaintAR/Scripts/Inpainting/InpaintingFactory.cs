@@ -1,13 +1,17 @@
 ﻿using System;
+using InpaintAR.Scripts.Inpainting.Algorithms;
 
 namespace InpaintAR.Scripts.Inpainting {
     
     public static class InpaintingFactory {
         public static IInpaintingAlgorithm GetInpaintingAlgorithm(InpaintingAlgorithms algorithm) {
-            switch (algorithm) {
-                default:
-                    throw new NotImplementedException($"Mapping for Algorithm {algorithm} is missing!");
-            }
+            return algorithm switch {
+                InpaintingAlgorithms.FastMarchingMethod => new FastMarchingAlgorithm(),
+                InpaintingAlgorithms.ExemplarLocalTextureMatching => new EltmAlgorithm(),
+                InpaintingAlgorithms.NonLinearTextureMatching => new NltmAlgorithm(),
+                InpaintingAlgorithms.LargeMaskInpaintingInference => new LaMaAlgorithm(),
+                _ => throw new NotImplementedException($"Mapping for Algorithm {algorithm} is missing!")
+            };
         }
     }
 }
