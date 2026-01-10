@@ -4,7 +4,6 @@ using InpaintAR.Scripts.Inpainting;
 using JetBrains.Annotations;
 using Meta.XR;
 using UnityEngine;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace InpaintAR.Scripts {
@@ -110,6 +109,7 @@ namespace InpaintAR.Scripts {
                 UpdateCanvasWorldPosition();
 
                 UpdateSelectionMaskPosition(areaDetection.LeftHandCornerScreenPos.Value, areaDetection.RightHandCornerScreenPos.Value);
+                SnakeEdgeDetection.ResetSelectionMask();
             }
             else {
                 // Update to only adjust to camera angle
