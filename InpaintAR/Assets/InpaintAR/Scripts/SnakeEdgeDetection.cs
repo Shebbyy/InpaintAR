@@ -1,22 +1,33 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-using Unity.VisualScripting;
+using Unity.Collections;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace InpaintAR.Scripts {
     public static class SnakeEdgeDetection {
+        // Thread-local pool for intersection lists to avoid allocations
+        private static readonly ThreadLocal<List<float>> IntersectionPool = new(() => new List<float>(100));
+        
+        // Profiler markers for key operations
+        private static readonly ProfilerMarker SEdgeMapMarker = new("SnakeEdge.ComputeEdgeMap");
+        private static readonly ProfilerMarker SEvolveSnakeMarker = new("SnakeEdge.EvolveSnake");
+        private static readonly ProfilerMarker SFillContourMarker = new("SnakeEdge.FillContour");
+        
         private const int SnakeIterations = 15000; // Number of iterations for snake evolution
-        private const int SnakeRefinementIterations = 800; // Iterations for refinement in subsequent frames
-        private const float Elasticity = 2f; // increase for smoother contours
+        private const int SnakeRefinementIterations = 3000; // Iterations for refinement in subsequent frames
+        private const float Elasticity = 2.5f; // increase for smoother contours
         private const float Rigidity = 1f; // increase to prevent breaking apart
         private const float PositionScaling = 0.12f; // How much the Position change gets scaled in total
-        private const float MovementPerFrame = 5f; // movement per frame
+        private const float MovementPerFrame = 6f; // movement per frame
         private const float EdgeAttraction = 125.0f; // increased edge attraction
         private const float EdgeThreshold = 0.025f; // Threshold for edge detection - lower to detect more edges
         private const int InitialPerimeterPointCount = 200; // Reduced point count for more stable evolution
         
         private const float BarrierWeight = 100.0f; // Weight of the counter power when close
-        private const float StabilizationThreshold = 0.015f; // Average movement threshold for early stopping
+        private const float StabilizationThreshold = 0.012f; // Average movement threshold for early stopping
 
         private static HashSet<int> _cachedRefinedMask;
         private static List<Vector2> _cachedContourPoints;
@@ -149,7 +160,7 @@ namespace InpaintAR.Scripts {
             int width = _cachedWidth;
             int height = _cachedHeight;
 
-            Color[] pixels = fillImageTexture.GetPixels();
+            NativeArray<Color32> pixels = fillImageTexture.GetPixelData<Color32>(0);
 
             int margin = 20;
             Rect computeRegion = ExpandRect(maskBounds, margin, width, height);
@@ -172,9 +183,14 @@ namespace InpaintAR.Scripts {
             );
         }
 
-        private static float[,] ComputeSobelEdgeMapInRegion(Color[] pixels, int width, int height, Rect region) {
+        private static float[,] ComputeSobelEdgeMapInRegion(NativeArray<Color32> pixels, int width, int height, Rect region) {
+            SEdgeMapMarker.Begin();
+            
             float[,] edgeMap = new float[width, height];
-            float[,] gray = new float[width, height];
+            float[][] gray = new float[width][];
+            for (int index = 0; index < width; index++) {
+                gray[index] = new float[height];
+            }
 
             int minX = Mathf.Max(0, (int)region.x);
             int maxX = Mathf.Min(width, (int)(region.x + region.width));
@@ -185,7 +201,7 @@ namespace InpaintAR.Scripts {
             for (int y = minY; y < maxY; y++) {
                 for (int x = minX; x < maxX; x++) {
                     Color c = pixels[y * width + x];
-                    gray[x, y] = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+                    gray[x][y] = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
                 }
             }
 
@@ -195,12 +211,12 @@ namespace InpaintAR.Scripts {
             for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
                 for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
                     float gx =
-                        -gray[x - 1, y - 1] - 2f * gray[x - 1, y] - gray[x - 1, y + 1] +
-                        gray[x + 1, y - 1] + 2f * gray[x + 1, y] + gray[x + 1, y + 1];
+                        -gray[x - 1][y - 1] - 2f * gray[x - 1][y] - gray[x - 1][y + 1] +
+                        gray[x + 1][y - 1] + 2f * gray[x + 1][y] + gray[x + 1][y + 1];
 
                     float gy =
-                        -gray[x - 1, y - 1] - 2f * gray[x, y - 1] - gray[x + 1, y - 1] +
-                        gray[x - 1, y + 1] + 2f * gray[x, y + 1] + gray[x + 1, y + 1];
+                        -gray[x - 1][y - 1] - 2f * gray[x][y - 1] - gray[x + 1][y - 1] +
+                        gray[x - 1][y + 1] + 2f * gray[x][y + 1] + gray[x + 1][y + 1];
                     
                     float gradMag2 = gx * gx + gy * gy;
 
@@ -225,11 +241,14 @@ namespace InpaintAR.Scripts {
                 }
             }
 
+            SEdgeMapMarker.End();
             return edgeMap;
         }
 
         private static List<Vector2> EvolveBalloonSnake(List<Vector2> points, float[,] edgeMap, int width, int height,
             int iterations) {
+            SEvolveSnakeMarker.Begin();
+            
             int n = points.Count;
 
             // Gradient Gaussian Field for stability
@@ -312,7 +331,6 @@ namespace InpaintAR.Scripts {
                 // Check for stabilization - stop early if snake has stabilized
                 float avgMovement = totalMovement / n;
                 if (avgMovement < StabilizationThreshold) {
-                    Debug.Log($"Snake converged at iteration {iter} with avg movement {avgMovement:F4}");
                     break;
                 }
 
@@ -322,6 +340,7 @@ namespace InpaintAR.Scripts {
                 }
             }
 
+            SEvolveSnakeMarker.End();
             return points;
         }
 
@@ -384,8 +403,12 @@ namespace InpaintAR.Scripts {
         }
 
         private static HashSet<int> FillContour(List<Vector2> contour, int width) {
-            HashSet<int> mask = new HashSet<int>();
-            if (contour.Count < 3) return mask;
+            SFillContourMarker.Begin();
+            
+            if (contour.Count < 3) {
+                SFillContourMarker.End();
+                return new HashSet<int>();
+            }
 
             // Find bounding box
             float minX = float.MaxValue, maxX = float.MinValue;
@@ -398,38 +421,61 @@ namespace InpaintAR.Scripts {
                 maxY = Mathf.Max(maxY, p.y);
             }
 
+            // Estimate capacity based on bounding box area to avoid rehashing
+            int estimatedCapacity = (int)((maxX - minX) * (maxY - minY));
+            HashSet<int> mask = new HashSet<int>(estimatedCapacity);
+
             ScanlineFillMask(mask, contour, width, (int)minY, (int)maxY, (int)minX, (int)maxX);
 
-
+            SFillContourMarker.End();
             return mask;
         }
-        
+
         private static void ScanlineFillMask(HashSet<int> mask, List<Vector2> contour, int width, int yMin, int yMax,
             int xMin,
             int xMax) {
-            Parallel.For(yMin, yMax + 1, () => new List<int>(), (y, _, localList) => {
-                List<float> intersections = new List<float>(contour.Count);
+            // Collect all indices in a lock-free concurrent bag, then bulk-add to HashSet
+            var allIndices = new ConcurrentBag<int>();
+            var partitions = Partitioner.Create(yMin, yMax + 1);
+            
+            Parallel.ForEach(partitions, range => {
+                // Use pooled intersection list to avoid allocations
+                var intersections = IntersectionPool.Value;
+                intersections.Clear();
+                
+                // Pre-allocate local capacity estimate
+                int rangeSize = range.Item2 - range.Item1;
+                int estimatedPixels = rangeSize * (xMax - xMin) / 4;
+                var localIndices = new List<int>(estimatedPixels);
 
-                FillEdgeIntersectionList(intersections, contour, y);
+                for (int y = range.Item1; y < range.Item2; y++) {
+                    FillEdgeIntersectionList(intersections, contour, y);
 
-                // Sort intersections and fill between pairs of intersections
-                intersections.Sort();
+                    // Sort intersections and fill between pairs of intersections
+                    intersections.Sort();
 
-                for (int i = 0; i < intersections.Count - 1; i += 2) {
-                    int xStart = Mathf.Max(xMin, Mathf.CeilToInt(intersections[i]));
-                    int xEnd = Mathf.Min(xMax, Mathf.FloorToInt(intersections[i + 1]));
+                    for (int i = 0; i < intersections.Count - 1; i += 2) {
+                        int xStart = Mathf.Max(xMin, Mathf.CeilToInt(intersections[i]));
+                        int xEnd = Mathf.Min(xMax, Mathf.FloorToInt(intersections[i + 1]));
 
-                    for (int x = xStart; x <= xEnd; x++) {
-                        localList.Add(y * width + x);
+                        for (int x = xStart; x <= xEnd; x++) {
+                            localIndices.Add(y * width + x);
+                        }
                     }
+                    
+                    intersections.Clear();
                 }
 
-                return localList;
-            }, res => {
-                lock (mask) {
-                    mask.AddRange(res);
+                // Add all local indices to the concurrent bag
+                foreach (var idx in localIndices) {
+                    allIndices.Add(idx);
                 }
             });
+            
+            // Bulk-add all indices to the HashSet
+            foreach (var idx in allIndices) {
+                mask.Add(idx);
+            }
         }
 
         private static void FillEdgeIntersectionList(List<float> intersections, List<Vector2> contour, int y) {

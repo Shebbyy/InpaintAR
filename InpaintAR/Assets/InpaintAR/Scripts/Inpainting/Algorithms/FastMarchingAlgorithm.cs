@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Unity.Collections;
 using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
@@ -11,7 +12,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             
             Texture2D resultImage = new Texture2D(imageWidth, imageHeight, TextureFormat.RGBA32, false);
 
-            Color[] sourcePixels = source.GetPixels();
+            NativeArray<Color32> sourcePixels = source.GetPixelData<Color32>(0);
             Parallel.ForEach(maskPixelIndices, maskPixelIndex => {
                 resultPixels[maskPixelIndex] = sourcePixels[maskPixelIndex];
             });
