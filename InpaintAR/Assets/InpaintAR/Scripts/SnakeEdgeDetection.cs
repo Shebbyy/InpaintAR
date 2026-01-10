@@ -5,42 +5,45 @@ using UnityEngine;
 
 namespace InpaintAR.Scripts {
     public static class SnakeEdgeDetection {
-        // GVF Snake parameters
-        private const int GvfIterations = 20; // Number of iterations for GVF field calculation
-        private const int SnakeIterations = 50; // Number of iterations for snake evolution
-        private const int SnakeRefinementIterations = 10; // Iterations for refinement when reusing previous contour
-        private const float Alpha = 0.05f; // Elasticity (continuity)
-        private const float Beta = 0.05f; // Rigidity (curvature)
-        private const float Gamma = 0.3f; // Step size for snake evolution
-        private const float Mu = 0.2f; // Regularization parameter for GVF
+         
+        private const int SnakeIterations = 400; // Number of iterations for snake evolution
+        private const int SnakeRefinementIterations = 40; // Iterations for refinement in subsequent frames
+        private const float Elasticity = 0.5f; // increase for smoother contours
+        private const float Rigidity = 1.2f; // increase to prevent breaking apart
+        private const float Gamma = 0.05f; // Entropy
+        private const float MovementPerFrame = 0.5f; // movement per frame
+        private const float EdgeAttraction = 5.0f; // increased edge attraction
+        private const float EdgeThreshold = 0.02f; // Threshold for edge detection - lower to detect more edges
+        private const int InitialPerimeterPointCount = 200; // Reduced point count for more stable evolution
+        private const float BarrierWeight = 2.0f;
 
-        // Cache for performance optimization
+        private const float StabilizationThreshold = 0.01f; // Average movement threshold for early stopping
+
         private static HashSet<int> _cachedRefinedMask;
         private static List<Vector2> _cachedContourPoints;
         private static int _cachedWidth;
         private static int _cachedHeight;
-
-        // Cache for selection mask to avoid recreating HashSet every frame
         private static Rect _cachedSelectionBounds;
-        private static List<Vector2> _cachedInitialContour;
 
         public static HashSet<int> GetContourMaskPixelIndices(RectTransform fillImagePosition,
             Texture2D fillImageTexture,
             RectTransform fillRectMask) {
-            CreateSelectionContourForCache(fillImagePosition, fillImageTexture, fillRectMask,
-                out Rect maskBounds);
+            CreateSelectionContourForCache(fillImagePosition, fillImageTexture, fillRectMask);
 
             int width = TextureUtility.GetImageWidth(fillImageTexture);
             int height = TextureUtility.GetImageHeight(fillImageTexture);
 
             // Existing Snake should be reused
             if (_cachedRefinedMask != null && _cachedContourPoints != null) {
-                return RefineWithNewTexture(fillImageTexture, maskBounds);
+                ApplyBalloonSnake(fillImageTexture, _cachedSelectionBounds, SnakeRefinementIterations);
+            }
+            else {
+                _cachedWidth = width;
+                _cachedHeight = height;
+                ApplyBalloonSnake(fillImageTexture, _cachedSelectionBounds, SnakeIterations);
             }
 
-            _cachedWidth = width;
-            _cachedHeight = height;
-            _cachedRefinedMask = ApplyGvfSnake(fillImageTexture, maskBounds, true);
+            
 
             return _cachedRefinedMask;
         }
@@ -48,38 +51,10 @@ namespace InpaintAR.Scripts {
         public static void ResetSelectionMask() {
             _cachedRefinedMask = null;
             _cachedContourPoints = null;
-            _cachedInitialContour = null;
-        }
-
-        private static HashSet<int> RefineWithNewTexture(Texture2D fillImageTexture, Rect maskBounds) {
-            int width = _cachedWidth;
-            int height = _cachedHeight;
-
-            Color[] pixels = fillImageTexture.GetPixels();
-
-            // Compute edge map only in the region of interest (expanded for GVF field)
-            int margin = 20; // Margin around mask for GVF computation
-            Rect computeRegion = ExpandRect(maskBounds, margin, width, height);
-
-            float[,] edgeMap = ComputeEdgeMapInRegion(pixels, width, height, computeRegion);
-
-            // Compute new GVF field only in the region
-            Vector2[,] gvfField = ComputeGvfFieldInRegion(edgeMap, width, height, computeRegion);
-
-            // Refine existing contour with fewer iterations
-            List<Vector2> refinedPoints =
-                EvolveSnake(_cachedContourPoints, gvfField, width, height, SnakeRefinementIterations);
-            _cachedContourPoints = refinedPoints;
-
-            // Convert back to mask
-            _cachedRefinedMask = FillContour(refinedPoints, width);
-
-            return _cachedRefinedMask;
         }
 
         private static void CreateSelectionContourForCache(RectTransform fillImagePosition,
-            Texture2D fillImageTexture, RectTransform fillRectMask, out Rect maskBounds) {
-            maskBounds = new Rect();
+            Texture2D fillImageTexture, RectTransform fillRectMask) {
 
             if (!fillImageTexture || !fillRectMask) {
                 return;
@@ -105,34 +80,30 @@ namespace InpaintAR.Scripts {
             int pixelTop = Mathf.Min(imageHeight, Mathf.CeilToInt(normTop * imageHeight));
 
             // Store mask bounds in pixel coordinates
-            maskBounds = new Rect(pixelLeft, pixelBottom, pixelRight - pixelLeft, pixelTop - pixelBottom);
+            var maskBounds = new Rect(pixelLeft, pixelBottom, pixelRight - pixelLeft, pixelTop - pixelBottom);
 
             if (_cachedSelectionBounds == maskBounds) {
                 return;
             }
 
             _cachedSelectionBounds = maskBounds;
-            // Generate initial contour points from rectangular bounds
-            // This is much more efficient than ExtractContourFromMask
-            _cachedInitialContour = CreateRectangularContour(pixelLeft, pixelRight, pixelBottom, pixelTop);
+            _cachedContourPoints = CreateRectangularContour(pixelLeft, pixelRight, pixelBottom, pixelTop);
         }
 
         private static List<Vector2> CreateRectangularContour(int left, int right, int bottom, int top) {
-            // Create a contour by sampling points around the rectangle perimeter
             List<Vector2> contour = new List<Vector2>();
-            
+
             int width = right - left;
             int height = top - bottom;
             int perimeter = 2 * (width + height);
-            
-            // Sample approximately 100 points around the perimeter
-            int targetPoints = Mathf.Min(100, perimeter / 2);
+
+            int targetPoints = Mathf.Max(InitialPerimeterPointCount, perimeter / 2);
             float step = perimeter / (float)targetPoints;
-            
+
             for (int i = 0; i < targetPoints; i++) {
                 float t = i * step;
                 Vector2 point;
-                
+
                 if (t < width) {
                     point = new Vector2(left + t, bottom);
                 }
@@ -145,47 +116,29 @@ namespace InpaintAR.Scripts {
                 else {
                     point = new Vector2(left, top - 1 - (t - 2 * width - height));
                 }
-                
+
                 contour.Add(point);
             }
-            
+
             return contour;
         }
 
-        private static HashSet<int> ApplyGvfSnake(Texture2D fillImageTexture, Rect maskBounds,
-            bool fullCalculation) {
-            int width = TextureUtility.GetImageWidth(fillImageTexture);
-            int height = TextureUtility.GetImageHeight(fillImageTexture);
+        private static void ApplyBalloonSnake(Texture2D fillImageTexture, Rect maskBounds, int iterations) {
+            int width = _cachedWidth;
+            int height = _cachedHeight;
 
             Color[] pixels = fillImageTexture.GetPixels();
 
-            // Compute edge map only in the region of interest (expanded for GVF field)
-            int margin = 20; // Margin around mask for GVF computation
+            int margin = 20;
             Rect computeRegion = ExpandRect(maskBounds, margin, width, height);
 
-            // 1. Compute edge map using Sobel operator in region
-            float[,] edgeMap = ComputeEdgeMapInRegion(pixels, width, height, computeRegion);
+            float[,] edgeMap = ComputeSobelEdgeMapInRegion(pixels, width, height, computeRegion);
+            
+            var snakePoints = EvolveBalloonSnake(_cachedContourPoints, edgeMap, width, height, iterations);
 
-            // 2. Compute GVF field in region
-            Vector2[,] gvfField = ComputeGvfFieldInRegion(edgeMap, width, height, computeRegion);
+            _cachedContourPoints = snakePoints;
 
-            // 3. Use cached initial contour (generated during mask creation)
-            List<Vector2> snakePoints = _cachedInitialContour;
-
-            if (snakePoints == null || snakePoints.Count < 4) return null;
-
-            // 4. Evolve snake
-            snakePoints = EvolveSnake(snakePoints, gvfField, width, height, SnakeIterations);
-
-            // Store for visualization/debugging
-            if (fullCalculation) {
-                _cachedContourPoints = snakePoints;
-            }
-
-            // 5. Convert snake points back to mask
-            HashSet<int> refinedMask = FillContour(snakePoints, width);
-
-            return refinedMask;
+            _cachedRefinedMask = FillContour(snakePoints, width);
         }
 
         private static Rect ExpandRect(Rect rect, int margin, int width, int height) {
@@ -197,7 +150,7 @@ namespace InpaintAR.Scripts {
             );
         }
 
-        private static float[,] ComputeEdgeMapInRegion(Color[] pixels, int width, int height, Rect region) {
+        private static float[,] ComputeSobelEdgeMapInRegion(Color[] pixels, int width, int height, Rect region) {
             float[,] edgeMap = new float[width, height];
             float[,] gray = new float[width, height];
 
@@ -206,7 +159,7 @@ namespace InpaintAR.Scripts {
             int minY = Mathf.Max(0, (int)region.y);
             int maxY = Mathf.Min(height, (int)(region.y + region.height));
 
-            // Convert to grayscale only in region
+            // Convert to grayscale
             for (int y = minY; y < maxY; y++) {
                 for (int x = minX; x < maxX; x++) {
                     Color c = pixels[y * width + x];
@@ -214,104 +167,190 @@ namespace InpaintAR.Scripts {
                 }
             }
 
-            // Sobel edge detection only in region
+            float maxEdgeEnergy = 0f;
+
+            // Sobel: compute squared gradient magnitude |∇I|²
             for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
                 for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
-                    float gx = -gray[x - 1, y - 1] - 2 * gray[x - 1, y] - gray[x - 1, y + 1]
-                               + gray[x + 1, y - 1] + 2 * gray[x + 1, y] + gray[x + 1, y + 1];
+                    float gx =
+                        -gray[x - 1, y - 1] - 2f * gray[x - 1, y] - gray[x - 1, y + 1] +
+                        gray[x + 1, y - 1] + 2f * gray[x + 1, y] + gray[x + 1, y + 1];
 
-                    float gy = -gray[x - 1, y - 1] - 2 * gray[x, y - 1] - gray[x + 1, y - 1]
-                               + gray[x - 1, y + 1] + 2 * gray[x, y + 1] + gray[x + 1, y + 1];
+                    float gy =
+                        -gray[x - 1, y - 1] - 2f * gray[x, y - 1] - gray[x + 1, y - 1] +
+                        gray[x - 1, y + 1] + 2f * gray[x, y + 1] + gray[x + 1, y + 1];
+                    
+                    float gradMag2 = gx * gx + gy * gy;
 
-                    edgeMap[x, y] = Mathf.Sqrt(gx * gx + gy * gy);
+                    edgeMap[x, y] = gradMag2;
+                    if (gradMag2 > maxEdgeEnergy) {
+                        maxEdgeEnergy = gradMag2;
+                    }
+                }
+            }
+
+            if (maxEdgeEnergy <= 0f) return edgeMap;
+
+            float invMax = 1f / maxEdgeEnergy;
+
+            // normalization
+            for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
+                for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
+                    float normalized = edgeMap[x, y] * invMax;
+
+                    // Threshold weak edges
+                    edgeMap[x, y] = normalized >= EdgeThreshold ? normalized : 0f;
                 }
             }
 
             return edgeMap;
         }
 
-        private static Vector2[,] ComputeGvfFieldInRegion(float[,] edgeMap, int width, int height, Rect region) {
-            Vector2[,] u = new Vector2[width, height];
-            Vector2[,] grad = new Vector2[width, height];
-
-            int minX = Mathf.Max(0, (int)region.x);
-            int maxX = Mathf.Min(width, (int)(region.x + region.width));
-            int minY = Mathf.Max(0, (int)region.y);
-            int maxY = Mathf.Min(height, (int)(region.y + region.height));
-
-            // Compute gradient of edge map only in region
-            for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
-                for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
-                    float fx = (edgeMap[x + 1, y] - edgeMap[x - 1, y]) * 0.5f;
-                    float fy = (edgeMap[x, y + 1] - edgeMap[x, y - 1]) * 0.5f;
-                    grad[x, y] = new Vector2(fx, fy);
-                    u[x, y] = grad[x, y];
-                }
-            }
-
-            // Iteratively solve GVF only in region
-            for (int iter = 0; iter < GvfIterations; iter++) {
-                Vector2[,] uNew = new Vector2[width, height];
-
-                for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
-                    for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
-                        // Laplacian of u
-                        Vector2 laplacian = (u[x + 1, y] + u[x - 1, y] + u[x, y + 1] + u[x, y - 1] - 4 * u[x, y]);
-
-                        float b = grad[x, y].sqrMagnitude;
-                        uNew[x, y] = u[x, y] + Mu * laplacian - b * (u[x, y] - grad[x, y]);
-                    }
-                }
-
-                // Copy region back
-                for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
-                    for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
-                        u[x, y] = uNew[x, y];
-                    }
-                }
-            }
-
-            return u;
-        }
-
-        private static List<Vector2> EvolveSnake(List<Vector2> points, Vector2[,] gvfField, int width, int height,
+        private static List<Vector2> EvolveBalloonSnake(List<Vector2> points, float[,] edgeMap, int width, int height,
             int iterations) {
             int n = points.Count;
 
+            // Gradient Gaussian Field for stability
+            Vector2[,] gradientField = ComputeGradientField(edgeMap, width, height);
+
             for (int iter = 0; iter < iterations; iter++) {
                 List<Vector2> newPoints = new List<Vector2>(n);
+                float totalMovement = 0f;
 
                 for (int i = 0; i < n; i++) {
                     Vector2 p = points[i];
                     Vector2 prev = points[(i - 1 + n) % n];
                     Vector2 next = points[(i + 1) % n];
 
-                    // Internal forces
-                    Vector2 elasticity = Alpha * (prev + next - 2 * p);
+                    // Internal forces (smoothness constraints)
+                    Vector2 elasticity = Elasticity * (prev + next - 2 * p);
 
                     Vector2 prevPrev = points[(i - 2 + n) % n];
                     Vector2 nextNext = points[(i + 2) % n];
-                    Vector2 curvature = Beta * (prevPrev + 2 * prev - 2 * next - nextNext);
+                    Vector2 curvature = Rigidity * (prevPrev - 2 * prev + 2 * next - nextNext);
 
-                    // External force from GVF
+                    Vector2 tangent = (next - prev).normalized;
+                    Vector2 normal = new Vector2(-tangent.y, tangent.x); // 90° rotation
+
+                    // External forces from image
                     int x = Mathf.Clamp((int)p.x, 0, width - 1);
                     int y = Mathf.Clamp((int)p.y, 0, height - 1);
-                    Vector2 external = gvfField[x, y];
 
-                    // Update position
-                    Vector2 newP = p + Gamma * (elasticity + curvature + external);
+                    Vector2 grad = gradientField[x, y];
+                    float edgeStrength = edgeMap[x, y];
+
+                    float gradMag = grad.magnitude;
+                    Vector2 edgeNormal = gradMag > 1e-5f ? grad / gradMag : Vector2.zero;
+
+                    // Balloon
+                    float flatness = 1f - edgeStrength;
+                    float dampening = Mathf.Clamp01(flatness * flatness);
+                    float alignment = gradMag > 1e-5f ? Mathf.Max(0f, Vector2.Dot(normal, edgeNormal)) : 0f;
+
+                    Vector2 balloonForce = (edgeStrength > EdgeThreshold)
+                        ? Vector2.zero
+                        : MovementPerFrame * dampening * alignment * normal;
+
+                    // Edge attraction
+                    Vector2 edgeForce = EdgeAttraction * grad;
+
+                    // Barrier to avoid overstepping edges
+                    Vector2 barrierForce = -BarrierWeight * edgeStrength * grad;
+
+                    Vector2 force = elasticity + curvature + balloonForce + edgeForce + barrierForce;
+
+                    // Directional lock
+                    Vector2 velocity = Gamma * force;
+                    float crossing = Vector2.Dot(velocity, edgeNormal);
+                    if (edgeStrength > EdgeThreshold && crossing > 0f)
+                        velocity -= crossing * edgeNormal;
+
+                    var newP = p + velocity;
 
                     // Clamp to image bounds
                     newP.x = Mathf.Clamp(newP.x, 0, width - 1);
                     newP.y = Mathf.Clamp(newP.y, 0, height - 1);
 
+                    // Track movement for stabilization detection
+                    totalMovement += Vector2.Distance(p, newP);
+
                     newPoints.Add(newP);
                 }
 
                 points = newPoints;
+
+                // Check for stabilization - stop early if snake has stabilized
+                float avgMovement = totalMovement / n;
+                if (avgMovement < StabilizationThreshold) {
+                    Debug.Log($"Snake converged at iteration {iter} with avg movement {avgMovement:F4}");
+                    break;
+                }
+
+                // Redistribute points every 10 iterations to maintain uniform spacing
+                if (iter % 10 == 0 && iter > 0) {
+                    points = RedistributePoints(points, n);
+                }
             }
 
             return points;
+        }
+
+        private static List<Vector2> RedistributePoints(List<Vector2> points, int targetCount) {
+            if (points.Count < 3) return points;
+
+            float totalLength = 0f;
+            for (int i = 0; i < points.Count; i++) {
+                Vector2 p1 = points[i];
+                Vector2 p2 = points[(i + 1) % points.Count];
+                totalLength += Vector2.Distance(p1, p2);
+            }
+
+            float targetSpacing = totalLength / targetCount;
+            List<Vector2> redistributed = new List<Vector2>(targetCount);
+
+            redistributed.Add(points[0]);
+
+            float accumulatedDist = 0f;
+            int currentSegment = 0;
+
+            for (int i = 1; i < targetCount; i++) {
+                float targetDist = i * targetSpacing;
+
+                // Find the segment containing the target distance
+                while (currentSegment < points.Count && accumulatedDist < targetDist) {
+                    Vector2 p1 = points[currentSegment];
+                    Vector2 p2 = points[(currentSegment + 1) % points.Count];
+                    float segmentLength = Vector2.Distance(p1, p2);
+
+                    if (accumulatedDist + segmentLength >= targetDist) {
+                        // Interpolate within segment
+                        float t = (targetDist - accumulatedDist) / segmentLength;
+                        Vector2 newPoint = Vector2.Lerp(p1, p2, t);
+                        redistributed.Add(newPoint);
+                        break;
+                    }
+
+                    accumulatedDist += segmentLength;
+                    currentSegment++;
+                }
+            }
+
+            return redistributed.Count > 0 ? redistributed : points;
+        }
+
+        private static Vector2[,] ComputeGradientField(float[,] edgeMap, int width, int height) {
+            Vector2[,] gradient = new Vector2[width, height];
+
+            // Compute gradient of edge map
+            for (int y = 1; y < height - 1; y++) {
+                for (int x = 1; x < width - 1; x++) {
+                    float gx = (edgeMap[x + 1, y] - edgeMap[x - 1, y]) * 0.5f;
+                    float gy = (edgeMap[x, y + 1] - edgeMap[x, y - 1]) * 0.5f;
+                    gradient[x, y] = new Vector2(gx, gy);
+                }
+            }
+
+            return gradient;
         }
 
         private static HashSet<int> FillContour(List<Vector2> contour, int width) {
@@ -330,23 +369,19 @@ namespace InpaintAR.Scripts {
             }
 
             ScanlineFillMask(mask, contour, width, (int)minY, (int)maxY, (int)minX, (int)maxX);
-            
-            
+
+
             return mask;
         }
-
-        /**
-         * Polygon Filling Algorithm
-         * Process each scanline and find edge intersections
-         */
-        private static void ScanlineFillMask(HashSet<int> mask, List<Vector2> contour, int width, int yMin, int yMax, int xMin,
+        
+        private static void ScanlineFillMask(HashSet<int> mask, List<Vector2> contour, int width, int yMin, int yMax,
+            int xMin,
             int xMax) {
-
             Parallel.For(yMin, yMax + 1, () => new List<int>(), (y, _, localList) => {
                 List<float> intersections = new List<float>(contour.Count);
-                
+
                 FillEdgeIntersectionList(intersections, contour, y);
-                
+
                 // Sort intersections and fill between pairs of intersections
                 intersections.Sort();
 
@@ -380,9 +415,9 @@ namespace InpaintAR.Scripts {
                 float y2 = p2.y;
 
                 // whilst == would be preferrable, rounding to avoid floating point errors would make it less performant than this
-                if (   (y1 < scanY && y2 < scanY) 
+                if ((y1 < scanY && y2 < scanY)
                     || (y1 > scanY && y2 > scanY)) continue;
-                
+
                 // Intersection calculation
                 float t = (scanY - y1) / (y2 - y1);
                 float x = p1.x + t * (p2.x - p1.x);
