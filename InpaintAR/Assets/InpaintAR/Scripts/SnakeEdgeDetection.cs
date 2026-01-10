@@ -5,19 +5,18 @@ using UnityEngine;
 
 namespace InpaintAR.Scripts {
     public static class SnakeEdgeDetection {
-         
-        private const int SnakeIterations = 400; // Number of iterations for snake evolution
-        private const int SnakeRefinementIterations = 40; // Iterations for refinement in subsequent frames
-        private const float Elasticity = 0.5f; // increase for smoother contours
-        private const float Rigidity = 1.2f; // increase to prevent breaking apart
-        private const float Gamma = 0.05f; // Entropy
-        private const float MovementPerFrame = 0.5f; // movement per frame
-        private const float EdgeAttraction = 5.0f; // increased edge attraction
-        private const float EdgeThreshold = 0.02f; // Threshold for edge detection - lower to detect more edges
+        private const int SnakeIterations = 15000; // Number of iterations for snake evolution
+        private const int SnakeRefinementIterations = 800; // Iterations for refinement in subsequent frames
+        private const float Elasticity = 2f; // increase for smoother contours
+        private const float Rigidity = 1f; // increase to prevent breaking apart
+        private const float PositionScaling = 0.12f; // How much the Position change gets scaled in total
+        private const float MovementPerFrame = 5f; // movement per frame
+        private const float EdgeAttraction = 125.0f; // increased edge attraction
+        private const float EdgeThreshold = 0.025f; // Threshold for edge detection - lower to detect more edges
         private const int InitialPerimeterPointCount = 200; // Reduced point count for more stable evolution
-        private const float BarrierWeight = 2.0f;
-
-        private const float StabilizationThreshold = 0.01f; // Average movement threshold for early stopping
+        
+        private const float BarrierWeight = 100.0f; // Weight of the counter power when close
+        private const float StabilizationThreshold = 0.015f; // Average movement threshold for early stopping
 
         private static HashSet<int> _cachedRefinedMask;
         private static List<Vector2> _cachedContourPoints;
@@ -86,8 +85,19 @@ namespace InpaintAR.Scripts {
                 return;
             }
 
+            if (_cachedContourPoints != null) {
+                Vector2 offset = new Vector2(
+                    maskBounds.x - _cachedSelectionBounds.x,
+                    maskBounds.y - _cachedSelectionBounds.y
+                );
+                
+                TranslateContourPoints(_cachedContourPoints, offset, imageWidth, imageHeight);
+            }
+            else {
+                _cachedContourPoints = CreateRectangularContour(pixelLeft, pixelRight, pixelBottom, pixelTop);
+            }
+
             _cachedSelectionBounds = maskBounds;
-            _cachedContourPoints = CreateRectangularContour(pixelLeft, pixelRight, pixelBottom, pixelTop);
         }
 
         private static List<Vector2> CreateRectangularContour(int left, int right, int bottom, int top) {
@@ -121,6 +131,18 @@ namespace InpaintAR.Scripts {
             }
 
             return contour;
+        }
+
+        private static void TranslateContourPoints(List<Vector2> points, Vector2 offset, int width, int height) {
+            for (int i = 0; i < points.Count; i++) {
+                Vector2 translatedPoint = points[i] + offset;
+                
+                // Clamp to image bounds
+                translatedPoint.x = Mathf.Clamp(translatedPoint.x, 0, width - 1);
+                translatedPoint.y = Mathf.Clamp(translatedPoint.y, 0, height - 1);
+                
+                points[i] = translatedPoint;
+            }
         }
 
         private static void ApplyBalloonSnake(Texture2D fillImageTexture, Rect maskBounds, int iterations) {
@@ -230,7 +252,9 @@ namespace InpaintAR.Scripts {
                     Vector2 curvature = Rigidity * (prevPrev - 2 * prev + 2 * next - nextNext);
 
                     Vector2 tangent = (next - prev).normalized;
-                    Vector2 normal = new Vector2(-tangent.y, tangent.x); // 90° rotation
+                    var newX = -tangent.y;
+                    var newY = tangent.x;
+                    Vector2 normal = new Vector2(newX, newY); // 90° rotation
 
                     // External forces from image
                     int x = Mathf.Clamp((int)p.x, 0, width - 1);
@@ -243,7 +267,7 @@ namespace InpaintAR.Scripts {
                     Vector2 edgeNormal = gradMag > 1e-5f ? grad / gradMag : Vector2.zero;
 
                     // Balloon
-                    float flatness = 1f - edgeStrength;
+                    float flatness = Mathf.Clamp01(1f - edgeStrength);
                     float dampening = Mathf.Clamp01(flatness * flatness);
                     float alignment = gradMag > 1e-5f ? Mathf.Max(0f, Vector2.Dot(normal, edgeNormal)) : 0f;
 
@@ -260,10 +284,16 @@ namespace InpaintAR.Scripts {
                     Vector2 force = elasticity + curvature + balloonForce + edgeForce + barrierForce;
 
                     // Directional lock
-                    Vector2 velocity = Gamma * force;
-                    float crossing = Vector2.Dot(velocity, edgeNormal);
-                    if (edgeStrength > EdgeThreshold && crossing > 0f)
-                        velocity -= crossing * edgeNormal;
+                    float edgeDamping = Mathf.Exp(-6.0f * edgeStrength);
+
+                    // Velocity
+                    Vector2 velocity = PositionScaling * edgeDamping * force;
+
+                    // Remove cross-edge motion
+                    if (edgeStrength > EdgeThreshold && gradMag > 1e-5f) {
+                        float normalMotion = Vector2.Dot(velocity, edgeNormal);
+                        velocity -= normalMotion * edgeNormal;
+                    }
 
                     var newP = p + velocity;
 
