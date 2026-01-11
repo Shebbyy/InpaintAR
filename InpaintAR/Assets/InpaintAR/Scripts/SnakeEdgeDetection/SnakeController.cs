@@ -4,9 +4,9 @@ using UnityEngine;
 
 namespace InpaintAR.Scripts.SnakeEdgeDetection {
     public static class SnakeController {
-        private const int SnakeIterations = 15000; // Number of iterations for snake evolution
-        private const int SnakeRefinementIterations = 3000; // Iterations for refinement in subsequent frames
-        private const int InitialPerimeterPointCount = 200; // Reduced point count for more stable evolution
+        private const int SnakeIterations = 15000; // Number of iterations for initialization
+        private const int SnakeRefinementIterations = 2000; // Iterations for refinement per frame (more -> quicker adjustment to movements)
+        private const int InitialPerimeterPointCount = 200; // Amount of Points for the contour
         
         private static int _cachedWidth;
         private static int _cachedHeight;

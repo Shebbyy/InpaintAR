@@ -75,7 +75,7 @@ namespace InpaintAR.Scripts.Util {
             _mEmptyImage  = new Color[_mImageWidth * _mImageHeight];
 
             for (int i = 0; i < _mEmptyImage.Length; i++) {
-                _mEmptyImage[i] = Color.red;
+                _mEmptyImage[i] = Color.clear;
             }
         }
 

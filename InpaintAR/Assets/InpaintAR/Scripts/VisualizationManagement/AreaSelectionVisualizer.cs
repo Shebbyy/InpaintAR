@@ -40,7 +40,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
         [CanBeNull] private Texture2D m_copiedTexture; // Copy of the passthrough texture for inpainting, etc.
         [CanBeNull] private HashSet<int> m_inpaintMask;
         [CanBeNull] private Texture2D m_inpaintedTexture;
-        private IInpaintingAlgorithm m_inpaintingAlgorithm;
+        private AbstractInpaintingAlgorithm m_abstractInpaintingAlgorithm;
         private CameraController m_cameraController;
         private SelectionUiController m_selectionUiController;
 
@@ -55,7 +55,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             m_selectionUiController.SetConfig(m_cameraController, showDebugRect);
             m_selectionUiController.CreateUICanvasAndCorners(canvasWidth, canvasHeight, pixelsPerUnit, cornerSpriteSize, cornerSpriteThickness);
             
-            m_inpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
+            m_abstractInpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
         }
         
         private void OnDestroy() {
@@ -138,7 +138,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             if (m_inpaintedTexture) {
                 Destroy(m_inpaintedTexture);
             }
-            m_inpaintedTexture = m_inpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask);
+            m_inpaintedTexture = m_abstractInpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask, out long elapsedTime);
             
             m_selectionUiController.GetFillImage().texture = m_inpaintedTexture;
         }

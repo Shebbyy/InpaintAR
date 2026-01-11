@@ -4,7 +4,7 @@ using InpaintAR.Scripts.Inpainting.Algorithms;
 namespace InpaintAR.Scripts.Inpainting {
     
     public static class InpaintingFactory {
-        public static IInpaintingAlgorithm GetInpaintingAlgorithm(InpaintingAlgorithms algorithm) {
+        public static AbstractInpaintingAlgorithm GetInpaintingAlgorithm(InpaintingAlgorithms algorithm) {
             return algorithm switch {
                 InpaintingAlgorithms.FastMarchingMethod => new FastMarchingAlgorithm(),
                 InpaintingAlgorithms.ExemplarLocalTextureMatching => new EltmAlgorithm(),

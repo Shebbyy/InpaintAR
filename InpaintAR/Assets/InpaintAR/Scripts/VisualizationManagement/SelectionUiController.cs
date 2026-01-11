@@ -3,17 +3,20 @@ using UnityEngine.UI;
 
 namespace InpaintAR.Scripts.VisualizationManagement {
     public class SelectionUiController : MonoBehaviour {
-        // Internal references to the generated UI elements
         private RectTransform m_leftCornerBox;
         private RectTransform m_rightCornerBox;
+        
+        
         private Canvas m_canvas;
-        private CameraController m_cameraController;
         private RectTransform m_fillImageRect; // rect transform of the RawImage which contains the inpainted content
         private RectTransform FillRectMask { get; set; }
         private RawImage FillImage { get; set; }
-        private bool m_showDebugRect;
         private Ray m_textureTopLeft;
         private Ray m_textureBottomRight;
+        
+        private bool m_showDebugRect;
+        
+        private CameraController m_cameraController;
         
         public void CreateUICanvasAndCorners(float canvasWidth, float canvasHeight, float pixelsPerUnit, int cornerSpriteSize, int cornerSpriteThickness) {
             GameObject canvasObj = new GameObject("AreaSelectionUICanvas");

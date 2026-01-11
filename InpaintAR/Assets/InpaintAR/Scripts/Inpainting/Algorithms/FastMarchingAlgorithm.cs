@@ -5,9 +5,9 @@ using Unity.Collections;
 using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
-    public class FastMarchingAlgorithm : IInpaintingAlgorithm {
+    public class FastMarchingAlgorithm : AbstractInpaintingAlgorithm {
         private Color[] m_pixelBuffer;
-        public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
+        protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             int imageWidth = TextureUtility.GetImageWidth(source);
             int imageHeight = TextureUtility.GetImageHeight(source);
             int pixelCount = imageWidth * imageHeight;

@@ -2,8 +2,8 @@
 using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
-    public class EltmAlgorithm : IInpaintingAlgorithm {
-        public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
+    public class EltmAlgorithm : AbstractInpaintingAlgorithm {
+        protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             return source;
         }
     }
