@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
 
-namespace InpaintAR.Scripts {
+namespace InpaintAR.Scripts.Util {
     public static class TextureUtility {
         // Thread-local pool for intersection lists to avoid allocations
         private static readonly ThreadLocal<List<float>> IntersectionPool = new(() => new List<float>(100));
@@ -188,6 +188,23 @@ namespace InpaintAR.Scripts {
             }
 
             return redistributed.Count > 0 ? redistributed : points;
+        }
+
+        public static Texture2D CopyTexture(Texture source) {
+            var newTexture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, false);
+
+            RenderTexture currentRT = RenderTexture.active;
+
+            // Source is usually RenderTexture when delivered from Quest
+            RenderTexture texture = source as RenderTexture;
+            RenderTexture.active = texture;
+
+            newTexture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0);
+            newTexture.Apply();
+
+            RenderTexture.active = currentRT;
+
+            return newTexture;
         }
     }
 }

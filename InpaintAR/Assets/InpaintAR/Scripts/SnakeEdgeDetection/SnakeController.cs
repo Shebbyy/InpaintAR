@@ -1,17 +1,17 @@
 ﻿using System.Collections.Generic;
+using InpaintAR.Scripts.Util;
 using UnityEngine;
 
 namespace InpaintAR.Scripts.SnakeEdgeDetection {
     public static class SnakeController {
-        private const int SnakeIterations = 50000; // Number of iterations for snake evolution
-        private const int SnakeRefinementIterations = 5000; // Iterations for refinement in subsequent frames
+        private const int SnakeIterations = 15000; // Number of iterations for snake evolution
+        private const int SnakeRefinementIterations = 3000; // Iterations for refinement in subsequent frames
         private const int InitialPerimeterPointCount = 200; // Reduced point count for more stable evolution
         
         private static int _cachedWidth;
         private static int _cachedHeight;
         private static Rect _cachedSelectionBounds;
-
-
+        
         private static readonly BalloonSnake Snake = new();
 
         public static HashSet<int> GetContourMaskPixelIndices(RectTransform fillImagePosition,

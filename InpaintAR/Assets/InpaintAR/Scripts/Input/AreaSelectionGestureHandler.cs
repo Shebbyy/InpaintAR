@@ -2,7 +2,7 @@ using UnityEngine;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 
-namespace InpaintAR.Scripts {
+namespace InpaintAR.Scripts.Input {
     public class AreaSelectionGestureHandler : MonoBehaviour {
         [Header("Hand Skeletons")] 
         [Tooltip("Left Hand of the OVRSkeleton")]

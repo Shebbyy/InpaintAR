@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using InpaintAR.Scripts.Util;
 using Unity.Collections;
 using UnityEngine;
 
