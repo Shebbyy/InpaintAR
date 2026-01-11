@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using InpaintAR.Scripts.Inpainting;
+using InpaintAR.Scripts.SnakeEdgeDetection;
 using JetBrains.Annotations;
 using Meta.XR;
 using UnityEngine;
@@ -78,6 +79,25 @@ namespace InpaintAR.Scripts {
             if (m_copiedTexture) {
                 Destroy(m_copiedTexture);
             }
+            if (m_inpaintedTexture) {
+                Destroy(m_inpaintedTexture);
+            }
+            // Clean up corner sprites and their textures
+            CleanupCornerSprite(m_leftCornerBox);
+            CleanupCornerSprite(m_rightCornerBox);
+        }
+        
+        private static void CleanupCornerSprite(RectTransform cornerBox) {
+            if (cornerBox != null) {
+                var img = cornerBox.GetComponent<Image>();
+                if (img != null && img.sprite != null) {
+                    Texture2D texture = img.sprite.texture;
+                    Destroy(img.sprite);
+                    if (texture != null) {
+                        Destroy(texture);
+                    }
+                }
+            }
         }
 
         void Update() {
@@ -109,7 +129,7 @@ namespace InpaintAR.Scripts {
                 UpdateCanvasWorldPosition();
 
                 UpdateSelectionMaskPosition(areaDetection.LeftHandCornerScreenPos.Value, areaDetection.RightHandCornerScreenPos.Value);
-                SnakeEdgeDetection.ResetSelectionMask();
+                SnakeController.ResetSelectionMask();
             }
             else {
                 // Update to only adjust to camera angle
@@ -137,7 +157,12 @@ namespace InpaintAR.Scripts {
                 return;
             }
             
-            m_inpaintMask = SnakeEdgeDetection.GetContourMaskPixelIndices(FillImage.rectTransform, m_copiedTexture, FillRectMask);
+            m_inpaintMask = SnakeController.GetContourMaskPixelIndices(FillImage.rectTransform, m_copiedTexture, FillRectMask);
+            
+            // Destroy old inpainted texture before creating new one to prevent memory leak
+            if (m_inpaintedTexture) {
+                Destroy(m_inpaintedTexture);
+            }
             m_inpaintedTexture = m_inpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask);
             
             FillImage.texture = m_inpaintedTexture;
