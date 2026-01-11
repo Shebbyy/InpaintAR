@@ -11,7 +11,6 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
         private static int _cachedWidth;
         private static int _cachedHeight;
         private static Rect _cachedSelectionBounds;
-        
         private static readonly BalloonSnake Snake = new();
 
         public static HashSet<int> GetContourMaskPixelIndices(RectTransform fillImagePosition,
@@ -136,7 +135,5 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
                 points[i] = translatedPoint;
             }
         }
-
-        
     }
 }

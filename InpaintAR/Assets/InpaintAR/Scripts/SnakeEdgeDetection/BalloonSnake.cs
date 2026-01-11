@@ -10,17 +10,17 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
         // Profiler markers for key operations
         private readonly ProfilerMarker m_sEdgeMapMarker = new("SnakeEdge.ComputeEdgeMap");
         private readonly ProfilerMarker m_sEvolveSnakeMarker = new("SnakeEdge.EvolveSnake");
-
-        private const float Elasticity = 2.5f; // increase for smoother contours
+        
+        private const float Elasticity = 2f; // increase for smoother contours
         private const float Rigidity = 1f; // increase to prevent breaking apart
         private const float PositionScaling = 0.12f; // How much the Position change gets scaled in total
-        private const float MovementPerFrame = 6f; // movement per frame
+        private const float MovementPerFrame = 5f; // movement per frame
         private const float EdgeAttraction = 125.0f; // increased edge attraction
         private const float EdgeThreshold = 0.025f; // Threshold for edge detection - lower to detect more edges
         private const float EdgeDampenFactor = 6.0f;
-
+        
         private const float BarrierWeight = 100.0f; // Weight of the counter power when close
-        private const float StabilizationThreshold = 0.012f; // Average movement threshold for early stopping
+        private const float StabilizationThreshold = 0.015f; // Average movement threshold for early stopping
 
         private const float MinGradMagnitude = 1e-5f;
 
@@ -29,23 +29,24 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
         private float[,] m_gray;
         private HashSet<int> m_cachedRefinedMask;
         private List<Vector2> m_cachedContourPoints;
-
-        public HashSet<int> ApplyBalloonSnake(Texture2D fillImageTexture, Rect maskBounds, int iterations, int width,
-            int height) {
+        
+        public HashSet<int> ApplyBalloonSnake(Texture2D fillImageTexture, Rect maskBounds, int iterations, int width, int height) {
             NativeArray<Color32> pixels = fillImageTexture.GetPixelData<Color32>(0);
 
             int margin = 20;
             Rect computeRegion = ExpandRect(maskBounds, margin, width, height);
 
             ComputeSobelEdgeMapInRegion(pixels, width, height, computeRegion);
+            
+            var snakePoints = EvolveBalloonSnake(m_cachedContourPoints, m_edgeMap, width, height, iterations);
 
-            EvolveBalloonSnake(width, height, iterations);
+            m_cachedContourPoints = snakePoints;
 
-            TextureUtility.FillContour(m_cachedRefinedMask, m_cachedContourPoints, width);
+            TextureUtility.FillContour(m_cachedRefinedMask, snakePoints, width);
 
             return m_cachedRefinedMask;
         }
-
+        
         [CanBeNull]
         public HashSet<int> GetRefinedMask() {
             return m_cachedRefinedMask;
@@ -71,7 +72,7 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
         public void SetContourPoints(List<Vector2> newContourPoints) {
             m_cachedContourPoints = newContourPoints;
         }
-
+        
         private static Rect ExpandRect(Rect rect, int margin, int width, int height) {
             return new Rect(
                 Mathf.Max(0, rect.x - margin),
@@ -83,14 +84,19 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
 
         private void ComputeSobelEdgeMapInRegion(NativeArray<Color32> pixels, int width, int height, Rect region) {
             m_sEdgeMapMarker.Begin();
-
+            
             int minX = Mathf.Max(0, (int)region.x);
             int maxX = Mathf.Min(width, (int)(region.x + region.width));
             int minY = Mathf.Max(0, (int)region.y);
             int maxY = Mathf.Min(height, (int)(region.y + region.height));
 
             // Convert to grayscale
-            InitializeGrayscaleMask(pixels, width, minX, maxX, minY, maxY);
+            for (int y = minY; y < maxY; y++) {
+                for (int x = minX; x < maxX; x++) {
+                    Color c = pixels[y * width + x];
+                    m_gray[x, y] = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
+                }
+            }
 
             float maxEdgeEnergy = 0f;
 
@@ -104,7 +110,7 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
                     float gy =
                         -m_gray[x - 1, y - 1] - 2f * m_gray[x, y - 1] - m_gray[x + 1, y - 1] +
                         m_gray[x - 1, y + 1] + 2f * m_gray[x, y + 1] + m_gray[x + 1, y + 1];
-
+                    
                     float gradMag2 = gx * gx + gy * gy;
 
                     m_edgeMap[x, y] = gradMag2;
@@ -116,26 +122,9 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
 
             if (maxEdgeEnergy <= 0f) return;
 
-            // normalization
-            NormalizeEdgeMap(maxEdgeEnergy, height, width, minX, maxX, minY, maxY);
-
-            m_sEdgeMapMarker.End();
-        }
-
-        private void InitializeGrayscaleMask(NativeArray<Color32> pixels, int width, int minX, int maxX, int minY,
-            int maxY) {
-            for (int y = minY; y < maxY; y++) {
-                for (int x = minX; x < maxX; x++) {
-                    Color c = pixels[y * width + x];
-                    m_gray[x, y] = 0.299f * c.r + 0.587f * c.g + 0.114f * c.b;
-                }
-            }
-        }
-
-        private void NormalizeEdgeMap(float maxEdgeEnergy, int height, int width, int minX, int maxX, int minY,
-            int maxY) {
             float invMax = 1f / maxEdgeEnergy;
 
+            // normalization
             for (int y = Mathf.Max(1, minY); y < Mathf.Min(height - 1, maxY); y++) {
                 for (int x = Mathf.Max(1, minX); x < Mathf.Min(width - 1, maxX); x++) {
                     float normalized = m_edgeMap[x, y] * invMax;
@@ -144,108 +133,107 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
                     m_edgeMap[x, y] = normalized >= EdgeThreshold ? normalized : 0f;
                 }
             }
+
+            m_sEdgeMapMarker.End();
         }
 
-        private void EvolveBalloonSnake(int width, int height,
+        private List<Vector2> EvolveBalloonSnake(List<Vector2> points, float[,] edgeMap, int width, int height,
             int iterations) {
             m_sEvolveSnakeMarker.Begin();
-            int n = m_cachedContourPoints.Count;
-            List<Vector2> newPoints = new List<Vector2>(n);
             
+            int n = points.Count;
+
             // Gradient Gaussian Field for stability
-            ComputeGradientField(m_edgeMap, width, height);
+            ComputeGradientField(edgeMap, width, height);
 
             for (int iter = 0; iter < iterations; iter++) {
-                IterateBalloonSnake(newPoints, n, iter, width, height);
+                List<Vector2> newPoints = new List<Vector2>(n);
+                float totalMovement = 0f;
+
+                for (int i = 0; i < n; i++) {
+                    Vector2 p = points[i];
+                    Vector2 prev = points[(i - 1 + n) % n];
+                    Vector2 next = points[(i + 1) % n];
+
+                    // Internal forces (smoothness constraints)
+                    Vector2 elasticity = Elasticity * (prev + next - 2 * p);
+
+                    Vector2 prevPrev = points[(i - 2 + n) % n];
+                    Vector2 nextNext = points[(i + 2) % n];
+                    Vector2 curvature = Rigidity * (prevPrev - 2 * prev + 2 * next - nextNext);
+
+                    Vector2 tangent = (next - prev).normalized;
+                    var newX = -tangent.y;
+                    var newY = tangent.x;
+                    Vector2 normal = new Vector2(newX, newY); // 90° rotation
+
+                    // External forces from image
+                    int x = Mathf.Clamp((int)p.x, 0, width - 1);
+                    int y = Mathf.Clamp((int)p.y, 0, height - 1);
+
+                    Vector2 grad = m_gradientField[x, y];
+                    float edgeStrength = edgeMap[x, y];
+
+                    float gradMag = grad.magnitude;
+                    Vector2 edgeNormal = gradMag > MinGradMagnitude ? grad / gradMag : Vector2.zero;
+
+                    // Balloon
+                    float flatness = Mathf.Clamp01(1f - edgeStrength);
+                    float dampening = Mathf.Clamp01(flatness * flatness);
+                    float alignment = gradMag > MinGradMagnitude-5f ? Mathf.Max(0f, Vector2.Dot(normal, edgeNormal)) : 0f;
+
+                    Vector2 balloonForce = (edgeStrength > EdgeThreshold)
+                        ? Vector2.zero
+                        : MovementPerFrame * dampening * alignment * normal;
+
+                    // Edge attraction
+                    Vector2 edgeForce = EdgeAttraction * grad;
+
+                    // Barrier to avoid overstepping edges
+                    Vector2 barrierForce = -BarrierWeight * edgeStrength * grad;
+
+                    Vector2 force = elasticity + curvature + balloonForce + edgeForce + barrierForce;
+
+                    // Directional lock
+                    float edgeDamping = Mathf.Exp(-EdgeDampenFactor * edgeStrength);
+
+                    // Velocity
+                    Vector2 velocity = PositionScaling * edgeDamping * force;
+
+                    // Remove cross-edge motion
+                    if (edgeStrength > EdgeThreshold && gradMag > MinGradMagnitude) {
+                        float normalMotion = Vector2.Dot(velocity, edgeNormal);
+                        velocity -= normalMotion * edgeNormal;
+                    }
+
+                    var newP = p + velocity;
+
+                    // Clamp to image bounds
+                    newP.x = Mathf.Clamp(newP.x, 0, width - 1);
+                    newP.y = Mathf.Clamp(newP.y, 0, height - 1);
+
+                    // Track movement for stabilization detection
+                    totalMovement += Vector2.Distance(p, newP);
+
+                    newPoints.Add(newP);
+                }
+
+                points = newPoints;
+
+                // Check for stabilization - stop early if snake has stabilized
+                float avgMovement = totalMovement / n;
+                if (avgMovement < StabilizationThreshold) {
+                    break;
+                }
+
+                // Redistribute points every 10 iterations to maintain uniform spacing
+                if (iter % 10 == 0 && iter > 0) {
+                    points = TextureUtility.RedistributePoints(points, n);
+                }
             }
 
             m_sEvolveSnakeMarker.End();
-        }
-
-        private void IterateBalloonSnake(List<Vector2> newPoints, int n, int currentIteration, int width, int height) {
-            newPoints.Clear();
-            float totalMovement = 0f;
-
-            for (int i = 0; i < n; i++) {
-                Vector2 p = m_cachedContourPoints[i];
-                Vector2 prev = m_cachedContourPoints[(i - 1 + n) % n];
-                Vector2 next = m_cachedContourPoints[(i + 1) % n];
-
-                // Internal forces (smoothness constraints)
-                Vector2 elasticity = Elasticity * (prev + next - 2 * p);
-
-                Vector2 prevPrev = m_cachedContourPoints[(i - 2 + n) % n];
-                Vector2 nextNext = m_cachedContourPoints[(i + 2) % n];
-                Vector2 curvature = Rigidity * (prevPrev - 2 * prev + 2 * next - nextNext);
-
-                Vector2 tangent = (next - prev).normalized;
-                var newX = -tangent.y;
-                var newY = tangent.x;
-                Vector2 normal = new Vector2(newX, newY); // 90° rotation
-
-                // External forces from image
-                int x = Mathf.Clamp((int)p.x, 0, width - 1);
-                int y = Mathf.Clamp((int)p.y, 0, height - 1);
-
-                Vector2 grad = m_gradientField[x, y];
-                float edgeStrength = m_edgeMap[x, y];
-
-                float gradMag = grad.magnitude;
-                Vector2 edgeNormal = gradMag > MinGradMagnitude ? grad / gradMag : Vector2.zero;
-
-                // Balloon
-                float flatness = Mathf.Clamp01(1f - edgeStrength);
-                float dampening = Mathf.Clamp01(flatness * flatness);
-                float alignment = gradMag > MinGradMagnitude - 5f ? Mathf.Max(0f, Vector2.Dot(normal, edgeNormal)) : 0f;
-
-                Vector2 balloonForce = (edgeStrength > EdgeThreshold)
-                    ? Vector2.zero
-                    : MovementPerFrame * dampening * alignment * normal;
-
-                // Edge attraction
-                Vector2 edgeForce = EdgeAttraction * grad;
-
-                // Barrier to avoid overstepping edges
-                Vector2 barrierForce = -BarrierWeight * edgeStrength * grad;
-
-                Vector2 force = elasticity + curvature + balloonForce + edgeForce + barrierForce;
-
-                // Directional lock
-                float edgeDamping = Mathf.Exp(-EdgeDampenFactor * edgeStrength);
-
-                // Velocity
-                Vector2 velocity = PositionScaling * edgeDamping * force;
-
-                // Remove cross-edge motion
-                if (edgeStrength > EdgeThreshold && gradMag > MinGradMagnitude) {
-                    float normalMotion = Vector2.Dot(velocity, edgeNormal);
-                    velocity -= normalMotion * edgeNormal;
-                }
-
-                var newP = p + velocity;
-
-                // Clamp to image bounds
-                newP.x = Mathf.Clamp(newP.x, 0, width - 1);
-                newP.y = Mathf.Clamp(newP.y, 0, height - 1);
-
-                // Track movement for stabilization detection
-                totalMovement += Vector2.Distance(p, newP);
-
-                newPoints.Add(newP);
-            }
-
-            m_cachedContourPoints = newPoints;
-
-            // Check for stabilization - stop early if snake has stabilized
-            float avgMovement = totalMovement / n;
-            if (avgMovement < StabilizationThreshold) {
-                return;
-            }
-
-            // Redistribute points every 10 iterations to maintain uniform spacing
-            if (currentIteration % 10 == 0 && currentIteration > 0) {
-                m_cachedContourPoints = TextureUtility.RedistributePoints(m_cachedContourPoints, n);
-            }
+            return points;
         }
 
         private void ComputeGradientField(float[,] edgeMap, int width, int height) {
