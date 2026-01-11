@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using InpaintAR.Scripts.Benchmarking.Evaluators;
 using InpaintAR.Scripts.Inpainting;
 using InpaintAR.Scripts.Input;
 using InpaintAR.Scripts.SnakeEdgeDetection;
@@ -102,6 +103,8 @@ namespace InpaintAR.Scripts.VisualizationManagement {
 
                 m_selectionUiController.UpdateSelectionMaskPosition(areaDetection.LeftHandCornerScreenPos.Value, areaDetection.RightHandCornerScreenPos.Value);
                 SnakeController.ResetSelectionMask();
+                PerformanceEvaluator.ResetValues();
+                QualityEvaluator.ResetValues();
             }
             else {
                 // Update to only adjust to camera angle
@@ -138,7 +141,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             if (m_inpaintedTexture) {
                 Destroy(m_inpaintedTexture);
             }
-            m_inpaintedTexture = m_abstractInpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask, out long elapsedTime);
+            m_inpaintedTexture = m_abstractInpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask);
             
             m_selectionUiController.GetFillImage().texture = m_inpaintedTexture;
         }

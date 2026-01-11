@@ -14,11 +14,11 @@ namespace InpaintAR.Scripts.SnakeEdgeDetection {
         // Might need fine tuning dependent on lighting, further analysis required if time
         private const float Elasticity = 1.5f; // increase for smoother contours
         private const float Rigidity = 1f; // increase to prevent breaking apart
-        private const float PositionScaling = 0.1f; // How much the Position change gets scaled in total
-        private const float MovementPerFrame = 4f; // movement per frame
+        private const float PositionScaling = 0.12f; // How much the Position change gets scaled in total
+        private const float MovementPerFrame = 5f; // movement per frame
         private const float EdgeAttraction = 150.0f; // increased edge attraction
         private const float EdgeThreshold = 0.025f; // Threshold for edge detection - lower to detect more edges
-        private const float EdgeDampenFactor = 12.0f;
+        private const float EdgeDampenFactor = 20.0f;
         
         private const float BarrierWeight = 125.0f; // Weight of the counter power when close
         private const float StabilizationThreshold = 0.015f; // Average movement threshold for early stopping

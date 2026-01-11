@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using InpaintAR.Scripts.Benchmarking;
+using InpaintAR.Scripts.Benchmarking.Evaluators;
 using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting {
@@ -12,16 +14,19 @@ namespace InpaintAR.Scripts.Inpainting {
     }
     
     public abstract class AbstractInpaintingAlgorithm {
-        protected readonly Stopwatch Watch = new();
-        public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices, out long elapsedTime) {
-            Watch.Reset();
-            Watch.Start();
+        private readonly Stopwatch m_watch = new();
+        protected Color32[] m_inpaintedPixelBuffer;
+        protected Color32[] m_sourcePixelBuffer;
+        public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
+            m_watch.Reset();
+            m_watch.Start();
             
             var texture = InpaintLogic(source, maskPixelIndices);
             
-            Watch.Stop();
-            elapsedTime = Watch.ElapsedMilliseconds;
-
+            m_watch.Stop();
+            PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
+            QualityEvaluator.EvaluateQuality(m_sourcePixelBuffer, m_inpaintedPixelBuffer, source.width, source.height, maskPixelIndices);
+            
             return texture;
         }
 

@@ -6,25 +6,27 @@ using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
     public class FastMarchingAlgorithm : AbstractInpaintingAlgorithm {
-        private Color[] m_pixelBuffer;
+        
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             int imageWidth = TextureUtility.GetImageWidth(source);
             int imageHeight = TextureUtility.GetImageHeight(source);
             int pixelCount = imageWidth * imageHeight;
             
-            if (m_pixelBuffer == null || m_pixelBuffer.Length != pixelCount) {
-                m_pixelBuffer = new Color[pixelCount];
+            if (m_inpaintedPixelBuffer == null || m_inpaintedPixelBuffer.Length != pixelCount) {
+                m_inpaintedPixelBuffer = new Color32[pixelCount];
             }
-            System.Array.Copy(TextureUtility.GetEmptyImagePixels(source), m_pixelBuffer, pixelCount);
+            System.Array.Copy(TextureUtility.GetEmptyImagePixels(source), m_inpaintedPixelBuffer, pixelCount);
             
             Texture2D resultImage = new Texture2D(imageWidth, imageHeight, TextureFormat.RGBA32, false);
 
             NativeArray<Color32> sourcePixels = source.GetPixelData<Color32>(0);
+            m_sourcePixelBuffer = source.GetPixels32();
+            
             Parallel.ForEach(maskPixelIndices, maskPixelIndex => {
-                m_pixelBuffer[maskPixelIndex] = sourcePixels[maskPixelIndex];
+                m_inpaintedPixelBuffer[maskPixelIndex] = sourcePixels[maskPixelIndex];
             });
             
-            resultImage.SetPixels(m_pixelBuffer);
+            resultImage.SetPixels32(m_inpaintedPixelBuffer);
             resultImage.Apply();
             
             return resultImage;
