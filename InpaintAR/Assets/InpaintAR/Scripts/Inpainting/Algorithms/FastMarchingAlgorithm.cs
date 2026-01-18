@@ -51,9 +51,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
 
             Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
-
-            MSourcePixelBuffer = source.GetPixels32();
-
+            
             System.Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
 
             InpaintFmm(maskPixelIndices);
@@ -420,7 +418,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
 
             if (totalWeight <= 0f) return;
-
+            Debug.Log($"Applying Inpaint for pixel {i}");
             ApplyInpaintedColor(i, sumRGB, sumA, totalWeight);
         }
 
@@ -451,15 +449,18 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             float dirFactor = Mathf.Max((-dx * normal.x + -dy * normal.y) / dist, MinWeightVal);
             float dstFactor = 1f / (dist * dist);
             float levFactor = 1f / (1f + Mathf.Abs(m_distances[nI] - m_distances[i]));
+            Debug.Log($"Dist:  {dstFactor}");
+            Debug.Log($"Dir:  {dirFactor}");
+            Debug.Log($"Lev:  {levFactor}");
+            
             return dirFactor * dstFactor * levFactor;
         }
 
         private void AccumulateColor(int i, int dx, int dy, float weight,
             ref Vector3 sumRGB, ref float sumA) {
-            (int x, int y) = ToCoords(i);
             Color neighborColor = MInpaintedPixelBuffer[i];
         
-            ComputeGradientI(x, y, out var gradIx, out var gradIy);
+            ComputeGradientI(i, out var gradIx, out var gradIy);
         
             sumRGB += weight * new Vector3(
                 neighborColor.r + gradIx.x * (-dx) + gradIy.x * (-dy),
@@ -470,6 +471,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         }
 
         private void ApplyInpaintedColor(int i, Vector3 sumRGB, float sumA, float totalWeight) {
+            Debug.Log($"Red: {sumRGB.x}");
+            Debug.Log($"Green: {sumRGB.y}");
+            Debug.Log($"Blue: {sumRGB.z}");
             Color inpaintedColor = new Color(
                 Mathf.Clamp01(sumRGB.x / totalWeight),
                 Mathf.Clamp01(sumRGB.y / totalWeight),
@@ -480,8 +484,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             MInpaintedPixelBuffer[i] = inpaintedColor;
         }
 
-        private void ComputeGradientI(int x, int y, out Vector3 gradX, out Vector3 gradY) {
-            int i = ToIndex(x, y);
+        private void ComputeGradientI(int i, out Vector3 gradX, out Vector3 gradY) {
+            (int x, int y) = ToCoords(i);
             Color center = MInpaintedPixelBuffer[i];
 
             gradX = ComputeGradient1D(x, y, 1, 0, center);

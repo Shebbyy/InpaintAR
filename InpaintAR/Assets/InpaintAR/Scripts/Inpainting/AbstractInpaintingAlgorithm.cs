@@ -21,6 +21,8 @@ namespace InpaintAR.Scripts.Inpainting {
             m_watch.Reset();
             m_watch.Start();
             
+            MSourcePixelBuffer = source.GetPixels32();
+            
             var texture = InpaintLogic(source, maskPixelIndices);
             
             m_watch.Stop();
