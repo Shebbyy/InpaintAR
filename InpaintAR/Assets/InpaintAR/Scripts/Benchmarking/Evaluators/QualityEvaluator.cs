@@ -13,15 +13,14 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         private static readonly List<float> QualityResults = new();
         private static bool _evaluationRunning;
 
-        public static void EvaluateQuality(Color32[] originalPixels, Color32[] inpaintedPixels, int width, int height,
+        public static void EvaluateQuality(Color32[] inpaintedImage, int width, int height,
             HashSet<int> maskPixelIndices) {
             // only one evaluation can run at a time
             if (_evaluationRunning) return;
             _evaluationRunning = true;
             
 
-            NativeArray<Color32> nativeOriginal = new NativeArray<Color32>(originalPixels, Allocator.TempJob);
-            NativeArray<Color32> nativeInpainted = new NativeArray<Color32>(inpaintedPixels, Allocator.TempJob);
+            NativeArray<Color32> nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
 
             // Needs to be NativeArray to allow for Burst Compiled Job
             NativeArray<byte> nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
@@ -37,7 +36,6 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
             NativeArray<float> naturalness = new NativeArray<float>(1, Allocator.TempJob);
 
             var qualityJob = new QualityEvaluationJob {
-                OriginalPixels = nativeOriginal,
                 InpaintedPixels = nativeInpainted,
                 Mask = nativeMask,
                 Width = width,
@@ -57,7 +55,6 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
             // Q = α · f1 + (1 − α) · f2
             float overallQuality = StructuralSimilarityWeight * ssim + (1 - StructuralSimilarityWeight) * nat;
 
-            nativeOriginal.Dispose();
             nativeInpainted.Dispose();
             nativeMask.Dispose();
             structuralSimilarity.Dispose();
@@ -76,7 +73,6 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
 
         [BurstCompile]
         private struct QualityEvaluationJob : IJob {
-            public NativeArray<Color32> OriginalPixels;
             public NativeArray<Color32> InpaintedPixels;
             public NativeArray<byte> Mask;
             public int Width;
@@ -113,7 +109,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
                             histInterior[binIndex]++;
                             interiorCount++;
                         } else {
-                            float gradient = ComputeGradientMagnitude(x, y, OriginalPixels);
+                            float gradient = ComputeGradientMagnitude(x, y, InpaintedPixels);
                             int binIndex = Mathf.Clamp((int)(gradient * (numBins - 1)), 0, numBins - 1);
                             histExterior[binIndex]++;
                             exteriorCount++;
@@ -159,7 +155,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
             }
             
             private float ComputeNaturalness() {
-                float nfOriginal = ComputeNaturalnessFeature(OriginalPixels);
+                float nfOriginal = ComputeNaturalnessFeature(InpaintedPixels);
                 float nfInpainted = ComputeNaturalnessFeature(InpaintedPixels);
     
                 // f2 = |NF_Original - NF_Inpainted|

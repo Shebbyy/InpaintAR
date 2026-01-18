@@ -1,5 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using InpaintAR.Scripts.Util;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
@@ -11,30 +17,16 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const byte Band = 1; // On Boundary
         private const byte Inside = 2; // Inside Inpainting Region
 
-        private static readonly int[] Dir4X = { -1, 1, 0, 0 };
-        private static readonly int[] Dir4Y = { 0, 0, -1, 1 };
-
+        private const float MaxValue = 1e6f;
+        private const float Eps = 1e-6f;
+        
         // Radius for Neighborhood of Inpainting Reference Pixels
-        private const int Epsilon = 2;
-
-        // min grad for inpainting
-        private const float MinGradMagnitude = 1e-5f;
-        private const float MinWeightVal = 0.001f;
+        // Reduced from 5 to 3 for optimization (49 vs 121 iterations per pixel)
+        private const int Epsilon = 3;
 
         private int m_width;
         private int m_height;
         private int m_pixelCount;
-        private byte[] m_flags;
-        private float[] m_distances;
-
-        // Precomputed smoothed T field and its gradient (otherwise unstable)
-        private float[] m_smoothedT;
-        private float[] m_gradTx;
-        private float[] m_gradTy;
-        private bool[] m_mask;
-
-        // Priority queue for the Boundary (min-heap based on distance)
-        private PriorityQueue<int, float> m_boundary;
 
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             m_width = TextureUtility.GetImageWidth(source);
@@ -45,16 +37,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 MInpaintedPixelBuffer = new Color32[m_pixelCount];
             }
 
-            m_mask = new bool[m_pixelCount];
-            foreach (var hashVal in maskPixelIndices) {
-                m_mask[hashVal] = true;
-            }
+            Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
 
             Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
             
-            System.Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
-
-            InpaintFmm(maskPixelIndices);
+            InpaintFmmBurst(maskPixelIndices);
 
             resultImage.SetPixels32(MInpaintedPixelBuffer);
             resultImage.Apply();
@@ -62,471 +49,528 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return resultImage;
         }
 
-        private void InpaintFmm(HashSet<int> maskPixelIndices) {
-            m_flags = new byte[m_pixelCount];
-            m_distances = new float[m_pixelCount];
-
-            m_boundary = new PriorityQueue<int, float>();
-
-            // init vals 0 in both cases is known constant and distance 0, mask pixels need different init val
-            foreach (int i in maskPixelIndices) {
-                m_flags[i] = Inside;
-                m_distances[i] = float.PositiveInfinity;
-            }
-
-            // Boundary Normal should not be calculated on the fly due to instability
-            PrecomputeDistanceFieldAndGradient(maskPixelIndices);
-
-            InitializeNarrowBand(maskPixelIndices);
-
-            // Boundary not empty
-            int inpaintedCount = 0;
-            while (m_boundary.Count > 0) {
-                int i = m_boundary.Dequeue();
-
-                if (m_flags[i] == Known) continue;
-
-                (int col, int row) = ToCoords(i);
-
-                // f(i,j) = KNOWN
-                m_flags[i] = Known;
-
-                // for (k,l) in (i-1,j),(i,j-1),(i+1,j),(i,j+1)
-                for (int n = 0; n < 4; n++) {
-                    int curCol = col + Dir4X[n];
-                    int curRow = row + Dir4Y[n];
-
-                    if (!IsInBounds(curCol, curRow)) continue;
-
-                    int currentIndex = ToIndex(curCol, curRow);
-
-                    if (m_flags[currentIndex] == Known) continue;
-
-                    float newDist = ComputeMinEikonalSolution(curCol, curRow, m_distances, m_flags);
-
-                    if (m_flags[currentIndex] == Inside) {
-                        m_flags[currentIndex] = Band;
-                        m_distances[currentIndex] = newDist;
-                        InpaintPixel(currentIndex);
-                        inpaintedCount++;
-                    }
-
-                    if (newDist >= m_distances[currentIndex]) continue;
-                    m_distances[currentIndex] = newDist;
-                    m_boundary.Enqueue(currentIndex, newDist);
-                }
-            }
-            Debug.Log($"Inpainted {inpaintedCount} pixels, mask size: {maskPixelIndices.Count}");
-        }
-
-        private void PrecomputeDistanceFieldAndGradient(HashSet<int> maskPixelIndices) {
-            float[] tOut = RunFmm(maskPixelIndices, true);
-            float[] tIn = RunFmm(maskPixelIndices, false);
-
-            float[] combinedT = new float[m_pixelCount];
-            for (int i = 0; i < m_pixelCount; i++) {
-                combinedT[i] = m_mask[i] ? tIn[i] : -Mathf.Min(tOut[i], Epsilon);
-            }
-
-            m_smoothedT = new float[m_pixelCount];
-            ApplyTentFilter(combinedT, m_smoothedT);
-
-            m_gradTx = new float[m_pixelCount];
-            m_gradTy = new float[m_pixelCount];
-            ComputeGradientField(m_smoothedT, m_gradTx, m_gradTy);
-        }
-
-        private float[] RunFmm(HashSet<int> maskPixelIndices, bool isOutward) {
-            float[] t = new float[m_pixelCount];
-            byte[] flags = new byte[m_pixelCount];
-
-            InitializeFmmArrays(t, flags, isOutward);
-
-            var narrowBand = new PriorityQueue<int, float>();
-            InitializeFmmBoundary(narrowBand, t, flags, maskPixelIndices, isOutward);
-
-            PropagateFmm(narrowBand, t, flags, isOutward);
-
-            return t;
-        }
-
-        private void InitializeFmmArrays(float[] t, byte[] flags, bool isOutward) {
-            for (int i = 0; i < t.Length; i++) {
-                if (isOutward) {
-                    // Outward: propagate FROM mask TO outside
-                    flags[i] = m_mask[i] ? Known : Inside;
-                    t[i] = m_mask[i] ? 0f : float.PositiveInfinity;
-                }
-                else {
-                    // Inward: propagate FROM outside TO mask
-                    flags[i] = m_mask[i] ? Inside : Known;
-                    t[i] = m_mask[i] ? float.PositiveInfinity : 0f;
-                }
-            }
-        }
-
-
-        private void InitializeFmmBoundary(PriorityQueue<int, float> narrowBand, float[] t, byte[] flags,
-            HashSet<int> maskPixelIndices, bool isOutward) {
-            int[] dx = Dir4X;
-            int[] dy = Dir4Y;
-
-            foreach (int i in maskPixelIndices) {
-                (int x, int y) = ToCoords(i);
-
-                for (int j = 0; j < 4; j++) {
-                    int nx = x + dx[j];
-                    int ny = y + dy[j];
-
-                    if (!IsInBounds(nx, ny)) continue;
-
-                    int neighborIndex = ToIndex(nx, ny);
-
-                    if (m_mask[neighborIndex]) continue;
-                    if (isOutward) {
-                        if (flags[neighborIndex] == Band) continue;
-
-                        flags[neighborIndex] = Band;
-                        t[neighborIndex] = 1f;
-                        narrowBand.Enqueue(neighborIndex, 1f);
-                    }
-                    else {
-                        if (flags[i] == Band) continue;
-
-                        flags[i] = Band;
-                        t[i] = 1f;
-                        narrowBand.Enqueue(i, 1f);
-                        break; // Only need to mark this mask pixel once
-                    }
-                }
-            }
-        }
-
-        private void PropagateFmm(PriorityQueue<int, float> narrowBand, float[] t, byte[] flags
-            , bool isOutward) {
-            while (narrowBand.Count > 0) {
-                int i = narrowBand.Dequeue();
-
-                if (flags[i] == Known) continue;
-
-                if (isOutward && t[i] > Epsilon) continue;
-                flags[i] = Known;
-
-                (int col, int row) = ToCoords(i);
-
-                for (int n = 0; n < 4; n++) {
-                    int curCol = col + Dir4X[n];
-                    int curRow = row + Dir4Y[n];
-
-                    if (!IsInBounds(curCol, curRow)) continue;
-
-                    int curI = ToIndex(curCol, curRow);
-                    if (flags[curI] == Known) continue;
-                    if (m_mask[curI] == isOutward) continue;
-
-                    float newT = ComputeMinEikonalSolution(curCol, curRow, t, flags);
-                    if (newT >= t[curI]) continue;
-
-                    t[curI] = newT;
-                    flags[curI] = Band;
-                    narrowBand.Enqueue(curI, newT);
-                }
-            }
-        }
-
-
-        private float ComputeMinEikonalSolution(int col, int row, float[] t, byte[] flags) {
-            float t1 = SolveEikonal(col - 1, row, col, row - 1, t, flags);
-            float t2 = SolveEikonal(col + 1, row, col, row - 1, t, flags);
-            float t3 = SolveEikonal(col - 1, row, col, row + 1, t, flags);
-            float t4 = SolveEikonal(col + 1, row, col, row + 1, t, flags);
-            return Mathf.Min(Mathf.Min(t1, t2), Mathf.Min(t3, t4));
-        }
-
-
-        // 3x3 Tent Filter
-        // 1 2 1
-        // 2 4 2
-        // 1 2 1
-        private void ApplyTentFilter(float[] input, float[] output) {
-            const int maxWeight = 16;
-            // Process interior pixels without bounds checks
-            for (int y = 1; y < m_height - 1; y++) {
-                for (int x = 1; x < m_width - 1; x++) {
-                    int i = ToIndex(x, y);
-                    // calculated directly here without bounds check -> more performance
-                    output[i] = (
-                        input[i - m_width - 1] + 2f * input[i - m_width] + input[i - m_width + 1] +
-                        2f * input[i - 1] + 4f * input[i] + 2f * input[i + 1] +
-                        input[i + m_width - 1] + 2f * input[i + m_width] + input[i + m_width + 1]
-                    ) / maxWeight;
-                }
-            }
-
-            // Handle edges separately (less frequent)
-            for (int x = 0; x < m_width; x++) {
-                output[ToIndex(x, 0)] = ComputeTentFilteredValue(input, x, 0);
-                output[ToIndex(x, m_height - 1)] = ComputeTentFilteredValue(input, x, m_height - 1);
-            }
-            for (int y = 1; y < m_height - 1; y++) {
-                output[ToIndex(0, y)] = ComputeTentFilteredValue(input, 0, y);
-                output[ToIndex(m_width - 1, y)] = ComputeTentFilteredValue(input, m_width - 1, y);
-            }
-        }
-
-        private float ComputeTentFilteredValue(float[] input, int x, int y) {
-            float sum = 0f;
-            float weightSum = 0f;
-
-            for (int dy = -1; dy <= 1; dy++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    if (!TryGetPixelValue(input, x + dx, y + dy, out float value)) continue;
-
-                    float weight = (2 - Mathf.Abs(dx)) * (2 - Mathf.Abs(dy));
-                    sum += value * weight;
-                    weightSum += weight;
-                }
-            }
-
-            return sum / weightSum;
-        }
-
-        private bool TryGetPixelValue(float[] array, int x, int y, out float value) {
-            value = 0f;
-            if (!IsInBounds(x, y)) return false;
-
-            value = array[ToIndex(x, y)];
-            return true;
-        }
-
-
-        private void ComputeGradientField(float[] t, float[] gradX, float[] gradY) {
-            for (int y = 0; y < m_height; y++) {
-                for (int x = 0; x < m_width; x++) {
-                    int i = ToIndex(x, y);
-
-                    gradX[i] = x switch {
-                        > 0 when x < m_width - 1 => (t[i + 1] - t[i - 1]) * 0.5f,
-                        > 0 => t[i] - t[i - 1],
-                        _ => t[i + 1] - t[i]
-                    };
-
-                    gradY[i] = y switch {
-                        > 0 when y < m_height - 1
-                            => (t[i + m_width] - t[i - m_width]) * 0.5f,
-                        > 0
-                            => t[i] - t[i - m_width],
-                        _
-                            => t[i + m_width] - t[i]
-                    };
-                }
-            }
-        }
-
-        private void InitializeNarrowBand(HashSet<int> maskPixelIndices) {
-            foreach (int i in maskPixelIndices) {
-                (int x, int y) = ToCoords(i);
-
-                bool isBoundary = false;
-                float minDist = float.PositiveInfinity;
-
-                int[] dx = Dir4X;
-                int[] dy = Dir4Y;
-
-                for (int j = 0; j < 4; j++) {
-                    int nx = x + dx[j];
-                    int ny = y + dy[j];
-
-                    // Bounds
-                    if (!IsInBounds(nx, ny)) continue;
-                    // Neighbor != known, no boundary -> continue
-                    if (m_flags[ToIndex(nx, ny)] != Known) continue;
-
-                    isBoundary = true;
-                    // Distance to known pixel is 1
-                    minDist = 1f;
-                }
-
-                if (!isBoundary) continue;
-
-                m_flags[i] = Band;
-                m_distances[i] = minDist;
-                m_boundary.Enqueue(i, minDist);
-            }
-        }
-
-        private float SolveEikonal(int i1, int j1, int i2, int j2, float[] t, byte[] flags) {
-            bool valid1 = IsInBounds(i1, j1);
-            bool valid2 = IsInBounds(i2, j2);
-
-            int index1 = valid1 ? ToIndex(i1, j1) : -1;
-            int index2 = valid2 ? ToIndex(i2, j2) : -1;
-
-            bool known1 = valid1 && flags[index1] == Known;
-            bool known2 = valid2 && flags[index2] == Known;
-
-            switch (known1) {
-                case true when known2: {
-                    float t1 = t[index1];
-                    float t2 = t[index2];
-                    float diff = t1 - t2;
-                    float disc = 2f - diff * diff;
-                    if (disc <= 0f) return Mathf.Min(t1, t2) + 1f;
-
-                    float r = Mathf.Sqrt(disc);
-                    float s = (t1 + t2 - r) * 0.5f;
-                    if (s >= t1 && s >= t2) return s;
-                    s += r;
-                    if (s >= t1 && s >= t2) return s;
-
-                    return Mathf.Min(t1, t2) + 1f;
-                }
-                case true:
-                    return t[index1] + 1f;
-            }
-
-            if (known2) return t[index2] + 1f;
-
-            return float.PositiveInfinity;
-        }
-
-        private void InpaintPixel(int i) {
-            (int x, int y) = ToCoords(i);
-
-            // Vector3 used, as it does not need Heap Allocation -> more performant/efficient
-            // Also a lot cleaner than using individual variables 
-            Vector3 sumRGB = Vector3.zero;
-            float sumA = 0f;
-            float totalWeight = 0f;
-
-            Vector2 normal = GetNormalizedGradient(i);
-            int eps = Epsilon;
-
-            for (int dy = -eps; dy <= eps; dy++) {
-                for (int dx = -eps; dx <= eps; dx++) {
-                    if (dx == 0 && dy == 0) continue;
-
-                    int nx = x + dx;
-                    int ny = y + dy;
-
-                    if (!IsValidKnownNeighbor(nx, ny, dx, dy, out int nI)) continue;
-
-                    float weight = ComputeWeight(dx, dy, i, nI, normal);
-                    AccumulateColor(nI, dx, dy, weight, ref sumRGB, ref sumA);
-                    totalWeight += weight;
-                }
-            }
-
-            if (totalWeight <= 0f) return;
-            Debug.Log($"Applying Inpaint for pixel {i}");
-            ApplyInpaintedColor(i, sumRGB, sumA, totalWeight);
-        }
-
-
-        private Vector2 GetNormalizedGradient(int i) {
-            float gradTx = m_gradTx[i];
-            float gradTy = m_gradTy[i];
-            float magnitude = Mathf.Sqrt(gradTx * gradTx + gradTy * gradTy);
-
-            return magnitude > MinGradMagnitude
-                ? new Vector2(gradTx / magnitude, gradTy / magnitude)
-                : new Vector2(gradTx, gradTy);
-        }
-
-        private bool IsValidKnownNeighbor(int nx, int ny, int dx, int dy, out int nI) {
-            nI = -1;
-            if (!IsInBounds(nx, ny)) return false;
-
-            nI = ToIndex(nx, ny);
-            if (m_flags[nI] != Known) return false;
-
-            float dist = Mathf.Sqrt(dx * dx + dy * dy);
-            return dist <= Epsilon;
-        }
-
-        private float ComputeWeight(int dx, int dy, int i, int nI, Vector2 normal) {
-            float dist = Mathf.Sqrt(dx * dx + dy * dy);
-            float dirFactor = Mathf.Max((-dx * normal.x + -dy * normal.y) / dist, MinWeightVal);
-            float dstFactor = 1f / (dist * dist);
-            float levFactor = 1f / (1f + Mathf.Abs(m_distances[nI] - m_distances[i]));
-            Debug.Log($"Dist:  {dstFactor}");
-            Debug.Log($"Dir:  {dirFactor}");
-            Debug.Log($"Lev:  {levFactor}");
+        // Implemented as Burst for high performance
+        private void InpaintFmmBurst(HashSet<int> maskPixelIndices) {
+            var distanceMap = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
+            var flags = new NativeArray<byte>(m_pixelCount, Allocator.TempJob);
+            var pixels = new NativeArray<Color32>(MInpaintedPixelBuffer, Allocator.TempJob);
             
-            return dirFactor * dstFactor * levFactor;
+            // NativeParallelHashSet for O(1) lookup
+            var maskIndicesSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
+            var maskIndices = new NativeArray<int>(maskPixelIndices.Count, Allocator.TempJob);
+            
+            // Copy mask indices to native containers
+            int idx = 0;
+            foreach (var maskIdx in maskPixelIndices) {
+                maskIndicesSet.Add(maskIdx);
+                maskIndices[idx++] = maskIdx;
+            }
+
+            // Run initialization job with HashSet for O(1) lookup
+            var initJob = new InitializeFmmJob {
+                DistanceMap = distanceMap,
+                Flags = flags,
+                MaskIndicesSet = maskIndicesSet
+            };
+            initJob.Schedule(m_pixelCount, 64).Complete();
+            maskIndicesSet.Dispose(); // Only needed for initialization due to O(1) Lookup
+            
+            var heap = new MinHeap(maskPixelIndices.Count * 4, Allocator.TempJob);
+            var generations = new NativeArray<int>(m_pixelCount, Allocator.TempJob);
+            
+            BuildInitialBandWithHeap(ref heap, ref generations, ref flags, ref distanceMap, maskIndices, m_width, m_height);
+
+            // Run FMM main loop with heap and generation tracking
+            RunFmmWithHeap(ref heap, ref generations, ref flags, ref distanceMap, ref pixels, m_width, m_height);
+
+            // Copy results back
+            pixels.CopyTo(MInpaintedPixelBuffer);
+
+            // Dispose native arrays
+            distanceMap.Dispose();
+            flags.Dispose();
+            pixels.Dispose();
+            maskIndices.Dispose();
+            heap.Dispose();
+            generations.Dispose();
         }
 
-        private void AccumulateColor(int i, int dx, int dy, float weight,
-            ref Vector3 sumRGB, ref float sumA) {
-            Color neighborColor = MInpaintedPixelBuffer[i];
-        
-            ComputeGradientI(i, out var gradIx, out var gradIy);
-        
-            sumRGB += weight * new Vector3(
-                neighborColor.r + gradIx.x * (-dx) + gradIy.x * (-dy),
-                neighborColor.g + gradIx.y * (-dx) + gradIy.y * (-dy),
-                neighborColor.b + gradIx.z * (-dx) + gradIy.z * (-dy)
-            );
-            sumA += weight * neighborColor.a;
+        // Optimization 4: Add generation tracking to skip stale heap entries
+        [BurstCompile]
+        private struct FmmNode : IComparable<FmmNode> {
+            public float Distance;
+            public int Index;
+            public int Generation;
+
+            public int CompareTo(FmmNode other) {
+                return Distance.CompareTo(other.Distance);
+            }
         }
 
-        private void ApplyInpaintedColor(int i, Vector3 sumRGB, float sumA, float totalWeight) {
-            Debug.Log($"Red: {sumRGB.x}");
-            Debug.Log($"Green: {sumRGB.y}");
-            Debug.Log($"Blue: {sumRGB.z}");
-            Color inpaintedColor = new Color(
-                Mathf.Clamp01(sumRGB.x / totalWeight),
-                Mathf.Clamp01(sumRGB.y / totalWeight),
-                Mathf.Clamp01(sumRGB.z / totalWeight),
-                Mathf.Clamp01(sumA / totalWeight)
-            );
+        // MinHeap generated by Claude Opus
+        [BurstCompile]
+        private struct MinHeap : IDisposable {
+            private NativeList<FmmNode> m_data;
 
-            MInpaintedPixelBuffer[i] = inpaintedColor;
-        }
+            public int Length => m_data.Length;
 
-        private void ComputeGradientI(int i, out Vector3 gradX, out Vector3 gradY) {
-            (int x, int y) = ToCoords(i);
-            Color center = MInpaintedPixelBuffer[i];
+            public MinHeap(int capacity, Allocator allocator) {
+                m_data = new NativeList<FmmNode>(capacity, allocator);
+            }
 
-            gradX = ComputeGradient1D(x, y, 1, 0, center);
-            gradY = ComputeGradient1D(x, y, 0, 1, center);
-        }
+            public void Push(FmmNode node) {
+                m_data.Add(node);
+                SiftUp(m_data.Length - 1);
+            }
 
-        private Vector3 ComputeGradient1D(int x, int y, int dx, int dy, Color center) {
-            int prevX = x - dx, prevY = y - dy;
-            int nextX = x + dx, nextY = y + dy;
+            public FmmNode Pop() {
+                var result = m_data[0];
+                int lastIdx = m_data.Length - 1;
+                m_data[0] = m_data[lastIdx];
+                m_data.RemoveAt(lastIdx);
+                if (m_data.Length > 0) SiftDown(0);
+                return result;
+            }
 
-            bool hasPrev = IsInBounds(prevX, prevY);
-            bool hasNext = IsInBounds(nextX, nextY);
-
-            int prevI = hasPrev ? ToIndex(prevX, prevY) : -1;
-            int nextI = hasNext ? ToIndex(nextX, nextY) : -1;
-
-            bool knownPrev = hasPrev && m_flags[prevI] == Known;
-            bool knownNext = hasNext && m_flags[nextI] == Known;
-
-            Color next;
-            switch (knownPrev) {
-                case true when knownNext: {
-                    Color prev = MInpaintedPixelBuffer[prevI];
-                    next = MInpaintedPixelBuffer[nextI];
-                    return new Vector3((next.r - prev.r) * 0.5f, (next.g - prev.g) * 0.5f, (next.b - prev.b) * 0.5f);
-                }
-                case true: {
-                    Color prev = MInpaintedPixelBuffer[prevI];
-                    return new Vector3(center.r - prev.r, center.g - prev.g, center.b - prev.b);
+            private void SiftUp(int idx) {
+                while (idx > 0) {
+                    int parent = (idx - 1) / 2;
+                    if (m_data[idx].Distance >= m_data[parent].Distance) break;
+                    Swap(idx, parent);
+                    idx = parent;
                 }
             }
 
-            if (!knownNext) return Vector3.zero;
-            next = MInpaintedPixelBuffer[nextI];
-            return new Vector3(next.r - center.r, next.g - center.g, next.b - center.b);
+            private void SiftDown(int idx) {
+                int count = m_data.Length;
+                while (true) {
+                    int smallest = idx;
+                    int left = 2 * idx + 1;
+                    int right = 2 * idx + 2;
+
+                    if (left < count && m_data[left].Distance < m_data[smallest].Distance)
+                        smallest = left;
+                    if (right < count && m_data[right].Distance < m_data[smallest].Distance)
+                        smallest = right;
+
+                    if (smallest == idx) break;
+                    Swap(idx, smallest);
+                    idx = smallest;
+                }
+            }
+
+            private void Swap(int a, int b) {
+                (m_data[a], m_data[b]) = (m_data[b], m_data[a]);
+            }
+
+            public void Dispose() => m_data.Dispose();
         }
 
-        private bool IsInBounds(int col, int row) => col >= 0 && col < m_width && row >= 0 && row < m_height;
+        // Optimization 1: Use NativeParallelHashSet for O(1) lookup instead of O(n) linear scan
+        [BurstCompile]
+        private struct InitializeFmmJob : IJobParallelFor {
+            [WriteOnly] public NativeArray<float> DistanceMap;
+            [WriteOnly] public NativeArray<byte> Flags;
+            [ReadOnly] public NativeParallelHashSet<int> MaskIndicesSet;
 
-        private int ToIndex(int col, int row) => row * m_width + col;
+            public void Execute(int index) {
+                if (MaskIndicesSet.Contains(index)) {
+                    Flags[index] = Inside;
+                    DistanceMap[index] = MaxValue;
+                } else {
+                    Flags[index] = Known;
+                    DistanceMap[index] = 0.0f;
+                }
+            }
+        }
 
-        private (int col, int row) ToCoords(int idx) => (idx % m_width, idx / m_width);
+        [BurstCompile]
+        private static void BuildInitialBandWithHeap(
+            ref MinHeap heap,
+            ref NativeArray<int> generations,
+            ref NativeArray<byte> flags,
+            ref NativeArray<float> distanceMap,
+            NativeArray<int> maskIndices,
+            int width, int height) {
+            
+            foreach (var idx in maskIndices) {
+                int y = idx / width;
+                int x = idx % width;
+
+                // Check 8-connected neighbors
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        if (i == 0 && j == 0) continue;
+
+                        int nbY = y + i;
+                        int nbX = x + j;
+
+                        if (nbY < 0 || nbY >= height || nbX < 0 || nbX >= width) continue;
+
+                        int nbIdx = nbY * width + nbX;
+
+                        if (flags[nbIdx] == Band) continue;
+
+                        // If the neighbor != Inside it's on the boundary
+                        if (flags[nbIdx] != Known) continue;
+                        flags[nbIdx] = Band;
+                        distanceMap[nbIdx] = 0.0f;
+                        generations[nbIdx] = 1;
+                        heap.Push(new FmmNode { Distance = 0.0f, Index = nbIdx, Generation = 1 });
+                    }
+                }
+            }
+        }
+
+        [BurstCompile]
+        private static void RunFmmWithHeap(
+            ref MinHeap heap,
+            ref NativeArray<int> generations,
+            ref NativeArray<byte> flags,
+            ref NativeArray<float> distanceMap,
+            ref NativeArray<Color32> pixels,
+            int width, int height) {
+            
+            while (heap.Length > 0) {
+                var node = heap.Pop();
+                
+                int idx = node.Index;
+                
+                // Skip if this is a stale entry (generation mismatch)
+                if (node.Generation != generations[idx]) continue;
+                
+                // Skip if already processed
+                if (flags[idx] == Known) continue;
+                
+                flags[idx] = Known;
+                
+                int y = idx / width;
+                int x = idx % width;
+
+                // All Neighbors
+                for (int i = -1; i <= 1; i++) {
+                    for (int j = -1; j <= 1; j++) {
+                        if (i == 0 && j == 0) continue;
+
+                        int nbY = y + i;
+                        int nbX = x + j;
+
+                        if (nbY < 0 || nbY >= height || nbX < 0 || nbX >= width) continue;
+
+                        int nbIdx = nbY * width + nbX;
+
+                        if (flags[nbIdx] != Known) {
+                            // Inpaint if inside
+                            if (flags[nbIdx] == Inside) {
+                                InpaintPixelBurst(ref pixels, ref distanceMap, ref flags, nbY, nbX, width, height);
+                            }
+
+                            // Solve eikonal
+                            float newDist = SolveEikonalQuadrants(ref distanceMap, ref flags, nbY, nbX, width, height);
+
+                            if (newDist < distanceMap[nbIdx]) {
+                                distanceMap[nbIdx] = newDist;
+                                // Old entries with lower generation will be skipped
+                                generations[nbIdx]++;
+                                heap.Push(new FmmNode { Distance = newDist, Index = nbIdx, Generation = generations[nbIdx] });
+                            }
+
+                            if (flags[nbIdx] == Inside) {
+                                flags[nbIdx] = Band;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float SolveEikonalQuadrants(
+            ref NativeArray<float> distanceMap,
+            ref NativeArray<byte> flags,
+            int y, int x, int width, int height) {
+            
+            float sol1 = MaxValue, sol2 = MaxValue, sol3 = MaxValue, sol4 = MaxValue;
+
+            if (y - 1 >= 0 && x - 1 >= 0) {
+                sol1 = SolveEikonal(ref distanceMap, ref flags, y - 1, x, y, x - 1, width, height);
+            }
+            if (y - 1 >= 0 && x + 1 < width) {
+                sol2 = SolveEikonal(ref distanceMap, ref flags, y - 1, x, y, x + 1, width, height);
+            }
+            if (y + 1 < height && x - 1 >= 0) {
+                sol3 = SolveEikonal(ref distanceMap, ref flags, y + 1, x, y, x - 1, width, height);
+            }
+            if (y + 1 < height && x + 1 < width) {
+                sol4 = SolveEikonal(ref distanceMap, ref flags, y + 1, x, y, x + 1, width, height);
+            }
+
+            return math.min(math.min(sol1, sol2), math.min(sol3, sol4));
+        }
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float SolveEikonal(
+            ref NativeArray<float> distanceMap,
+            ref NativeArray<byte> flags,
+            int y1, int x1, int y2, int x2,
+            int width, int height) {
+            
+            if (y1 < 0 || y1 >= height || x1 < 0 || x1 >= width) return MaxValue;
+            if (y2 < 0 || y2 >= height || x2 < 0 || x2 >= width) return MaxValue;
+
+            int idx1 = y1 * width + x1;
+            int idx2 = y2 * width + x2;
+
+            byte flag1 = flags[idx1];
+            byte flag2 = flags[idx2];
+
+            if (flag1 == Known) {
+                if (flag2 == Known) {
+                    float t1 = distanceMap[idx1];
+                    float t2 = distanceMap[idx2];
+                    float d = 2.0f - (t1 - t2) * (t1 - t2);
+
+                    if (d > 0.0f) {
+                        float r = math.sqrt(d);
+                        float s = (t1 + t2 - r) / 2;
+
+                        if (s >= t1 && s >= t2) {
+                            return s;
+                        }
+
+                        s += r;
+                        if (s >= t1 && s >= t2) {
+                            return s;
+                        }
+
+                        return MaxValue;
+                    }
+                } else {
+                    return 1.0f + distanceMap[idx1];
+                }
+            }
+
+            if (flag2 == Known) {
+                return 1.0f + distanceMap[idx2];
+            }
+
+            return MaxValue;
+        }
+
+        [BurstCompile]
+        private static void InpaintPixelBurst(
+            ref NativeArray<Color32> pixels,
+            ref NativeArray<float> distanceMap,
+            ref NativeArray<byte> flags,
+            int y, int x, int width, int height) {
+            
+            int centerIdx = y * width + x;
+            
+            // Gradient of T at [y, x]
+            float2 gradT = ComputeGradientTBurst(ref distanceMap, y, x, width, height);
+
+            float denominator = 0f;
+            float numR = 0f, numG = 0f, numB = 0f;
+
+            // Iterate through epsilon neighborhood
+            for (int i = y - Epsilon; i <= y + Epsilon; i++) {
+                for (int j = x - Epsilon; j <= x + Epsilon; j++) {
+                    if (i < 0 || i >= height || j < 0 || j >= width) continue;
+                    if (i == y && j == x) continue;
+
+                    int nbIdx = i * width + j;
+                    if (flags[nbIdx] != Known) continue;
+
+                    float2 vector = new float2(y - i, x - j);
+                    float distSq = vector.x * vector.x + vector.y * vector.y;
+                    if (distSq > Epsilon * Epsilon) continue;
+
+                    // Euclidean distance
+                    float normVector = math.sqrt(distSq);
+                    if (normVector < Eps) normVector = Eps;
+
+                    // Directional weight: only consider upstream pixels
+                    // For information propagate into the inpainting region
+                    float dir = math.dot(gradT, vector) / normVector;
+                    dir = math.max(0f, dir);
+                    if (dir < Eps) continue;  // Skip pixels with no contribution
+
+                    // Geometric distance weight: 1/d²
+                    float dist = 1f / distSq;
+                    
+                    // Level set weight: prefer pixels at similar distance from boundary
+                    float lev = 1f / (1f + math.abs(distanceMap[centerIdx] - distanceMap[nbIdx]));
+                    
+                    float w = dir * dist * lev;
+
+                    Color32 color = pixels[nbIdx];
+                    
+                    // I(p) = Σ w(q) · [I(q) + ∇I(q)·(p-q)] / Σ w(q)
+                    ComputeGradientIBurst(ref pixels, ref flags, i, j, width, height, out var gradIy, out var gradIx);
+                    
+                    // (p-q)
+                    float2 pq = -vector;
+                    
+                    // ∇I(q)·(p-q) = gradIY*(p-q).y + gradIX*(p-q).x for each channel
+                    numR += w * (color.r + gradIy.x * pq.x + gradIx.x * pq.y);
+                    numG += w * (color.g + gradIy.y * pq.x + gradIx.y * pq.y);
+                    numB += w * (color.b + gradIy.z * pq.x + gradIx.z * pq.y);
+                    denominator += w;
+                }
+            }
+
+            if (denominator > Eps) {
+                pixels[centerIdx] = new Color32(
+                    (byte)math.clamp(numR / denominator, 0, 255),
+                    (byte)math.clamp(numG / denominator, 0, 255),
+                    (byte)math.clamp(numB / denominator, 0, 255),
+                    255
+                );
+            }
+        }
+        
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ComputeGradientIBurst(
+            ref NativeArray<Color32> pixels,
+            ref NativeArray<byte> flags,
+            int y, int x, int width, int height,
+            out float4 gradY, out float4 gradX) {
+            
+            gradY = float4.zero;
+            gradX = float4.zero;
+            
+            int idx = y * width + x;
+            
+            // Y gradient (vertical) using central differences where possible
+            if (y > 0 && y < height - 1) {
+                int idxUp = (y - 1) * width + x;
+                int idxDown = (y + 1) * width + x;
+                switch (flags[idxUp]) {
+                    case Known when flags[idxDown] == Known: {
+                        Color32 up = pixels[idxUp];
+                        Color32 down = pixels[idxDown];
+                        gradY = new float4(down.r - up.r, down.g - up.g, down.b - up.b, down.a - up.a) / 2;
+                        break;
+                    }
+                    case Known: {
+                        Color32 cur = pixels[idx];
+                        Color32 up = pixels[idxUp];
+                        gradY = new float4(cur.r - up.r, cur.g - up.g, cur.b - up.b, cur.a - up.a);
+                        break;
+                    }
+                    default: {
+                        if (flags[idxDown] == Known) {
+                            Color32 cur = pixels[idx];
+                            Color32 down = pixels[idxDown];
+                            gradY = new float4(down.r - cur.r, down.g - cur.g, down.b - cur.b, down.a - cur.a);
+                        }
+
+                        break;
+                    }
+                }
+            } else if (y > 0) {
+                int idxUp = (y - 1) * width + x;
+                if (flags[idxUp] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 up = pixels[idxUp];
+                    gradY = new float4(cur.r - up.r, cur.g - up.g, cur.b - up.b, cur.a - up.a);
+                }
+            } else if (y < height - 1) {
+                int idxDown = (y + 1) * width + x;
+                if (flags[idxDown] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 down = pixels[idxDown];
+                    gradY = new float4(down.r - cur.r, down.g - cur.g, down.b - cur.b, down.a - cur.a);
+                }
+            }
+            
+            // X gradient (horizontal) using central differences where possible
+            if (x > 0 && x < width - 1) {
+                int idxLeft = y * width + x - 1;
+                int idxRight = y * width + x + 1;
+                switch (flags[idxLeft]) {
+                    case Known when flags[idxRight] == Known: {
+                        Color32 left = pixels[idxLeft];
+                        Color32 right = pixels[idxRight];
+                        gradX = new float4(right.r - left.r, right.g - left.g, right.b - left.b, right.a - left.a) / 2;
+                        break;
+                    }
+                    case Known: {
+                        Color32 cur = pixels[idx];
+                        Color32 left = pixels[idxLeft];
+                        gradX = new float4(cur.r - left.r, cur.g - left.g, cur.b - left.b, cur.a - left.a);
+                        break;
+                    }
+                    default: {
+                        if (flags[idxRight] == Known) {
+                            Color32 cur = pixels[idx];
+                            Color32 right = pixels[idxRight];
+                            gradX = new float4(right.r - cur.r, right.g - cur.g, right.b - cur.b, right.a - cur.a);
+                        }
+
+                        break;
+                    }
+                }
+            } else if (x > 0) {
+                int idxLeft = y * width + x - 1;
+                if (flags[idxLeft] != Known) return;
+                Color32 cur = pixels[idx];
+                Color32 left = pixels[idxLeft];
+                gradX = new float4(cur.r - left.r, cur.g - left.g, cur.b - left.b, cur.a - left.a);
+            } else if (x < width - 1) {
+                int idxRight = y * width + x + 1;
+                if (flags[idxRight] != Known) return;
+                Color32 cur = pixels[idx];
+                Color32 right = pixels[idxRight];
+                gradX = new float4(right.r - cur.r, right.g - cur.g, right.b - cur.b, right.a - cur.a);
+            }
+        }
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float2 ComputeGradientTBurst(
+            ref NativeArray<float> distanceMap,
+            int y, int x, int width, int height) {
+            
+            float gradY = 0f, gradX = 0f;
+
+            switch (y) {
+                case > 0 when y < height - 1:
+                    gradY = (distanceMap[(y + 1) * width + x] - distanceMap[(y - 1) * width + x]) / 2;
+                    break;
+                case > 0:
+                    gradY = distanceMap[y * width + x] - distanceMap[(y - 1) * width + x];
+                    break;
+                default: {
+                    if (y < height - 1) {
+                        gradY = distanceMap[(y + 1) * width + x] - distanceMap[y * width + x];
+                    }
+
+                    break;
+                }
+            }
+
+            switch (x) {
+                case > 0 when x < width - 1:
+                    gradX = (distanceMap[y * width + x + 1] - distanceMap[y * width + x - 1]) / 2;
+                    break;
+                case > 0:
+                    gradX = distanceMap[y * width + x] - distanceMap[y * width + x - 1];
+                    break;
+                default: {
+                    if (x < width - 1) {
+                        gradX = distanceMap[y * width + x + 1] - distanceMap[y * width + x];
+                    }
+
+                    break;
+                }
+            }
+
+            return new float2(gradY, gradX);
+        }
     }
 }

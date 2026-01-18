@@ -27,7 +27,7 @@ namespace InpaintAR.Scripts.Inpainting {
             
             m_watch.Stop();
             PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
-            QualityEvaluator.EvaluateQuality(MSourcePixelBuffer, MInpaintedPixelBuffer, source.width, source.height, maskPixelIndices);
+            QualityEvaluator.EvaluateQuality(MInpaintedPixelBuffer, source.width, source.height, maskPixelIndices);
             
             return texture;
         }
