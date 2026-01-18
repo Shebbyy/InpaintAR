@@ -11,6 +11,7 @@ using UnityEngine;
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
     // FMM Inpainting (Fast Marching Method)
     // See DOI 10.1080/10867651.2004.10487596
+    // Some Orientation from https://github.com/MilesWeberman/Image-Inpainting-Algorithm-Based-on-the-Fast-Marching-Method/blob/main/FMM_image_inpainting.py
     public class FastMarchingAlgorithm : AbstractInpaintingAlgorithm {
         // Use bytes for Pixel State Decision, as its very memory efficient for the quest
         private const byte Known = 0; // From Source (outside mask)
@@ -21,8 +22,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const float Eps = 1e-6f;
         
         // Radius for Neighborhood of Inpainting Reference Pixels
-        // Reduced from 5 to 3 for optimization (49 vs 121 iterations per pixel)
-        private const int Epsilon = 3;
+        private const int Epsilon = 2;
 
         private int m_width;
         private int m_height;
