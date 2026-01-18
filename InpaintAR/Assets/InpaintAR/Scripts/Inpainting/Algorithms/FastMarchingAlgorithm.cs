@@ -32,8 +32,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private float[] m_gradTx;
         private float[] m_gradTy;
 
-        // Priority queue for the narrow band (min-heap based on distance)
-        private PriorityQueue<int, float> m_narrowBand;
+        // Priority queue for the Boundary (min-heap based on distance)
+        private PriorityQueue<int, float> m_boundary;
 
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             m_width = TextureUtility.GetImageWidth(source);
@@ -68,7 +68,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 m_pixels[i] = m_sourcePixelBuffer[i];
             }
 
-            m_narrowBand = new PriorityQueue<int, float>();
+            m_boundary = new PriorityQueue<int, float>();
 
             // init vals 0 in both cases is known constant and distance 0, mask pixels need different init val
             foreach (int i in maskPixelIndices) {
@@ -82,8 +82,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             InitializeNarrowBand(maskPixelIndices);
 
             // Boundary not empty
-            while (m_narrowBand.Count > 0) {
-                int i = m_narrowBand.Dequeue();
+            while (m_boundary.Count > 0) {
+                int i = m_boundary.Dequeue();
 
                 (int col, int row) = ToCoords(i);
 
@@ -110,7 +110,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     m_distances[curI] = ComputeMinEikonalSolution(curCol, curRow, m_distances, m_flags);
 
                     // insert for next iterations
-                    m_narrowBand.Enqueue(curI, m_distances[curI]);
+                    m_boundary.Enqueue(curI, m_distances[curI]);
                 }
             }
         }
@@ -318,7 +318,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                 m_flags[i] = Band;
                 m_distances[i] = minDist;
-                m_narrowBand.Enqueue(i, minDist);
+                m_boundary.Enqueue(i, minDist);
             }
         }
 
