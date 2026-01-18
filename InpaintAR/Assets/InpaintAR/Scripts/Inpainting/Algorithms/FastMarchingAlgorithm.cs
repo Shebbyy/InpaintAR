@@ -20,7 +20,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
         private const float MaxValue = 1e6f;
         private const float Eps = 1e-6f;
-        
+
         // Radius for Neighborhood of Inpainting Reference Pixels
         private const int Epsilon = 2;
 
@@ -40,7 +40,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
 
             Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
-            
+
             InpaintFmmBurst(maskPixelIndices);
 
             resultImage.SetPixels32(MInpaintedPixelBuffer);
@@ -54,11 +54,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             var distanceMap = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
             var flags = new NativeArray<byte>(m_pixelCount, Allocator.TempJob);
             var pixels = new NativeArray<Color32>(MInpaintedPixelBuffer, Allocator.TempJob);
-            
+
             // NativeParallelHashSet for O(1) lookup
             var maskIndicesSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
             var maskIndices = new NativeArray<int>(maskPixelIndices.Count, Allocator.TempJob);
-            
+
             // Copy mask indices to native containers
             int idx = 0;
             foreach (var maskIdx in maskPixelIndices) {
@@ -74,11 +74,12 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             };
             initJob.Schedule(m_pixelCount, 64).Complete();
             maskIndicesSet.Dispose(); // Only needed for initialization due to O(1) Lookup
-            
+
             var heap = new MinHeap(maskPixelIndices.Count * 4, Allocator.TempJob);
             var generations = new NativeArray<int>(m_pixelCount, Allocator.TempJob);
-            
-            BuildInitialBandWithHeap(ref heap, ref generations, ref flags, ref distanceMap, maskIndices, m_width, m_height);
+
+            BuildInitialBandWithHeap(ref heap, ref generations, ref flags, ref distanceMap, maskIndices, m_width,
+                m_height);
 
             // Run FMM main loop with heap and generation tracking
             RunFmmWithHeap(ref heap, ref generations, ref flags, ref distanceMap, ref pixels, m_width, m_height);
@@ -95,7 +96,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             generations.Dispose();
         }
 
-        // Optimization 4: Add generation tracking to skip stale heap entries
         [BurstCompile]
         private struct FmmNode : IComparable<FmmNode> {
             public float Distance;
@@ -166,7 +166,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             public void Dispose() => m_data.Dispose();
         }
 
-        // Optimization 1: Use NativeParallelHashSet for O(1) lookup instead of O(n) linear scan
+        // NativeParallelHashSet for O(1) lookup
         [BurstCompile]
         private struct InitializeFmmJob : IJobParallelFor {
             [WriteOnly] public NativeArray<float> DistanceMap;
@@ -177,7 +177,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 if (MaskIndicesSet.Contains(index)) {
                     Flags[index] = Inside;
                     DistanceMap[index] = MaxValue;
-                } else {
+                }
+                else {
                     Flags[index] = Known;
                     DistanceMap[index] = 0.0f;
                 }
@@ -192,7 +193,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<float> distanceMap,
             NativeArray<int> maskIndices,
             int width, int height) {
-            
             foreach (var idx in maskIndices) {
                 int y = idx / width;
                 int x = idx % width;
@@ -230,20 +230,19 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<float> distanceMap,
             ref NativeArray<Color32> pixels,
             int width, int height) {
-            
             while (heap.Length > 0) {
                 var node = heap.Pop();
-                
+
                 int idx = node.Index;
-                
+
                 // Skip if this is a stale entry (generation mismatch)
                 if (node.Generation != generations[idx]) continue;
-                
+
                 // Skip if already processed
                 if (flags[idx] == Known) continue;
-                
+
                 flags[idx] = Known;
-                
+
                 int y = idx / width;
                 int x = idx % width;
 
@@ -272,7 +271,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                                 distanceMap[nbIdx] = newDist;
                                 // Old entries with lower generation will be skipped
                                 generations[nbIdx]++;
-                                heap.Push(new FmmNode { Distance = newDist, Index = nbIdx, Generation = generations[nbIdx] });
+                                heap.Push(new FmmNode
+                                    { Distance = newDist, Index = nbIdx, Generation = generations[nbIdx] });
                             }
 
                             if (flags[nbIdx] == Inside) {
@@ -291,18 +291,20 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<float> distanceMap,
             ref NativeArray<byte> flags,
             int y, int x, int width, int height) {
-            
             float sol1 = MaxValue, sol2 = MaxValue, sol3 = MaxValue, sol4 = MaxValue;
 
             if (y - 1 >= 0 && x - 1 >= 0) {
                 sol1 = SolveEikonal(ref distanceMap, ref flags, y - 1, x, y, x - 1, width, height);
             }
+
             if (y - 1 >= 0 && x + 1 < width) {
                 sol2 = SolveEikonal(ref distanceMap, ref flags, y - 1, x, y, x + 1, width, height);
             }
+
             if (y + 1 < height && x - 1 >= 0) {
                 sol3 = SolveEikonal(ref distanceMap, ref flags, y + 1, x, y, x - 1, width, height);
             }
+
             if (y + 1 < height && x + 1 < width) {
                 sol4 = SolveEikonal(ref distanceMap, ref flags, y + 1, x, y, x + 1, width, height);
             }
@@ -317,7 +319,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<byte> flags,
             int y1, int x1, int y2, int x2,
             int width, int height) {
-            
             if (y1 < 0 || y1 >= height || x1 < 0 || x1 >= width) return MaxValue;
             if (y2 < 0 || y2 >= height || x2 < 0 || x2 >= width) return MaxValue;
 
@@ -348,7 +349,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                         return MaxValue;
                     }
-                } else {
+                }
+                else {
                     return 1.0f + distanceMap[idx1];
                 }
             }
@@ -366,7 +368,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<float> distanceMap,
             ref NativeArray<byte> flags,
             int y, int x, int width, int height) {
-            
             int centerIdx = y * width + x;
             
             // Gradient of T at [y, x]
@@ -413,11 +414,23 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     
                     // (p-q)
                     float2 pq = -vector;
-                    
-                    // ∇I(q)·(p-q) = gradIY*(p-q).y + gradIX*(p-q).x for each channel
-                    numR += w * (color.r + gradIy.x * pq.x + gradIx.x * pq.y);
-                    numG += w * (color.g + gradIy.y * pq.x + gradIx.y * pq.y);
-                    numB += w * (color.b + gradIy.z * pq.x + gradIx.z * pq.y);
+
+                    // Check if gradient is valid (non-zero)
+                    float gradMagnitude = math.lengthsq(gradIy) + math.lengthsq(gradIx);
+
+                    if (gradMagnitude > Eps) {
+                        // ∇I(q)·(p-q) = gradIY*(p-q).y + gradIX*(p-q).x for each channel
+                        numR += w * (color.r + gradIy.x * pq.x + gradIx.x * pq.y);
+                        numG += w * (color.g + gradIy.y * pq.x + gradIx.y * pq.y);
+                        numB += w * (color.b + gradIy.z * pq.x + gradIx.z * pq.y);
+                    }
+                    else {
+                        // Fallback: just use the color without gradient term, avoids Rainbow-Like effect in uniform areas
+                        numR += w * color.r;
+                        numG += w * color.g;
+                        numB += w * color.b;
+                    }
+
                     denominator += w;
                 }
             }
@@ -431,7 +444,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 );
             }
         }
-        
+
+
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ComputeGradientIBurst(
@@ -439,12 +453,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<byte> flags,
             int y, int x, int width, int height,
             out float4 gradY, out float4 gradX) {
-            
             gradY = float4.zero;
             gradX = float4.zero;
-            
+
             int idx = y * width + x;
-            
+
             // Y gradient (vertical) using central differences where possible
             if (y > 0 && y < height - 1) {
                 int idxUp = (y - 1) * width + x;
@@ -472,14 +485,16 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                         break;
                     }
                 }
-            } else if (y > 0) {
+            }
+            else if (y > 0) {
                 int idxUp = (y - 1) * width + x;
                 if (flags[idxUp] == Known) {
                     Color32 cur = pixels[idx];
                     Color32 up = pixels[idxUp];
                     gradY = new float4(cur.r - up.r, cur.g - up.g, cur.b - up.b, cur.a - up.a);
                 }
-            } else if (y < height - 1) {
+            }
+            else if (y < height - 1) {
                 int idxDown = (y + 1) * width + x;
                 if (flags[idxDown] == Known) {
                     Color32 cur = pixels[idx];
@@ -487,7 +502,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     gradY = new float4(down.r - cur.r, down.g - cur.g, down.b - cur.b, down.a - cur.a);
                 }
             }
-            
+
             // X gradient (horizontal) using central differences where possible
             if (x > 0 && x < width - 1) {
                 int idxLeft = y * width + x - 1;
@@ -515,13 +530,15 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                         break;
                     }
                 }
-            } else if (x > 0) {
+            }
+            else if (x > 0) {
                 int idxLeft = y * width + x - 1;
                 if (flags[idxLeft] != Known) return;
                 Color32 cur = pixels[idx];
                 Color32 left = pixels[idxLeft];
                 gradX = new float4(cur.r - left.r, cur.g - left.g, cur.b - left.b, cur.a - left.a);
-            } else if (x < width - 1) {
+            }
+            else if (x < width - 1) {
                 int idxRight = y * width + x + 1;
                 if (flags[idxRight] != Known) return;
                 Color32 cur = pixels[idx];
@@ -535,7 +552,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private static float2 ComputeGradientTBurst(
             ref NativeArray<float> distanceMap,
             int y, int x, int width, int height) {
-            
             float gradY = 0f, gradX = 0f;
 
             switch (y) {
