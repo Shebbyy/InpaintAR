@@ -22,7 +22,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const float Eps = 1e-6f;
 
         // Radius for Neighborhood of Inpainting Reference Pixels
-        private const int Epsilon = 2;
+        private const int Epsilon = 3;
 
         private int m_width;
         private int m_height;
@@ -420,9 +420,10 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     if (gradMagnitude > Eps) {
                         // ∇I(q)·(p-q) = gradIY*(p-q).y + gradIX*(p-q).x for each channel
-                        numR += w * (color.r + gradIy.x * pq.x + gradIx.x * pq.y);
-                        numG += w * (color.g + gradIy.y * pq.x + gradIx.y * pq.y);
-                        numB += w * (color.b + gradIy.z * pq.x + gradIx.z * pq.y);
+                        float scale = 1f / normVector;  // Diminish effect with distance
+                        numR += w * (color.r + scale * (gradIy.x * pq.x + gradIx.x * pq.y));
+                        numG += w * (color.g + scale * (gradIy.y * pq.x + gradIx.y * pq.y));
+                        numB += w * (color.b + scale * (gradIy.z * pq.x + gradIx.z * pq.y));
                     }
                     else {
                         // Fallback: just use the color without gradient term, avoids Rainbow-Like effect in uniform areas
