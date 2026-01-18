@@ -15,8 +15,8 @@ namespace InpaintAR.Scripts.Inpainting {
     
     public abstract class AbstractInpaintingAlgorithm {
         private readonly Stopwatch m_watch = new();
-        protected Color32[] m_inpaintedPixelBuffer;
-        protected Color32[] m_sourcePixelBuffer;
+        protected Color32[] MInpaintedPixelBuffer;
+        protected Color32[] MSourcePixelBuffer;
         public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
             m_watch.Reset();
             m_watch.Start();
@@ -25,7 +25,7 @@ namespace InpaintAR.Scripts.Inpainting {
             
             m_watch.Stop();
             PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
-            QualityEvaluator.EvaluateQuality(m_sourcePixelBuffer, m_inpaintedPixelBuffer, source.width, source.height, maskPixelIndices);
+            QualityEvaluator.EvaluateQuality(MSourcePixelBuffer, MInpaintedPixelBuffer, source.width, source.height, maskPixelIndices);
             
             return texture;
         }

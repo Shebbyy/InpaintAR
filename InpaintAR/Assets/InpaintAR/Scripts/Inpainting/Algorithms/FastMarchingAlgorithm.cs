@@ -10,12 +10,12 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const byte Known = 0; // From Source (outside mask)
         private const byte Band = 1; // On Boundary
         private const byte Inside = 2; // Inside Inpainting Region
-        
+
         private static readonly int[] Dir4X = { -1, 1, 0, 0 };
         private static readonly int[] Dir4Y = { 0, 0, -1, 1 };
 
         // Radius for Neighborhood of Inpainting Reference Pixels
-        private const int Epsilon = 3;
+        private const int Epsilon = 2;
 
         // min grad for inpainting
         private const float MinGradMagnitude = 1e-5f;
@@ -23,14 +23,15 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
         private int m_width;
         private int m_height;
+        private int m_pixelCount;
         private byte[] m_flags;
         private float[] m_distances;
-        private Color[] m_pixels;
 
         // Precomputed smoothed T field and its gradient (otherwise unstable)
         private float[] m_smoothedT;
         private float[] m_gradTx;
         private float[] m_gradTy;
+        private bool[] m_mask;
 
         // Priority queue for the Boundary (min-heap based on distance)
         private PriorityQueue<int, float> m_boundary;
@@ -38,35 +39,34 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             m_width = TextureUtility.GetImageWidth(source);
             m_height = TextureUtility.GetImageHeight(source);
-            int pixelCount = m_width * m_height;
+            m_pixelCount = m_width * m_height;
 
-            m_sourcePixelBuffer = source.GetPixels32();
-
-            if (m_inpaintedPixelBuffer == null || m_inpaintedPixelBuffer.Length != pixelCount) {
-                m_inpaintedPixelBuffer = new Color32[pixelCount];
+            if (MInpaintedPixelBuffer == null || MInpaintedPixelBuffer.Length != m_pixelCount) {
+                MInpaintedPixelBuffer = new Color32[m_pixelCount];
             }
 
-            System.Array.Copy(TextureUtility.GetEmptyImagePixels(source), m_inpaintedPixelBuffer, pixelCount);
+            m_mask = new bool[m_pixelCount];
+            foreach (var hashVal in maskPixelIndices) {
+                m_mask[hashVal] = true;
+            }
+
+            Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
+
+            MSourcePixelBuffer = source.GetPixels32();
+
+            System.Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
 
             InpaintFmm(maskPixelIndices);
 
-            Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
-            resultImage.SetPixels32(m_inpaintedPixelBuffer);
+            resultImage.SetPixels32(MInpaintedPixelBuffer);
             resultImage.Apply();
 
             return resultImage;
         }
 
         private void InpaintFmm(HashSet<int> maskPixelIndices) {
-            int pixelCount = m_width * m_height;
-
-            m_flags = new byte[pixelCount];
-            m_distances = new float[pixelCount];
-
-            m_pixels = new Color[pixelCount];
-            for (int i = 0; i < pixelCount; i++) {
-                m_pixels[i] = m_sourcePixelBuffer[i];
-            }
+            m_flags = new byte[m_pixelCount];
+            m_distances = new float[m_pixelCount];
 
             m_boundary = new PriorityQueue<int, float>();
 
@@ -82,8 +82,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             InitializeNarrowBand(maskPixelIndices);
 
             // Boundary not empty
+            int inpaintedCount = 0;
             while (m_boundary.Count > 0) {
                 int i = m_boundary.Dequeue();
+
+                if (m_flags[i] == Known) continue;
 
                 (int col, int row) = ToCoords(i);
 
@@ -97,70 +100,74 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     if (!IsInBounds(curCol, curRow)) continue;
 
-                    int curI = ToIndex(curCol, curRow);
+                    int currentIndex = ToIndex(curCol, curRow);
 
-                    if (m_flags[curI] == Known) continue;
-
-                    // if pixel is not known
-                    if (m_flags[curI] == Inside) {
-                        m_flags[curI] = Band; // since inpainted -> new Boundary
-                        InpaintPixel(curI);
+                    switch (m_flags[currentIndex]) {
+                        case Known:
+                            continue;
+                        // if pixel is not known
+                        case Inside:
+                            m_flags[currentIndex] = Band; // since inpainted -> new Boundary
+                            InpaintPixel(currentIndex);
+                            inpaintedCount++;
+                            break;
                     }
 
-                    m_distances[curI] = ComputeMinEikonalSolution(curCol, curRow, m_distances, m_flags);
+                    m_distances[currentIndex] = ComputeMinEikonalSolution(curCol, curRow, m_distances, m_flags);
 
                     // insert for next iterations
-                    m_boundary.Enqueue(curI, m_distances[curI]);
+                    m_boundary.Enqueue(currentIndex, m_distances[currentIndex]);
                 }
             }
+            Debug.Log($"Inpainted {inpaintedCount} pixels, mask size: {maskPixelIndices.Count}");
         }
 
         private void PrecomputeDistanceFieldAndGradient(HashSet<int> maskPixelIndices) {
-            int pixelCount = m_width * m_height;
-
             float[] tOut = RunFmm(maskPixelIndices, isOutward: true);
             float[] tIn = RunFmm(maskPixelIndices, isOutward: false);
 
-            float[] combinedT = new float[pixelCount];
-            for (int i = 0; i < pixelCount; i++) {
-                combinedT[i] = maskPixelIndices.Contains(i) ? tIn[i] : -Mathf.Min(tOut[i], Epsilon);
+            float[] combinedT = new float[m_pixelCount];
+            for (int i = 0; i < m_pixelCount; i++) {
+                combinedT[i] = m_mask[i] ? tIn[i] : -Mathf.Min(tOut[i], Epsilon);
             }
 
-            m_smoothedT = new float[pixelCount];
+            m_smoothedT = new float[m_pixelCount];
             ApplyTentFilter(combinedT, m_smoothedT);
 
-            m_gradTx = new float[pixelCount];
-            m_gradTy = new float[pixelCount];
+            m_gradTx = new float[m_pixelCount];
+            m_gradTy = new float[m_pixelCount];
             ComputeGradientField(m_smoothedT, m_gradTx, m_gradTy);
         }
 
         private float[] RunFmm(HashSet<int> maskPixelIndices, bool isOutward) {
-            int pixelCount = m_width * m_height;
-            float[] t = new float[pixelCount];
-            byte[] flags = new byte[pixelCount];
+            float[] t = new float[m_pixelCount];
+            byte[] flags = new byte[m_pixelCount];
 
-            InitializeFmmArrays(t, flags, maskPixelIndices, isOutward);
+            InitializeFmmArrays(t, flags, isOutward);
 
             var narrowBand = new PriorityQueue<int, float>();
             InitializeFmmBoundary(narrowBand, t, flags, maskPixelIndices, isOutward);
 
-            PropagateFmm(narrowBand, t, flags, maskPixelIndices, isOutward);
+            PropagateFmm(narrowBand, t, flags, isOutward);
 
             return t;
         }
 
-        private static void InitializeFmmArrays(float[] t, byte[] flags, HashSet<int> maskPixelIndices, bool isOutward) {
+        private void InitializeFmmArrays(float[] t, byte[] flags, bool isOutward) {
             for (int i = 0; i < t.Length; i++) {
                 if (isOutward) {
-                    flags[i] = Inside;
-                    t[i] = maskPixelIndices.Contains(i) ? 0 : float.PositiveInfinity;
+                    // Outward: propagate FROM mask TO outside
+                    flags[i] = m_mask[i] ? Known : Inside;
+                    t[i] = m_mask[i] ? 0f : float.PositiveInfinity;
                 }
                 else {
-                    flags[i] = maskPixelIndices.Contains(i) ? Inside : Known;
-                    t[i] = maskPixelIndices.Contains(i) ? float.PositiveInfinity : 0f;
+                    // Inward: propagate FROM outside TO mask
+                    flags[i] = m_mask[i] ? Inside : Known;
+                    t[i] = m_mask[i] ? float.PositiveInfinity : 0f;
                 }
             }
         }
+
 
         private void InitializeFmmBoundary(PriorityQueue<int, float> narrowBand, float[] t, byte[] flags,
             HashSet<int> maskPixelIndices, bool isOutward) {
@@ -176,29 +183,40 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     if (!IsInBounds(nx, ny)) continue;
 
-                    int nI = ToIndex(nx, ny);
-                    if (maskPixelIndices.Contains(nI) == isOutward) continue;
-                    if (flags[isOutward ? nI : i] == Band) continue;
+                    int neighborIndex = ToIndex(nx, ny);
 
-                    int bandI = isOutward ? nI : i;
-                    flags[bandI] = Band;
-                    t[bandI] = 1f;
-                    narrowBand.Enqueue(bandI, 1f);
+                    if (m_mask[neighborIndex]) continue;
+                    if (isOutward) {
+                        if (flags[neighborIndex] == Band) continue;
 
-                    if (!isOutward) break;
+                        flags[neighborIndex] = Band;
+                        t[neighborIndex] = 1f;
+                        narrowBand.Enqueue(neighborIndex, 1f);
+                    }
+                    else {
+                        if (flags[i] == Band) continue;
+
+                        flags[i] = Band;
+                        t[i] = 1f;
+                        narrowBand.Enqueue(i, 1f);
+                        break; // Only need to mark this mask pixel once
+                    }
                 }
             }
         }
 
-        private void PropagateFmm(PriorityQueue<int, float> narrowBand, float[] t, byte[] flags,
-            HashSet<int> maskPixelIndices, bool isOutward) {
+        private void PropagateFmm(PriorityQueue<int, float> narrowBand, float[] t, byte[] flags
+            , bool isOutward) {
             while (narrowBand.Count > 0) {
                 int i = narrowBand.Dequeue();
+
+                if (flags[i] == Known) continue;
+
                 if (isOutward && t[i] > Epsilon) continue;
                 flags[i] = Known;
 
                 (int col, int row) = ToCoords(i);
-                
+
                 for (int n = 0; n < 4; n++) {
                     int curCol = col + Dir4X[n];
                     int curRow = row + Dir4Y[n];
@@ -207,7 +225,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     int curI = ToIndex(curCol, curRow);
                     if (flags[curI] == Known) continue;
-                    if (maskPixelIndices.Contains(curI) == isOutward) continue;
+                    if (m_mask[curI] == isOutward) continue;
 
                     float newT = ComputeMinEikonalSolution(curCol, curRow, t, flags);
                     if (newT >= t[curI]) continue;
@@ -218,6 +236,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 }
             }
         }
+
 
         private float ComputeMinEikonalSolution(int col, int row, float[] t, byte[] flags) {
             float t1 = SolveEikonal(col - 1, row, col, row - 1, t, flags);
@@ -233,11 +252,28 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         // 2 4 2
         // 1 2 1
         private void ApplyTentFilter(float[] input, float[] output) {
-            for (int y = 0; y < m_height; y++) {
-                for (int x = 0; x < m_width; x++) {
+            const int maxWeight = 16;
+            // Process interior pixels without bounds checks
+            for (int y = 1; y < m_height - 1; y++) {
+                for (int x = 1; x < m_width - 1; x++) {
                     int i = ToIndex(x, y);
-                    output[i] = ComputeTentFilteredValue(input, x, y);
+                    // calculated directly here without bounds check -> more performance
+                    output[i] = (
+                        input[i - m_width - 1] + 2f * input[i - m_width] + input[i - m_width + 1] +
+                        2f * input[i - 1] + 4f * input[i] + 2f * input[i + 1] +
+                        input[i + m_width - 1] + 2f * input[i + m_width] + input[i + m_width + 1]
+                    ) / maxWeight;
                 }
+            }
+
+            // Handle edges separately (less frequent)
+            for (int x = 0; x < m_width; x++) {
+                output[ToIndex(x, 0)] = ComputeTentFilteredValue(input, x, 0);
+                output[ToIndex(x, m_height - 1)] = ComputeTentFilteredValue(input, x, m_height - 1);
+            }
+            for (int y = 1; y < m_height - 1; y++) {
+                output[ToIndex(0, y)] = ComputeTentFilteredValue(input, 0, y);
+                output[ToIndex(m_width - 1, y)] = ComputeTentFilteredValue(input, m_width - 1, y);
             }
         }
 
@@ -339,7 +375,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     float diff = t1 - t2;
                     float disc = 2f - diff * diff;
                     if (disc <= 0f) return Mathf.Min(t1, t2) + 1f;
-                    
+
                     float r = Mathf.Sqrt(disc);
                     float s = (t1 + t2 - r) * 0.5f;
                     if (s >= t1 && s >= t2) return s;
@@ -384,6 +420,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 }
             }
 
+            Debug.Log($"Inpaint Total Weight = {totalWeight}");
             if (totalWeight <= 0f) return;
 
             ApplyInpaintedColor(i, sumRGB, sumA, totalWeight);
@@ -395,7 +432,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             float gradTy = m_gradTy[i];
             float magnitude = Mathf.Sqrt(gradTx * gradTx + gradTy * gradTy);
 
-            return magnitude > MinGradMagnitude ? new Vector2(gradTx / magnitude, gradTy / magnitude) : new Vector2(gradTx, gradTy);
+            return magnitude > MinGradMagnitude
+                ? new Vector2(gradTx / magnitude, gradTy / magnitude)
+                : new Vector2(gradTx, gradTy);
         }
 
         private bool IsValidKnownNeighbor(int nx, int ny, int dx, int dy, out int nI) {
@@ -403,7 +442,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             if (!IsInBounds(nx, ny)) return false;
 
             nI = ToIndex(nx, ny);
-            if (m_flags[nI] != Known) return false;
+            if (m_flags[nI] != Known && m_flags[nI] != Band) return false;
 
             float dist = Mathf.Sqrt(dx * dx + dy * dy);
             return dist <= Epsilon;
@@ -420,10 +459,10 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private void AccumulateColor(int i, int dx, int dy, float weight,
             ref Vector3 sumRGB, ref float sumA) {
             (int x, int y) = ToCoords(i);
-            Color neighborColor = m_pixels[i];
-
+            Color neighborColor = MInpaintedPixelBuffer[i];
+        
             ComputeGradientI(x, y, out var gradIx, out var gradIy);
-
+        
             sumRGB += weight * new Vector3(
                 neighborColor.r + gradIx.x * (-dx) + gradIy.x * (-dy),
                 neighborColor.g + gradIx.y * (-dx) + gradIy.y * (-dy),
@@ -431,7 +470,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             );
             sumA += weight * neighborColor.a;
         }
-
 
         private void ApplyInpaintedColor(int i, Vector3 sumRGB, float sumA, float totalWeight) {
             Color inpaintedColor = new Color(
@@ -441,13 +479,12 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 Mathf.Clamp01(sumA / totalWeight)
             );
 
-            m_pixels[i] = inpaintedColor;
-            m_inpaintedPixelBuffer[i] = inpaintedColor;
+            MInpaintedPixelBuffer[i] = inpaintedColor;
         }
 
         private void ComputeGradientI(int x, int y, out Vector3 gradX, out Vector3 gradY) {
             int i = ToIndex(x, y);
-            Color center = m_pixels[i];
+            Color center = MInpaintedPixelBuffer[i];
 
             gradX = ComputeGradient1D(x, y, 1, 0, center);
             gradY = ComputeGradient1D(x, y, 0, 1, center);
@@ -469,25 +506,25 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             Color next;
             switch (knownPrev) {
                 case true when knownNext: {
-                    Color prev = m_pixels[prevI];
-                    next = m_pixels[nextI];
+                    Color prev = MInpaintedPixelBuffer[prevI];
+                    next = MInpaintedPixelBuffer[nextI];
                     return new Vector3((next.r - prev.r) * 0.5f, (next.g - prev.g) * 0.5f, (next.b - prev.b) * 0.5f);
                 }
                 case true: {
-                    Color prev = m_pixels[prevI];
+                    Color prev = MInpaintedPixelBuffer[prevI];
                     return new Vector3(center.r - prev.r, center.g - prev.g, center.b - prev.b);
                 }
             }
 
             if (!knownNext) return Vector3.zero;
-            next = m_pixels[nextI];
+            next = MInpaintedPixelBuffer[nextI];
             return new Vector3(next.r - center.r, next.g - center.g, next.b - center.b);
         }
-        
+
         private bool IsInBounds(int col, int row) => col >= 0 && col < m_width && row >= 0 && row < m_height;
-        
+
         private int ToIndex(int col, int row) => row * m_width + col;
-        
+
         private (int col, int row) ToCoords(int idx) => (idx % m_width, idx / m_width);
     }
 }
