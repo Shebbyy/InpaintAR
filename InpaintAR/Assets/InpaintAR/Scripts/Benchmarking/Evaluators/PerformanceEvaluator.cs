@@ -12,15 +12,15 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         }
 
         public static double GetAverageInpaintingTime() {
-            return InpaintingTimeMSValues.Average() / 1000;
+            return InpaintingTimeMSValues.Average();
         }
 
         public static double GetInpaintingIsolatedFPS() {
-            return 1.0 / GetAverageInpaintingTime();
+            return 1.0 / (GetAverageInpaintingTime() / 1000);
         }
 
         public static double GetAverageTimePerPixel() {
-            return (double)InpaintingTimeMSValues.Sum() / 1000 / _totalInpaintedPixels;
+            return (double)InpaintingTimeMSValues.Sum() / _totalInpaintedPixels;
         }
 
         public static void AddInpaintingStats(int inpaintedPixels, long elapsedTimeMs) {

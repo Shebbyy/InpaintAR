@@ -30,8 +30,8 @@ namespace InpaintAR.Scripts.Benchmarking {
         private void UpdateMetricUI() {
             string text = $"Current FPS: {PerformanceEvaluator.GetTotalFPS():F2}\n";
             text += $"Inpainting Only FPS: {PerformanceEvaluator.GetInpaintingIsolatedFPS():F2}\n";
-            text += $"Average Inpainting Time: {PerformanceEvaluator.GetAverageInpaintingTime():F2}\n";
-            text += $"Average TPP (TimePerPixel): {PerformanceEvaluator.GetAverageTimePerPixel():F2}\n\n";
+            text += $"Average Inpainting Time (ms): {PerformanceEvaluator.GetAverageInpaintingTime():F2}\n";
+            text += $"Average TPP (TimePerPixel in ms): {PerformanceEvaluator.GetAverageTimePerPixel():F2}\n\n";
             
             text += $"Average Inpainting Quality: {QualityEvaluator.GetAverageQuality():F2}\n";
             if (m_textMesh) m_textMesh.text = text;
