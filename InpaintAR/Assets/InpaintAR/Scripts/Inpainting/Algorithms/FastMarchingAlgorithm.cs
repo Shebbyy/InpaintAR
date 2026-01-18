@@ -102,29 +102,28 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     int currentIndex = ToIndex(curCol, curRow);
 
-                    switch (m_flags[currentIndex]) {
-                        case Known:
-                            continue;
-                        // if pixel is not known
-                        case Inside:
-                            m_flags[currentIndex] = Band; // since inpainted -> new Boundary
-                            InpaintPixel(currentIndex);
-                            inpaintedCount++;
-                            break;
+                    if (m_flags[currentIndex] == Known) continue;
+
+                    float newDist = ComputeMinEikonalSolution(curCol, curRow, m_distances, m_flags);
+
+                    if (m_flags[currentIndex] == Inside) {
+                        m_flags[currentIndex] = Band;
+                        m_distances[currentIndex] = newDist;
+                        InpaintPixel(currentIndex);
+                        inpaintedCount++;
                     }
 
-                    m_distances[currentIndex] = ComputeMinEikonalSolution(curCol, curRow, m_distances, m_flags);
-
-                    // insert for next iterations
-                    m_boundary.Enqueue(currentIndex, m_distances[currentIndex]);
+                    if (newDist >= m_distances[currentIndex]) continue;
+                    m_distances[currentIndex] = newDist;
+                    m_boundary.Enqueue(currentIndex, newDist);
                 }
             }
             Debug.Log($"Inpainted {inpaintedCount} pixels, mask size: {maskPixelIndices.Count}");
         }
 
         private void PrecomputeDistanceFieldAndGradient(HashSet<int> maskPixelIndices) {
-            float[] tOut = RunFmm(maskPixelIndices, isOutward: true);
-            float[] tIn = RunFmm(maskPixelIndices, isOutward: false);
+            float[] tOut = RunFmm(maskPixelIndices, true);
+            float[] tIn = RunFmm(maskPixelIndices, false);
 
             float[] combinedT = new float[m_pixelCount];
             for (int i = 0; i < m_pixelCount; i++) {
@@ -420,7 +419,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 }
             }
 
-            Debug.Log($"Inpaint Total Weight = {totalWeight}");
             if (totalWeight <= 0f) return;
 
             ApplyInpaintedColor(i, sumRGB, sumA, totalWeight);
@@ -442,7 +440,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             if (!IsInBounds(nx, ny)) return false;
 
             nI = ToIndex(nx, ny);
-            if (m_flags[nI] != Known && m_flags[nI] != Band) return false;
+            if (m_flags[nI] != Known) return false;
 
             float dist = Mathf.Sqrt(dx * dx + dy * dy);
             return dist <= Epsilon;
