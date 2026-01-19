@@ -115,24 +115,27 @@ namespace InpaintAR.Scripts.VisualizationManagement {
                 || !m_selectionUiController.IsSelectionAreaWithinCameraView()) return;
 
             UpdateImage(isSelectionActive);
-            
         }
 
         private void UpdateImage(bool isSelectionActive) {
+            m_selectionUiController.UpdatePassthroughImagePosition();
+
+            // During Selection no Edge-Detection/Inpainting
+            if (isSelectionActive) {
+                var image = m_selectionUiController.GetFillImage();
+                image.texture = null;
+                image.color = new Color(0, 0, 0, 0.5f); // Dark Overlay of Mask
+                return;
+            }
+
+            m_selectionUiController.GetFillImage().color = Color.white;
+            
             Texture sourceTexture = m_cameraController.GetPassthroughTexture();
             if (sourceTexture) {
                 if (m_copiedTexture) {
                     Destroy(m_copiedTexture);
                 }
                 m_copiedTexture = TextureUtility.CopyTexture(sourceTexture);
-            }
-                
-            m_selectionUiController.UpdatePassthroughImagePosition();
-
-            // During Selection no Edge-Detection/Inpainting
-            if (isSelectionActive) {
-                m_selectionUiController.GetFillImage().texture = m_copiedTexture;
-                return;
             }
             
             m_inpaintMask = SnakeController.GetContourMaskPixelIndices(m_selectionUiController.GetFillImage().rectTransform, m_copiedTexture, m_selectionUiController.GetFillRectMask());

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using InpaintAR.Scripts.Util;
 using Unity.Burst;
@@ -57,13 +58,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             // NativeParallelHashSet for O(1) lookup
             var maskIndicesSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
-            var maskIndices = new NativeArray<int>(maskPixelIndices.Count, Allocator.TempJob);
+            var maskIndices = new NativeArray<int>(maskPixelIndices.ToArray(), Allocator.TempJob);
 
             // Copy mask indices to native containers
-            int idx = 0;
-            foreach (var maskIdx in maskPixelIndices) {
+            foreach (var maskIdx in maskIndices) {
                 maskIndicesSet.Add(maskIdx);
-                maskIndices[idx++] = maskIdx;
             }
 
             // Run initialization job with HashSet for O(1) lookup
@@ -118,11 +117,13 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 m_data = new NativeList<FmmNode>(capacity, allocator);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void Push(FmmNode node) {
                 m_data.Add(node);
                 SiftUp(m_data.Length - 1);
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public FmmNode Pop() {
                 var result = m_data[0];
                 int lastIdx = m_data.Length - 1;
@@ -132,6 +133,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 return result;
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void SiftUp(int idx) {
                 while (idx > 0) {
                     int parent = (idx - 1) / 2;
@@ -141,6 +143,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void SiftDown(int idx) {
                 int count = m_data.Length;
                 while (true) {
@@ -159,6 +162,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 }
             }
 
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private void Swap(int a, int b) {
                 (m_data[a], m_data[b]) = (m_data[b], m_data[a]);
             }
