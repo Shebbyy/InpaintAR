@@ -24,17 +24,17 @@ Use Clock/Timer for the Inpainting Method from Call to Return + FrameTime + Fram
 Maybe use the Unity3D Profiler
 
 \section{Test Scenarios}
-\subsection{Table with Pen and Notebook}
-as said in subsection + Visual Clutter Metric
+\subsection{Clean uniform Background}
+Table with a singular color as the background for inpainting, some methods should excel here, some should prove a bit weaker
 
-\subsection{Table with reflective see-through objects}
-Table with multiple glasses of water + Visual Clutter Metric
+\subsection{Background Pattern}
+Table with a deskmat, has hexagonal pattern on it, so it should provide a good example on how inpainting method handles continous patterns (FMM for example not at all)
 
-\subsection{Heavily Cluttered Desk}
-Desk full with different kinds of junk, clean up all elements on top + Visual Clutter Metric
+\subsection{Desk with Notebook and Pen}
+-> Simple Testcase for Clutter
 
-\subsection{Large Objects}
-Probably entire Table / Desk + Visual Clutter Metric
+\subsection{Desk with multiple glasses of water}
+-> Check Reflection Handling, etc.
 
 \section{Results}
 

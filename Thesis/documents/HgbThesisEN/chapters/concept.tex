@@ -3,7 +3,7 @@
 
 Go into Detail about the overview, how it is built architecturally, what are the components, explained in further sections
 
-\subsection{Area Selection}
+\subsection{Area Selection and Tracking}
 - Area Selection using Hand-Gesture-Recognition (just a quick introduction on why it makes sense for easy usage, not how)
 
 - Area-Finetuning and Tracking using the Snakes algorithm (allows boundaries of objects to be detected in an area of interest and be tracked between frames)
@@ -14,6 +14,9 @@ The Object Selection and tracking between frames is achieved in a similar manner
 \subsection{Inpainting}
 - Inpainting Factory, which then splits into its sub-classes for each of the methodologies
 
+--> Go into further Detail on the Design Decisions for each of the Algorithms, Impl details like burst, saving LaMa in Memory for easy inference and such in Impl, here rather Conceptual changes for higher performance
+-> Example FMM Using MinHeap, avoiding duplicates through tracking
+
 \subsection{Masking the Camera Feed}
 - Inpainting Mask which automatically adjusts itself to the back-edge of the virtual cameras frustum, so nothing needs to be configured by developers integrating it
 
@@ -21,4 +24,4 @@ The Object Selection and tracking between frames is achieved in a similar manner
 - How this is all wrapped up into one simple Script to be added to a Camera Object in Unity, with Options in the Properties Tab to allow for Inpainting Method Switching per Dropdown in the Unity Editor
 
 \section{Requirements}
-Small explanation of what requirements exist, unity, XR-Hand-Tracking Support
+Small explanation of what requirements exist for the program, unity, XR-Hand-Tracking Support
