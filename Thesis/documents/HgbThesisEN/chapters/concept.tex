@@ -16,6 +16,10 @@ The Object Selection and tracking between frames is achieved in a similar manner
 --> Go into further Detail on the Design Decisions for each of the Algorithms, Impl details like burst, saving LaMa in Memory for easy inference and such in Impl, here rather Conceptual changes for higher performance
 -> Example FMM Using MinHeap, avoiding duplicates through tracking
 
+NLTM uses a slightly simplified approach from PatchMatch Paper (Barnes 2009), after canidate patches were found globally once, it only looks for more canidates in the area surrounding the previous canidates
+-> Increases performance marginally and makes the alg plausible for realtime , for the first frame no improvement is gained, but every subsequent frame should from the pure complexity have a speedup of ~900x; Was not a concern in the original algorithm, 
+as it was made for only singular images, but for the video feed it proves to provide quite the performance gain
+
 \subsection{Masking the Camera Feed}
 - Inpainting Mask which automatically adjusts itself to the back-edge of the virtual cameras frustum, so nothing needs to be configured by developers integrating it
 
