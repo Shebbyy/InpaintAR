@@ -6,6 +6,7 @@ using UnityEngine;
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
     // Nonlocal Texture Matching (NLTM) Inpainting Algorithm
     // See DOI 10.1109/TIP.2018.2880681
+    // Extended with PatchMatch-inspired temporal coherence for real-time performance
     public class NltmAlgorithm : AbstractInpaintingAlgorithm {
         private const int PatchRadius = 4; // Radius for Pixel Patches
         private const int PatchSize = 2 * PatchRadius + 1;
@@ -17,11 +18,17 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         // Alpha for trimmed mean filter (10-20% recommended by paper to be sliced from each end)
         private const float Alpha = 0.15f;
 
-        // Gaussian sigma for texture matching weight (relative to patch radius)
+        // Gaussian sigma for texture matching weight
         private const float GaussianSigma = PatchRadius / 2.0f;
 
         // Normalization constant for data term
         private const float AlphaNorm = 255.0f;
+
+        // Local search radius around cached candidates (PatchMatch-inspired)
+        private const int LocalSearchRadius = 10;
+
+        // Number of random samples for discovering new candidates
+        private const int RandomSampleCount = 10;
 
         private int m_width;
         private int m_height;
@@ -33,10 +40,26 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         // Precomputed Gaussian weights for patch matching
         private float[] m_gaussianWeights;
 
+        // Temporal cache: stores best candidate positions from previous frame
+        // Key: approximate target region, Value: list of good candidate positions
+        private List<int> m_cachedCandidates = new();
+        private bool m_hasCachedCandidates;
+
+        // Random number generator for sparse sampling
+        private readonly System.Random m_random = new();
+        private int m_prevMaskLength = -1;
+
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
             m_width = TextureUtility.GetImageWidth(source);
             m_height = TextureUtility.GetImageHeight(source);
             m_pixelCount = m_width * m_height;
+
+            // if mask changed -> invalidate cache
+            int curCount = maskPixelIndices.Count;
+            if (curCount != m_prevMaskLength) {
+                InvalidateCache();
+                m_prevMaskLength = curCount;
+            }
 
             // Initialize output buffer
             if (MInpaintedPixelBuffer == null || MInpaintedPixelBuffer.Length != m_pixelCount) {
@@ -50,15 +73,28 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             // Precompute Gaussian weights for patch matching
             PrecomputeGaussianWeights();
 
-            // Run the NLTM inpainting algorithm
-            InpaintNltm(maskPixelIndices);
+            // Clear candidates found this frame (will be populated during inpainting)
+            List<int> newCandidates = new();
 
-            // Create result texture
+            InpaintNltm(maskPixelIndices, newCandidates);
+
+            // Update cache for next frame
+            if (newCandidates.Count > 0) {
+                m_cachedCandidates = newCandidates;
+                m_hasCachedCandidates = true;
+            }
+
             Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
             resultImage.SetPixels32(MInpaintedPixelBuffer);
             resultImage.Apply();
 
             return resultImage;
+        }
+
+        // Call this to invalidate cache (e.g., on scene change)
+        public void InvalidateCache() {
+            m_hasCachedCandidates = false;
+            m_cachedCandidates.Clear();
         }
 
         private void InitializeConfidence(HashSet<int> maskPixelIndices) {
@@ -81,33 +117,33 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
         }
 
-        // Main NLTM inpainting loop
-        private void InpaintNltm(HashSet<int> maskPixelIndices) {
+        private void InpaintNltm(HashSet<int> maskPixelIndices, List<int> outNewCandidates) {
             while (maskPixelIndices.Count > 0) {
-                // Step 1: Find the target patch with highest priority on the fill front
                 int targetIndex = GetTargetPatchIndex(maskPixelIndices);
                 if (targetIndex < 0) break;
 
                 int targetX = targetIndex % m_width;
                 int targetY = targetIndex / m_width;
 
-                // Step 2: Find K best matching candidate patches using texture similarity
                 List<int> candidatePatches = FindCandidatePatches(targetX, targetY, maskPixelIndices);
 
                 if (candidatePatches.Count == 0) {
-                    // Fallback: if no candidates found, just copy from nearest known pixel
                     FillPatchFromNearest(targetX, targetY, maskPixelIndices);
                 } else {
-                    // Step 3: Fill target patch using alpha-trimmed mean filter
                     FillPatchWithTrimmedMean(targetX, targetY, candidatePatches, maskPixelIndices);
+
+                    // Store candidates for next frame's cache
+                    foreach (int candidate in candidatePatches) {
+                        if (!outNewCandidates.Contains(candidate)) {
+                            outNewCandidates.Add(candidate);
+                        }
+                    }
                 }
 
-                // Step 4: Update confidence values for newly filled pixels
                 UpdateConfidence(targetX, targetY, maskPixelIndices);
             }
         }
 
-        // Find the patch on the fill front with highest priority P(p) = C(p) * D(p)
         private int GetTargetPatchIndex(HashSet<int> maskPixelIndices) {
             HashSet<int> contourPixels = GetContourPixels(maskPixelIndices);
             float maxPriority = -1f;
@@ -117,10 +153,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 int x = contourPixel % m_width;
                 int y = contourPixel / m_width;
 
-                // Calculate confidence term C(p)
                 float confidence = CalculateConfidence(x, y);
-
-                // Calculate data term D(p)
                 Vector2 normal = EstimateBoundaryNormal(x, y, maskPixelIndices);
                 float data = CalculateDataTerm(x, y, normal, maskPixelIndices);
 
@@ -134,7 +167,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return bestIndex;
         }
 
-        // Get pixels on the boundary of the inpainting region (fill front δΩ)
         private HashSet<int> GetContourPixels(HashSet<int> maskPixelIndices) {
             HashSet<int> contourPixels = new HashSet<int>();
             int[] directions = { -1, 1, -m_width, m_width };
@@ -145,17 +177,14 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 foreach (int dir in directions) {
                     int neighbor = index + dir;
 
-                    // Check bounds
                     if (neighbor < 0 || neighbor >= m_pixelCount) continue;
 
                     switch (dir) {
-                        // Check horizontal wrap-around
                         case -1 when x == 0:
                         case 1 when x == m_width - 1:
                             continue;
                     }
 
-                    // If neighbor is known (not in mask), this is a boundary pixel
                     if (maskPixelIndices.Contains(neighbor)) continue;
                     contourPixels.Add(index);
                     break;
@@ -165,8 +194,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return contourPixels;
         }
 
-        // Calculate confidence term C(p) = sum of confidence in patch / patch area
-        // Uses stored confidence values (Equation 1 in paper)
         private float CalculateConfidence(int px, int py) {
             float sumConfidence = 0f;
             int validPixels = 0;
@@ -187,7 +214,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return validPixels > 0 ? sumConfidence / validPixels : 0f;
         }
 
-        // Estimate the unit normal to the fill front at point p
         private Vector2 EstimateBoundaryNormal(int px, int py, HashSet<int> maskPixelIndices) {
             float GetMaskVal(int x, int y) {
                 if (x < 0 || x >= m_width || y < 0 || y >= m_height) return 0f;
@@ -198,25 +224,16 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             float dy = (GetMaskVal(px, py + 1) - GetMaskVal(px, py - 1)) / 2f;
 
             Vector2 normal = new Vector2(dx, dy);
-
-            return normal.sqrMagnitude > 1e-6f ? normal.normalized : Vector2.up; // Fallback
+            return normal.sqrMagnitude > 1e-6f ? normal.normalized : Vector2.up;
         }
 
-        // Calculate data term D(p) = |∇I⊥ · n_p| / α
-        // Measures how strongly isophotes flow into the boundary (Equation 2 in paper)
         private float CalculateDataTerm(int px, int py, Vector2 normal, HashSet<int> maskPixelIndices) {
             Vector2 gradient = ComputeGradient(px, py, maskPixelIndices);
-
-            // Isophote direction is perpendicular to gradient
             Vector2 isophote = new Vector2(-gradient.y, gradient.x);
-
-            // Dot product with boundary normal
             float dot = Mathf.Abs(isophote.x * normal.x + isophote.y * normal.y);
-
-            return dot / AlphaNorm + 0.001f; // Small constant to avoid zero priority
+            return dot / AlphaNorm + 0.001f;
         }
 
-        // Compute image gradient using Sobel operator (only from known pixels)
         private Vector2 ComputeGradient(int px, int py, HashSet<int> maskPixelIndices) {
             int centerIdx = py * m_width + px;
 
@@ -231,7 +248,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 return ((Color)MInpaintedPixelBuffer[idx]).grayscale;
             }
 
-            // Sobel operator
             float gx = 0f, gy = 0f;
 
             gx += -1f * GetVal(px - 1, py - 1) + 1f * GetVal(px + 1, py - 1);
@@ -244,39 +260,23 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return new Vector2(gx, gy);
         }
 
-        // Find K best matching candidate patches using Gaussian-weighted nonlocal texture similarity
-        // (Equation 4 in paper)
+        // <summary>
+        // Find K best matching candidate patches using temporal caching.
+        // First frame: full global search
+        // Subsequent frames: local search around cached positions + sparse random sampling
+        // </summary>
         private List<int> FindCandidatePatches(int targetX, int targetY, HashSet<int> maskPixelIndices) {
             List<(int index, float distance)> candidates = new();
 
-            // Define search region
-            int searchMinX, searchMaxX, searchMinY, searchMaxY;
+            if (m_hasCachedCandidates && m_cachedCandidates.Count > 0) {
+                // Local search around cached candidate positions
+                SearchAroundCachedCandidates(targetX, targetY, maskPixelIndices, candidates);
 
-            searchMinX = Mathf.Max(PatchRadius, targetX);
-            searchMaxX = Mathf.Min(m_width - PatchRadius - 1, targetX);
-            searchMinY = Mathf.Max(PatchRadius, targetY);
-            searchMaxY = Mathf.Min(m_height - PatchRadius - 1, targetY);
-
-            // Search for candidate patches
-            for (int sy = searchMinY; sy <= searchMaxY; sy++) {
-                for (int sx = searchMinX; sx <= searchMaxX; sx++) {
-                    // Skip if source patch overlaps with target region
-                    if (Mathf.Abs(sx - targetX) <= PatchRadius && Mathf.Abs(sy - targetY) <= PatchRadius) {
-                        continue;
-                    }
-
-                    // Check if source patch is entirely in known region
-                    if (!IsPatchFullyKnown(sx, sy, maskPixelIndices)) {
-                        continue;
-                    }
-
-                    // Calculate Gaussian-weighted texture distance
-                    float distance = CalculateTextureDistance(targetX, targetY, sx, sy, maskPixelIndices);
-
-                    if (distance >= 0) {
-                        candidates.Add((sy * m_width + sx, distance));
-                    }
-                }
+                // Add sparse random samples to discover new good matches
+                SearchRandomSamples(targetX, targetY, maskPixelIndices, candidates);
+            } else {
+                // First frame: full global search
+                SearchFullImage(targetX, targetY, maskPixelIndices, candidates);
             }
 
             // Sort by distance and take K best
@@ -291,7 +291,85 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return result;
         }
 
-        // Check if a patch centered at (cx, cy) is entirely in the known region
+        // Search locally around each cached candidate position
+        private void SearchAroundCachedCandidates(int targetX, int targetY, HashSet<int> maskPixelIndices,
+            List<(int index, float distance)> candidates) {
+            HashSet<int> searched = new HashSet<int>();
+
+            foreach (int cachedPos in m_cachedCandidates) {
+                int cachedX = cachedPos % m_width;
+                int cachedY = cachedPos / m_width;
+
+                // Search in local window around cached position
+                int minX = Mathf.Max(PatchRadius, cachedX - LocalSearchRadius);
+                int maxX = Mathf.Min(m_width - PatchRadius - 1, cachedX + LocalSearchRadius);
+                int minY = Mathf.Max(PatchRadius, cachedY - LocalSearchRadius);
+                int maxY = Mathf.Min(m_height - PatchRadius - 1, cachedY + LocalSearchRadius);
+
+                for (int sy = minY; sy <= maxY; sy++) {
+                    for (int sx = minX; sx <= maxX; sx++) {
+                        int idx = sy * m_width + sx;
+
+                        // Skip already searched positions
+                        if (!searched.Add(idx)) continue;
+
+                        // Skip if overlaps with target
+                        if (Mathf.Abs(sx - targetX) <= PatchRadius && Mathf.Abs(sy - targetY) <= PatchRadius) {
+                            continue;
+                        }
+
+                        if (!IsPatchFullyKnown(sx, sy, maskPixelIndices)) continue;
+
+                        float distance = CalculateTextureDistance(targetX, targetY, sx, sy, maskPixelIndices);
+                        if (distance >= 0) {
+                            candidates.Add((idx, distance));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Add sparse random samples across the image to discover new good matches
+        private void SearchRandomSamples(int targetX, int targetY, HashSet<int> maskPixelIndices,
+            List<(int index, float distance)> candidates) {
+            for (int i = 0; i < RandomSampleCount; i++) {
+                int sx = m_random.Next(PatchRadius, m_width - PatchRadius);
+                int sy = m_random.Next(PatchRadius, m_height - PatchRadius);
+
+                // Skip if overlaps with target
+                if (Mathf.Abs(sx - targetX) <= PatchRadius && Mathf.Abs(sy - targetY) <= PatchRadius) {
+                    continue;
+                }
+
+                if (!IsPatchFullyKnown(sx, sy, maskPixelIndices)) continue;
+
+                float distance = CalculateTextureDistance(targetX, targetY, sx, sy, maskPixelIndices);
+                if (distance >= 0) {
+                    candidates.Add((sy * m_width + sx, distance));
+                }
+            }
+        }
+
+        // Full global search (used on first frame when no cache exists)
+        private void SearchFullImage(int targetX, int targetY, HashSet<int> maskPixelIndices,
+            List<(int index, float distance)> candidates) {
+            for (int sy = PatchRadius; sy < m_height - PatchRadius; sy++) {
+                for (int sx = PatchRadius; sx < m_width - PatchRadius; sx++) {
+                    // Skip if overlaps with target
+                    if (Mathf.Abs(sx - targetX) <= PatchRadius && Mathf.Abs(sy - targetY) <= PatchRadius) {
+                        continue;
+                    }
+
+                    if (!IsPatchFullyKnown(sx, sy, maskPixelIndices)) continue;
+
+                    float distance = CalculateTextureDistance(targetX, targetY, sx, sy, maskPixelIndices);
+                    if (distance >= 0) {
+                        candidates.Add((sy * m_width + sx, distance));
+                    }
+                }
+            }
+        }
+
         private bool IsPatchFullyKnown(int cx, int cy, HashSet<int> maskPixelIndices) {
             for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
                 for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
@@ -310,8 +388,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return true;
         }
 
-        // Calculate Gaussian-weighted texture distance between target and source patches
-        // (Equation 3 in paper: only compare known pixels in target patch)
         private float CalculateTextureDistance(int targetX, int targetY, int sourceX, int sourceY,
             HashSet<int> maskPixelIndices) {
             float sumDistance = 0f;
@@ -323,7 +399,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     int tx = targetX + dx;
                     int ty = targetY + dy;
 
-                    // Only compare known pixels in target patch
                     if (tx < 0 || tx >= m_width || ty < 0 || ty >= m_height) {
                         weightIdx++;
                         continue;
@@ -339,10 +414,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     int sy = sourceY + dy;
                     int sourceIdx = sy * m_width + sx;
 
-                    // Get Gaussian weight
                     float weight = m_gaussianWeights[weightIdx++];
 
-                    // Calculate squared color difference
                     Color32 targetColor = MInpaintedPixelBuffer[targetIdx];
                     Color32 sourceColor = MInpaintedPixelBuffer[sourceIdx];
 
@@ -357,22 +430,18 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 }
             }
 
-            // Need at least some known pixels to compare
             if (sumWeight < 1e-6f) {
-                return -1f; // Invalid
+                return -1f;
             }
 
             return sumDistance / sumWeight;
         }
 
-        // Fill target patch using alpha-trimmed mean filter on K candidate patches
-        // (Equation 5 in paper)
         private void FillPatchWithTrimmedMean(int targetX, int targetY, List<int> candidatePatches,
             HashSet<int> maskPixelIndices) {
             int numCandidates = candidatePatches.Count;
             int trimCount = Mathf.Max(1, Mathf.RoundToInt(Alpha * numCandidates));
 
-            // Pre-allocate arrays for trimmed mean calculation
             float[] rValues = new float[numCandidates];
             float[] gValues = new float[numCandidates];
             float[] bValues = new float[numCandidates];
@@ -386,10 +455,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     int targetIdx = ty * m_width + tx;
 
-                    // Only fill unknown pixels
                     if (!maskPixelIndices.Contains(targetIdx)) continue;
 
-                    // Collect pixel values from all candidate patches
                     for (int i = 0; i < numCandidates; i++) {
                         int candidateCenter = candidatePatches[i];
                         int cx = candidateCenter % m_width;
@@ -405,7 +472,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                         bValues[i] = sourceColor.b;
                     }
 
-                    // Apply alpha-trimmed mean
                     float r = AlphaTrimmedMean(rValues, trimCount);
                     float g = AlphaTrimmedMean(gValues, trimCount);
                     float b = AlphaTrimmedMean(bValues, trimCount);
@@ -420,17 +486,14 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
         }
 
-        // Calculate alpha-trimmed mean: sort values, trim alpha% from each end, average the rest
         private static float AlphaTrimmedMean(float[] values, int trimCount) {
             int n = values.Length;
 
             if (n == 0) return 0;
             if (n == 1) return values[0];
 
-            // Sort the values
             Array.Sort(values);
 
-            // Calculate mean of middle values (excluding trimmed ends)
             int start = Mathf.Min(trimCount, n / 2);
             int end = Mathf.Max(n - trimCount, n / 2 + 1);
 
@@ -445,9 +508,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return count > 0 ? sum / count : values[n / 2];
         }
 
-        // Fallback: fill patch from nearest known pixel when no candidates found
         private void FillPatchFromNearest(int targetX, int targetY, HashSet<int> maskPixelIndices) {
-            // Find nearest known pixel
             int nearestIdx = -1;
             float nearestDist = float.MaxValue;
 
@@ -463,7 +524,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     float dist = dx * dx + dy * dy;
                     if (dist >= nearestDist) continue;
-                    
+
                     nearestDist = dist;
                     nearestIdx = idx;
                 }
@@ -473,7 +534,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             Color32 fillColor = MInpaintedPixelBuffer[nearestIdx];
 
-            // Fill the patch with this color
             for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
                 for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
                     int tx = targetX + dx;
@@ -489,9 +549,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
         }
 
-        // Update confidence values and remove filled pixels from mask (Equation 2 in paper)
         private void UpdateConfidence(int targetX, int targetY, HashSet<int> maskPixelIndices) {
-            // Get the confidence of the patch center before filling
             float patchConfidence = CalculateConfidence(targetX, targetY);
 
             for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
