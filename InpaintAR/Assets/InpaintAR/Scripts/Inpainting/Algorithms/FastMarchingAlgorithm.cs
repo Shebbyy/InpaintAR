@@ -367,67 +367,75 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<byte> flags,
             int y, int x, int width, int height) {
             int centerIdx = y * width + x;
-            
+            float centerDist = distanceMap[centerIdx];
+
             // Gradient of T at [y, x]
             float2 gradT = ComputeGradientTBurst(ref distanceMap, y, x, width, height);
 
             float denominator = 0f;
-            float numR = 0f, numG = 0f, numB = 0f;
+            float3 num = float3.zero;
 
-            // Iterate through epsilon neighborhood
-            for (int i = y - Epsilon; i <= y + Epsilon; i++) {
-                for (int j = x - Epsilon; j <= x + Epsilon; j++) {
-                    if (i < 0 || i >= height || j < 0 || j >= width) continue;
+            // Pre-compute bounds for epsilon neighborhood
+            int yMin = math.max(0, y - Epsilon);
+            int yMax = math.min(height - 1, y + Epsilon);
+            int xMin = math.max(0, x - Epsilon);
+            int xMax = math.min(width - 1, x + Epsilon);
+
+            const float epsilonSq = Epsilon * Epsilon;
+
+            // Iterate through epsilon neighborhood with pre-computed bounds
+            for (int i = yMin; i <= yMax; i++) {
+                int rowOffset = i * width;
+                int dy = y - i;
+                int dySq = dy * dy;
+
+                for (int j = xMin; j <= xMax; j++) {
                     if (i == y && j == x) continue;
 
-                    int nbIdx = i * width + j;
+                    int nbIdx = rowOffset + j;
                     if (flags[nbIdx] != Known) continue;
 
-                    float2 vector = new float2(y - i, x - j);
-                    float distSq = vector.x * vector.x + vector.y * vector.y;
-                    if (distSq > Epsilon * Epsilon) continue;
+                    int dx = x - j;
+                    float distSq = dySq + dx * dx;
+                    if (distSq > epsilonSq) continue;
 
-                    // Euclidean distance
-                    float normVector = math.sqrt(distSq);
-                    if (normVector < Eps) normVector = Eps;
+                    // Use rsqrt for faster inverse square root
+                    float invNormVector = math.rsqrt(math.max(distSq, Eps * Eps));
+                    float normVector = distSq * invNormVector; // distSq / sqrt(distSq) = sqrt(distSq)
 
                     // Directional weight: only consider upstream pixels
-                    // For information propagate into the inpainting region
-                    float dir = math.dot(gradT, vector) / normVector;
+                    float2 vector = new float2(dy, dx);
+                    float dir = math.dot(gradT, vector) * invNormVector;
                     dir = math.max(0f, dir);
-                    if (dir < Eps) continue;  // Skip pixels with no contribution
+                    if (dir < Eps) continue;
 
-                    // Geometric distance weight: 1/d²
-                    float dist = 1f / distSq;
-                    
-                    // Level set weight: prefer pixels at similar distance from boundary
-                    float lev = 1f / (1f + math.abs(distanceMap[centerIdx] - distanceMap[nbIdx]));
-                    
-                    float w = dir * dist * lev;
+                    // Combined weight: dir / distSq / (1 + |dT|)
+                    float invDistSq = 1f / distSq;
+                    float lev = 1f / (1f + math.abs(centerDist - distanceMap[nbIdx]));
+                    float w = dir * invDistSq * lev;
 
                     Color32 color = pixels[nbIdx];
-                    
+
                     // I(p) = Σ w(q) · [I(q) + ∇I(q)·(p-q)] / Σ w(q)
                     ComputeGradientIBurst(ref pixels, ref flags, i, j, width, height, out var gradIy, out var gradIx);
-                    
-                    // (p-q)
-                    float2 pq = -vector;
+
+                    // (p-q) = -vector
+                    float pqY = -dy;
+                    float pqX = -dx;
 
                     // Check if gradient is valid (non-zero)
-                    float gradMagnitude = math.lengthsq(gradIy) + math.lengthsq(gradIx);
+                    float gradMagnitudeSq = math.lengthsq(gradIy) + math.lengthsq(gradIx);
 
-                    if (gradMagnitude > Eps) {
-                        // ∇I(q)·(p-q) = gradIY*(p-q).y + gradIX*(p-q).x for each channel
-                        float scale = 1f / normVector;  // Diminish effect with distance
-                        numR += w * (color.r + scale * (gradIy.x * pq.x + gradIx.x * pq.y));
-                        numG += w * (color.g + scale * (gradIy.y * pq.x + gradIx.y * pq.y));
-                        numB += w * (color.b + scale * (gradIy.z * pq.x + gradIx.z * pq.y));
+                    float3 colorF = new float3(color.r, color.g, color.b);
+
+                    if (gradMagnitudeSq > Eps) {
+                        // ∇I(q)·(p-q) scaled by distance
+                        float scale = invNormVector;
+                        float3 gradContrib = scale * (gradIy * pqY + gradIx * pqX);
+                        num += w * (colorF + gradContrib);
                     }
                     else {
-                        // Fallback: just use the color without gradient term, avoids Rainbow-Like effect in uniform areas
-                        numR += w * color.r;
-                        numG += w * color.g;
-                        numB += w * color.b;
+                        num += w * colorF;
                     }
 
                     denominator += w;
@@ -435,15 +443,15 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
 
             if (denominator > Eps) {
+                float invDenom = 1f / denominator;
                 pixels[centerIdx] = new Color32(
-                    (byte)math.clamp(numR / denominator, 0, 255),
-                    (byte)math.clamp(numG / denominator, 0, 255),
-                    (byte)math.clamp(numB / denominator, 0, 255),
+                    (byte)math.clamp(num.x * invDenom, 0, 255),
+                    (byte)math.clamp(num.y * invDenom, 0, 255),
+                    (byte)math.clamp(num.z * invDenom, 0, 255),
                     255
                 );
             }
         }
-
 
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -451,100 +459,87 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeArray<Color32> pixels,
             ref NativeArray<byte> flags,
             int y, int x, int width, int height,
-            out float4 gradY, out float4 gradX) {
-            gradY = float4.zero;
-            gradX = float4.zero;
+            out float3 gradY, out float3 gradX) {
+            gradY = float3.zero;
+            gradX = float3.zero;
 
             int idx = y * width + x;
 
-            // Y gradient (vertical) using central differences where possible
+            // Y gradient (vertical)
             if (y > 0 && y < height - 1) {
-                int idxUp = (y - 1) * width + x;
-                int idxDown = (y + 1) * width + x;
-                switch (flags[idxUp]) {
-                    case Known when flags[idxDown] == Known: {
-                        Color32 up = pixels[idxUp];
-                        Color32 down = pixels[idxDown];
-                        gradY = new float4(down.r - up.r, down.g - up.g, down.b - up.b, down.a - up.a) / 2;
-                        break;
-                    }
-                    case Known: {
-                        Color32 cur = pixels[idx];
-                        Color32 up = pixels[idxUp];
-                        gradY = new float4(cur.r - up.r, cur.g - up.g, cur.b - up.b, cur.a - up.a);
-                        break;
-                    }
-                    default: {
-                        if (flags[idxDown] == Known) {
-                            Color32 cur = pixels[idx];
-                            Color32 down = pixels[idxDown];
-                            gradY = new float4(down.r - cur.r, down.g - cur.g, down.b - cur.b, down.a - cur.a);
-                        }
-
-                        break;
-                    }
+                int idxUp = idx - width;
+                int idxDown = idx + width;
+                if (flags[idxUp] == Known && flags[idxDown] == Known) {
+                    Color32 up = pixels[idxUp];
+                    Color32 down = pixels[idxDown];
+                    gradY = new float3(down.r - up.r, down.g - up.g, down.b - up.b) * 0.5f;
+                }
+                else if (flags[idxUp] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 up = pixels[idxUp];
+                    gradY = new float3(cur.r - up.r, cur.g - up.g, cur.b - up.b);
+                }
+                else if (flags[idxDown] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 down = pixels[idxDown];
+                    gradY = new float3(down.r - cur.r, down.g - cur.g, down.b - cur.b);
                 }
             }
             else if (y > 0) {
-                int idxUp = (y - 1) * width + x;
+                int idxUp = idx - width;
                 if (flags[idxUp] == Known) {
                     Color32 cur = pixels[idx];
                     Color32 up = pixels[idxUp];
-                    gradY = new float4(cur.r - up.r, cur.g - up.g, cur.b - up.b, cur.a - up.a);
+                    gradY = new float3(cur.r - up.r, cur.g - up.g, cur.b - up.b);
                 }
             }
             else if (y < height - 1) {
-                int idxDown = (y + 1) * width + x;
+                int idxDown = idx + width;
                 if (flags[idxDown] == Known) {
                     Color32 cur = pixels[idx];
                     Color32 down = pixels[idxDown];
-                    gradY = new float4(down.r - cur.r, down.g - cur.g, down.b - cur.b, down.a - cur.a);
+                    gradY = new float3(down.r - cur.r, down.g - cur.g, down.b - cur.b);
                 }
             }
 
-            // X gradient (horizontal) using central differences where possible
+            // X gradient (horizontal)
             if (x > 0 && x < width - 1) {
-                int idxLeft = y * width + x - 1;
-                int idxRight = y * width + x + 1;
-                switch (flags[idxLeft]) {
-                    case Known when flags[idxRight] == Known: {
-                        Color32 left = pixels[idxLeft];
-                        Color32 right = pixels[idxRight];
-                        gradX = new float4(right.r - left.r, right.g - left.g, right.b - left.b, right.a - left.a) / 2;
-                        break;
-                    }
-                    case Known: {
-                        Color32 cur = pixels[idx];
-                        Color32 left = pixels[idxLeft];
-                        gradX = new float4(cur.r - left.r, cur.g - left.g, cur.b - left.b, cur.a - left.a);
-                        break;
-                    }
-                    default: {
-                        if (flags[idxRight] == Known) {
-                            Color32 cur = pixels[idx];
-                            Color32 right = pixels[idxRight];
-                            gradX = new float4(right.r - cur.r, right.g - cur.g, right.b - cur.b, right.a - cur.a);
-                        }
-
-                        break;
-                    }
+                int idxLeft = idx - 1;
+                int idxRight = idx + 1;
+                if (flags[idxLeft] == Known && flags[idxRight] == Known) {
+                    Color32 left = pixels[idxLeft];
+                    Color32 right = pixels[idxRight];
+                    gradX = new float3(right.r - left.r, right.g - left.g, right.b - left.b) * 0.5f;
+                }
+                else if (flags[idxLeft] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 left = pixels[idxLeft];
+                    gradX = new float3(cur.r - left.r, cur.g - left.g, cur.b - left.b);
+                }
+                else if (flags[idxRight] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 right = pixels[idxRight];
+                    gradX = new float3(right.r - cur.r, right.g - cur.g, right.b - cur.b);
                 }
             }
             else if (x > 0) {
-                int idxLeft = y * width + x - 1;
-                if (flags[idxLeft] != Known) return;
-                Color32 cur = pixels[idx];
-                Color32 left = pixels[idxLeft];
-                gradX = new float4(cur.r - left.r, cur.g - left.g, cur.b - left.b, cur.a - left.a);
+                int idxLeft = idx - 1;
+                if (flags[idxLeft] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 left = pixels[idxLeft];
+                    gradX = new float3(cur.r - left.r, cur.g - left.g, cur.b - left.b);
+                }
             }
             else if (x < width - 1) {
-                int idxRight = y * width + x + 1;
-                if (flags[idxRight] != Known) return;
-                Color32 cur = pixels[idx];
-                Color32 right = pixels[idxRight];
-                gradX = new float4(right.r - cur.r, right.g - cur.g, right.b - cur.b, right.a - cur.a);
+                int idxRight = idx + 1;
+                if (flags[idxRight] == Known) {
+                    Color32 cur = pixels[idx];
+                    Color32 right = pixels[idxRight];
+                    gradX = new float3(right.r - cur.r, right.g - cur.g, right.b - cur.b);
+                }
             }
         }
+
 
         [BurstCompile]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
