@@ -260,18 +260,14 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
                 float gradY = 0f;
 
                 if (x > 0 && x < Width - 1) {
-                    gradX = GetLuminance(pixels[idx + 1]) - GetLuminance(pixels[idx - 1]);
+                    gradX = ((Color)pixels[idx + 1]).grayscale - ((Color)pixels[idx - 1]).grayscale;
                 }
 
                 if (y > 0 && y < Height - 1) {
-                    gradY = GetLuminance(pixels[idx + Width]) - GetLuminance(pixels[idx - Width]);
+                    gradY = ((Color)pixels[idx + Width]).grayscale - ((Color)pixels[idx - Width]).grayscale;
                 }
 
                 return Mathf.Sqrt(gradX * gradX + gradY * gradY);
-            }
-
-            private static float GetLuminance(Color color) {
-                return color.grayscale / 255f;
             }
         }
     }

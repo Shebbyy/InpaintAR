@@ -15,7 +15,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         }
 
         public static double GetAverageClutterReduction() {
-            return ClutterReductionResults.Count > 0 ? ClutterReductionResults.Average() : -1;
+            return ClutterReductionResults.Count > 0 ? ClutterReductionResults.Average() : 0;
         }
     }
 }
