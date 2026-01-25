@@ -18,6 +18,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const int PatchSize = 2 * PatchRadius + 1;
         private const int PatchArea = PatchSize * PatchSize;
 
+        // Downscale factor for faster processing (4 = quarter resolution)
+        private const int DownscaleFactor = 4;
+
         // Number of candidate patches K (5-10 recommended according to paper)
         private const int K = 5;
 
@@ -50,22 +53,40 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private bool m_gaussianWeightsInitialized;
 
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
-            m_width = TextureUtility.GetImageWidth(source);
-            m_height = TextureUtility.GetImageHeight(source);
+            int origWidth = TextureUtility.GetImageWidth(source);
+            int origHeight = TextureUtility.GetImageHeight(source);
+
+            // Downscale for faster processing
+            m_width = origWidth / DownscaleFactor;
+            m_height = origHeight / DownscaleFactor;
             m_pixelCount = m_width * m_height;
 
-            // If mask changed, invalidate cache
-            int curCount = maskPixelIndices.Count;
-            if (curCount != m_prevMaskLength) {
-                InvalidateCache();
-                m_prevMaskLength = curCount;
+            // Downscale source pixels
+            var downscaledPixels = DownscalePixels(MSourcePixelBuffer, origWidth, origHeight, m_width, m_height);
+
+            // Downscale mask indices
+            var downscaledMask = new HashSet<int>();
+            foreach (int idx in maskPixelIndices) {
+                int origX = idx % origWidth;
+                int origY = idx / origWidth;
+                int newX = origX / DownscaleFactor;
+                int newY = origY / DownscaleFactor;
+                if (newX < m_width && newY < m_height) {
+                    downscaledMask.Add(newY * m_width + newX);
+                }
             }
 
-            // Initialize output buffer
-            if (MInpaintedPixelBuffer == null || MInpaintedPixelBuffer.Length != m_pixelCount) {
-                MInpaintedPixelBuffer = new Color32[m_pixelCount];
+            // If mask changed by at least 10%, invalidate cache
+            int curCount = downscaledMask.Count;
+            if (m_prevMaskLength > 0) {
+                float changeRatio = math.abs(curCount - m_prevMaskLength) / (float)m_prevMaskLength;
+                if (changeRatio >= 0.1f) {
+                    InvalidateCache();
+                    m_prevMaskLength = curCount;
+                }
+            } else {
+                m_prevMaskLength = curCount;
             }
-            Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
 
             // Precompute Gaussian weights (only once)
             if (!m_gaussianWeightsInitialized) {
@@ -73,9 +94,14 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
 
             // Convert to native containers for Burst
-            var pixels = new NativeArray<Color32>(MInpaintedPixelBuffer, Allocator.TempJob);
+            var pixels = new NativeArray<Color32>(downscaledPixels, Allocator.TempJob);
             var confidence = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
-            var maskSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
+            var maskSet = new NativeParallelHashSet<int>(downscaledMask.Count, Allocator.TempJob);
+
+            // Copy mask indices to hash set
+            foreach (int idx in downscaledMask) {
+                maskSet.Add(idx);
+            }
 
             // Initialize confidence: 1 for known, 0 for unknown
             var initJob = new InitializeConfidenceJob {
@@ -83,11 +109,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 MaskSet = maskSet
             };
             initJob.Schedule(m_pixelCount, 64).Complete();
-
-            // Copy mask indices to hash set
-            foreach (int idx in maskPixelIndices) {
-                maskSet.Add(idx);
-            }
 
             // Convert cached candidates to native
             var cachedCandidates = new NativeList<int>(m_cachedCandidates.Count, Allocator.TempJob);
@@ -105,8 +126,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 m_cachedCandidates.Add(t);
             }
 
-            // Copy results back
-            pixels.CopyTo(MInpaintedPixelBuffer);
+            // Copy results back to temp buffer
+            var inpaintedSmall = new Color32[m_pixelCount];
+            pixels.CopyTo(inpaintedSmall);
 
             // Dispose native containers
             pixels.Dispose();
@@ -115,15 +137,76 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             cachedCandidates.Dispose();
             newCandidates.Dispose();
 
-            // Create result texture
-            Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
-            resultImage.SetPixels32(MInpaintedPixelBuffer);
+            // Upscale result back to original size
+            var upscaledPixels = UpscalePixels(inpaintedSmall, m_width, m_height, origWidth, origHeight);
+
+            // Blend: use inpainted pixels only where mask was, keep original elsewhere
+            for (int i = 0; i < origWidth * origHeight; i++) {
+                if (maskPixelIndices.Contains(i)) {
+                    MSourcePixelBuffer[i] = upscaledPixels[i];
+                }
+            }
+
+            // Create result texture at original size
+            Texture2D resultImage = new Texture2D(origWidth, origHeight, TextureFormat.RGBA32, false);
+            resultImage.SetPixels32(MSourcePixelBuffer);
             resultImage.Apply();
 
             return resultImage;
         }
 
+        private static Color32[] DownscalePixels(Color32[] source, int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+            var result = new Color32[dstWidth * dstHeight];
+            float scaleX = (float)srcWidth / dstWidth;
+            float scaleY = (float)srcHeight / dstHeight;
+
+            for (int y = 0; y < dstHeight; y++) {
+                for (int x = 0; x < dstWidth; x++) {
+                    // Average pixels in the source block
+                    int srcX = (int)(x * scaleX);
+                    int srcY = (int)(y * scaleY);
+                    int srcIdx = srcY * srcWidth + srcX;
+                    result[y * dstWidth + x] = source[srcIdx];
+                }
+            }
+            return result;
+        }
+
+        private static Color32[] UpscalePixels(Color32[] source, int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+            var result = new Color32[dstWidth * dstHeight];
+            float scaleX = (float)(srcWidth - 1) / (dstWidth - 1);
+            float scaleY = (float)(srcHeight - 1) / (dstHeight - 1);
+
+            for (int y = 0; y < dstHeight; y++) {
+                for (int x = 0; x < dstWidth; x++) {
+                    float srcXf = x * scaleX;
+                    float srcYf = y * scaleY;
+                    int x0 = (int)srcXf;
+                    int y0 = (int)srcYf;
+                    int x1 = math.min(x0 + 1, srcWidth - 1);
+                    int y1 = math.min(y0 + 1, srcHeight - 1);
+                    float fx = srcXf - x0;
+                    float fy = srcYf - y0;
+
+                    Color32 c00 = source[y0 * srcWidth + x0];
+                    Color32 c10 = source[y0 * srcWidth + x1];
+                    Color32 c01 = source[y1 * srcWidth + x0];
+                    Color32 c11 = source[y1 * srcWidth + x1];
+
+                    // Bilinear interpolation
+                    result[y * dstWidth + x] = new Color32(
+                        (byte)math.lerp(math.lerp(c00.r, c10.r, fx), math.lerp(c01.r, c11.r, fx), fy),
+                        (byte)math.lerp(math.lerp(c00.g, c10.g, fx), math.lerp(c01.g, c11.g, fx), fy),
+                        (byte)math.lerp(math.lerp(c00.b, c10.b, fx), math.lerp(c01.b, c11.b, fx), fy),
+                        255
+                    );
+                }
+            }
+            return result;
+        }
+
         private void InvalidateCache() {
+            Debug.Log("NLTM Cache Cleared");
             m_cachedCandidates.Clear();
             m_gaussianWeightsInitialized = false;
         }
@@ -211,7 +294,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 } else {
                     FillPatchWithTrimmedMeanBurst(
                         targetX, targetY, ref candidatePatches, ref maskSet, ref pixels, m_width, m_height);
-
+                    
                     // Store candidates for next frame's cache
                     foreach (var t1 in candidatePatches) {
                         bool found = false;
@@ -502,7 +585,125 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
         }
 
+        // Parallel job for searching the full image
         [BurstCompile]
+        private struct SearchFullImageJob : IJobParallelFor {
+            [ReadOnly] public int TargetX;
+            [ReadOnly] public int TargetY;
+            [ReadOnly] public int Width;
+            [ReadOnly] public int Height;
+            [ReadOnly] public int SearchWidth;
+            [ReadOnly] public int SearchStartX;
+            [ReadOnly] public int SearchStartY;
+            [ReadOnly] public NativeParallelHashSet<int> MaskSet;
+            [ReadOnly] public NativeArray<Color32> Pixels;
+            [ReadOnly] public NativeArray<float> GaussianWeights;
+
+            [WriteOnly] public NativeArray<CandidateInfo> Results;
+
+            public void Execute(int index) {
+                int sx = SearchStartX + (index % SearchWidth);
+                int sy = SearchStartY + (index / SearchWidth);
+
+                // Skip if overlapping with target patch
+                if (math.abs(sx - TargetX) <= PatchRadius && math.abs(sy - TargetY) <= PatchRadius) {
+                    Results[index] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
+                    return;
+                }
+
+                // Check if patch is fully known
+                if (!IsPatchFullyKnownBurstStatic(sx, sy, MaskSet, Width, Height)) {
+                    Results[index] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
+                    return;
+                }
+
+                float distance = CalculateTextureDistanceBurstStatic(
+                    TargetX, TargetY, sx, sy, MaskSet, Pixels, GaussianWeights, Width, Height);
+
+                if (distance >= 0) {
+                    Results[index] = new CandidateInfo { Index = sy * Width + sx, Distance = distance };
+                } else {
+                    Results[index] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
+                }
+            }
+        }
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsPatchFullyKnownBurstStatic(int cx, int cy, NativeParallelHashSet<int> maskSet, int width, int height) {
+            for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                    int nx = cx + dx;
+                    int ny = cy + dy;
+
+                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+                        return false;
+                    }
+
+                    if (maskSet.Contains(ny * width + nx)) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        [BurstCompile]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float CalculateTextureDistanceBurstStatic(
+            int targetX, int targetY, int sourceX, int sourceY,
+            NativeParallelHashSet<int> maskSet,
+            NativeArray<Color32> pixels,
+            NativeArray<float> gaussianWeights,
+            int width, int height) {
+
+            float sumDistance = 0f;
+            float sumWeight = 0f;
+            int weightIdx = 0;
+
+            for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                    int tx = targetX + dx;
+                    int ty = targetY + dy;
+
+                    if (tx < 0 || tx >= width || ty < 0 || ty >= height) {
+                        weightIdx++;
+                        continue;
+                    }
+
+                    int targetIdx = ty * width + tx;
+                    if (maskSet.Contains(targetIdx)) {
+                        weightIdx++;
+                        continue;
+                    }
+
+                    int sx = sourceX + dx;
+                    int sy = sourceY + dy;
+                    int sourceIdx = sy * width + sx;
+
+                    float weight = gaussianWeights[weightIdx++];
+
+                    Color32 targetColor = pixels[targetIdx];
+                    Color32 sourceColor = pixels[sourceIdx];
+
+                    float dr = targetColor.r - sourceColor.r;
+                    float dg = targetColor.g - sourceColor.g;
+                    float db = targetColor.b - sourceColor.b;
+
+                    float colorDistSq = dr * dr + dg * dg + db * db;
+
+                    sumDistance += weight * colorDistSq;
+                    sumWeight += weight;
+                }
+            }
+
+            if (sumWeight < 1e-6f) {
+                return -1f;
+            }
+
+            return sumDistance / sumWeight;
+        }
+
         private static void SearchFullImageBurst(
             int targetX, int targetY,
             ref NativeParallelHashSet<int> maskSet,
@@ -511,22 +712,39 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             NativeArray<float> gaussianWeights,
             int width, int height) {
 
-            for (int sy = PatchRadius; sy < height - PatchRadius; sy++) {
-                for (int sx = PatchRadius; sx < width - PatchRadius; sx++) {
-                    if (math.abs(sx - targetX) <= PatchRadius && math.abs(sy - targetY) <= PatchRadius) {
-                        continue;
-                    }
+            int searchStartX = PatchRadius;
+            int searchStartY = PatchRadius;
+            int searchWidth = width - 2 * PatchRadius;
+            int searchHeight = height - 2 * PatchRadius;
+            int totalSearchPixels = searchWidth * searchHeight;
 
-                    if (!IsPatchFullyKnownBurst(sx, sy, ref maskSet, width, height)) continue;
+            var results = new NativeArray<CandidateInfo>(totalSearchPixels, Allocator.TempJob);
 
-                    float distance = CalculateTextureDistanceBurst(
-                        targetX, targetY, sx, sy, ref maskSet, ref pixels, gaussianWeights, width, height);
+            var job = new SearchFullImageJob {
+                TargetX = targetX,
+                TargetY = targetY,
+                Width = width,
+                Height = height,
+                SearchWidth = searchWidth,
+                SearchStartX = searchStartX,
+                SearchStartY = searchStartY,
+                MaskSet = maskSet,
+                Pixels = pixels,
+                GaussianWeights = gaussianWeights,
+                Results = results
+            };
 
-                    if (distance >= 0) {
-                        candidates.Add(new CandidateInfo { Index = sy * width + sx, Distance = distance });
-                    }
+            // Run in parallel with batch size of 64 for good cache utilization
+            job.Schedule(totalSearchPixels, 64).Complete();
+
+            // Collect valid results
+            for (int i = 0; i < totalSearchPixels; i++) {
+                if (results[i].Index >= 0) {
+                    candidates.Add(results[i]);
                 }
             }
+
+            results.Dispose();
         }
 
         [BurstCompile]
@@ -606,15 +824,26 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         }
 
         private static void SortCandidates(ref NativeList<CandidateInfo> candidates) {
-            // Simple insertion sort for small arrays (typically K candidates)
-            for (int i = 1; i < candidates.Length; i++) {
-                var key = candidates[i];
-                int j = i - 1;
-                while (j >= 0 && candidates[j].Distance > key.Distance) {
-                    candidates[j + 1] = candidates[j];
-                    j--;
+            int n = candidates.Length;
+
+            // Only find the K smallest using partial selection in the sort, stop sort afterwards
+            for (int i = 0; i < K; i++) {
+                int minIdx = i;
+                float minDist = candidates[i].Distance;
+
+                for (int j = i + 1; j < n; j++) {
+                    if (candidates[j].Distance < minDist) {
+                        minDist = candidates[j].Distance;
+                        minIdx = j;
+                    }
                 }
-                candidates[j + 1] = key;
+
+                // Swap minimum to position i
+                if (minIdx != i) {
+                    var temp = candidates[i];
+                    candidates[i] = candidates[minIdx];
+                    candidates[minIdx] = temp;
+                }
             }
         }
 
