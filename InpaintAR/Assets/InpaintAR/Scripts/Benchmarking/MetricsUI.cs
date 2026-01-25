@@ -34,6 +34,7 @@ namespace InpaintAR.Scripts.Benchmarking {
             text += $"Average TPP (TimePerPixel in ms): {PerformanceEvaluator.GetAverageTimePerPixel():F2}\n\n";
             
             text += $"Average Inpainting Quality: {QualityEvaluator.GetAverageQuality():F2}\n";
+            text += $"Average Clutter Reduction: {QualityEvaluator.GetAverageQuality():F2}%\n";
             if (m_textMesh) m_textMesh.text = text;
         }
     }

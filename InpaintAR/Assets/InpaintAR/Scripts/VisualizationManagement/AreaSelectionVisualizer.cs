@@ -110,6 +110,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
                 SnakeController.ResetSelectionMask();
                 PerformanceEvaluator.ResetValues();
                 QualityEvaluator.ResetValues();
+                ClutterEvaluator.ResetValues();
             }
             else {
                 // Update to only adjust to camera angle
