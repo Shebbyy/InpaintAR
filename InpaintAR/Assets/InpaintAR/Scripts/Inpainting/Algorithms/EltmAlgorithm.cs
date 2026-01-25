@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Burst;
@@ -17,11 +16,10 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         // Local search window radius (paper suggests w=30-70)
         private const int SearchRadius = 30;
 
-        // Normalization constant for data term
-        private const float AlphaNorm = 255.0f;
+        // Downscale factor for faster processing
+        private const int DownscaleFactor = 4;
 
         // Threshold for switching from geometry phase to texture phase
-        // When max data term falls below this, switch to texture phase
         private const float GeometryThreshold = 0.01f;
 
         private int m_width;
@@ -29,48 +27,124 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private int m_pixelCount;
 
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
-            m_width = TextureUtility.GetImageWidth(source);
-            m_height = TextureUtility.GetImageHeight(source);
+            int origWidth = TextureUtility.GetImageWidth(source);
+            int origHeight = TextureUtility.GetImageHeight(source);
+
+            // Downscale for faster processing
+            m_width = origWidth / DownscaleFactor;
+            m_height = origHeight / DownscaleFactor;
             m_pixelCount = m_width * m_height;
 
-            var pixels = new NativeArray<Color32>(MPixelBuffer, Allocator.TempJob);
+            // Downscale source pixels
+            var downscaledPixels = DownscalePixels(MPixelBuffer, origWidth, origHeight, m_width, m_height);
+
+            // Downscale mask indices
+            var downscaledMask = new HashSet<int>();
+            foreach (int idx in maskPixelIndices) {
+                int origX = idx % origWidth;
+                int origY = idx / origWidth;
+                int newX = origX / DownscaleFactor;
+                int newY = origY / DownscaleFactor;
+                if (newX < m_width && newY < m_height) {
+                    downscaledMask.Add(newY * m_width + newX);
+                }
+            }
+
+            var pixels = new NativeArray<Color32>(downscaledPixels, Allocator.TempJob);
             var confidence = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
-            var maskSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
+            var maskSet = new NativeParallelHashSet<int>(downscaledMask.Count, Allocator.TempJob);
+
+            // Copy mask indices to hash set
+            foreach (int idx in downscaledMask) {
+                maskSet.Add(idx);
+            }
 
             // Initialize confidence: 1 for known, 0 for unknown
             var initJob = new InitializeConfidenceJob {
-                Confidence = confidence
+                Confidence = confidence,
+                MaskSet = maskSet
             };
             initJob.Schedule(m_pixelCount, 64).Complete();
-
-            // Copy mask indices to hash set and set confidence to 0
-            foreach (int idx in maskPixelIndices) {
-                maskSet.Add(idx);
-                confidence[idx] = 0f;
-            }
 
             // Run ELTM inpainting
             InpaintEltmBurst(ref pixels, ref confidence, ref maskSet);
 
-            pixels.CopyTo(MPixelBuffer);
+            var inpaintedSmall = new Color32[m_pixelCount];
+            pixels.CopyTo(inpaintedSmall);
 
             pixels.Dispose();
             confidence.Dispose();
             maskSet.Dispose();
 
-            Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
+            // Upscale result back to original size
+            var upscaledPixels = UpscalePixels(inpaintedSmall, m_width, m_height, origWidth, origHeight);
+
+            // Blend: use inpainted pixels only where mask was
+            foreach (var i in maskPixelIndices) {
+                MPixelBuffer[i] = upscaledPixels[i];
+            }
+
+            Texture2D resultImage = new Texture2D(origWidth, origHeight, TextureFormat.RGBA32, false);
             resultImage.SetPixels32(MPixelBuffer);
             resultImage.Apply();
 
             return resultImage;
         }
 
+        private static Color32[] DownscalePixels(Color32[] source, int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+            var result = new Color32[dstWidth * dstHeight];
+            float scaleX = (float)srcWidth / dstWidth;
+            float scaleY = (float)srcHeight / dstHeight;
+
+            for (int y = 0; y < dstHeight; y++) {
+                for (int x = 0; x < dstWidth; x++) {
+                    int srcX = (int)(x * scaleX);
+                    int srcY = (int)(y * scaleY);
+                    result[y * dstWidth + x] = source[srcY * srcWidth + srcX];
+                }
+            }
+            return result;
+        }
+
+        private static Color32[] UpscalePixels(Color32[] source, int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+            var result = new Color32[dstWidth * dstHeight];
+            float scaleX = (float)(srcWidth - 1) / (dstWidth - 1);
+            float scaleY = (float)(srcHeight - 1) / (dstHeight - 1);
+
+            for (int y = 0; y < dstHeight; y++) {
+                for (int x = 0; x < dstWidth; x++) {
+                    float srcXf = x * scaleX;
+                    float srcYf = y * scaleY;
+                    int x0 = (int)srcXf;
+                    int y0 = (int)srcYf;
+                    int x1 = math.min(x0 + 1, srcWidth - 1);
+                    int y1 = math.min(y0 + 1, srcHeight - 1);
+                    float fx = srcXf - x0;
+                    float fy = srcYf - y0;
+
+                    Color32 c00 = source[y0 * srcWidth + x0];
+                    Color32 c10 = source[y0 * srcWidth + x1];
+                    Color32 c01 = source[y1 * srcWidth + x0];
+                    Color32 c11 = source[y1 * srcWidth + x1];
+
+                    result[y * dstWidth + x] = new Color32(
+                        (byte)math.lerp(math.lerp(c00.r, c10.r, fx), math.lerp(c01.r, c11.r, fx), fy),
+                        (byte)math.lerp(math.lerp(c00.g, c10.g, fx), math.lerp(c01.g, c11.g, fx), fy),
+                        (byte)math.lerp(math.lerp(c00.b, c10.b, fx), math.lerp(c01.b, c11.b, fx), fy),
+                        255
+                    );
+                }
+            }
+            return result;
+        }
+
         [BurstCompile]
         private struct InitializeConfidenceJob : IJobParallelFor {
             [WriteOnly] public NativeArray<float> Confidence;
+            [ReadOnly] public NativeParallelHashSet<int> MaskSet;
 
             public void Execute(int index) {
-                Confidence[index] = 1f;
+                Confidence[index] = MaskSet.Contains(index) ? 0f : 1f;
             }
         }
 
@@ -80,30 +154,27 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeParallelHashSet<int> maskSet) {
 
             var contourPixels = new NativeList<int>(Allocator.Temp);
-            bool geometryPhase = true; // Start with geometry phase
+            bool geometryPhase = true;
 
             while (!maskSet.IsEmpty) {
-                // Step 1: Find contour pixels
+                // Step 1: Find contour pixels (parallel)
                 contourPixels.Clear();
-                GetContourPixelsBurst(ref maskSet, ref contourPixels, m_width, m_height);
+                GetContourPixelsParallel(ref maskSet, ref contourPixels, m_width, m_height);
 
                 if (contourPixels.Length == 0) break;
 
-                // Step 2: Find target patch with highest priority
-                // Two-phase priority: Phase 1 uses D(p), Phase 2 uses C(p)
+                // Step 2: Find target patch with highest priority (parallel)
                 int targetIndex;
-
                 if (geometryPhase) {
-                    targetIndex = GetTargetPatchGeometryPhase(
+                    targetIndex = GetTargetGeometryParallel(
                         ref contourPixels, ref maskSet, ref pixels,
                         m_width, m_height, out var maxDataTerm);
 
-                    // Switch to texture phase when geometry structures are done
                     if (maxDataTerm < GeometryThreshold) {
                         geometryPhase = false;
                     }
                 } else {
-                    targetIndex = GetTargetPatchTexturePhase(
+                    targetIndex = GetTargetTextureParallel(
                         ref contourPixels, ref confidence, m_width, m_height);
                 }
 
@@ -112,18 +183,18 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 int targetX = targetIndex % m_width;
                 int targetY = targetIndex / m_width;
 
-                // Step 3: Find best matching patch in local search window using SSD
-                int bestPatch = FindBestMatchingPatch(
+                // Step 3: Find best matching patch (parallel)
+                int bestPatch = FindBestMatchParallel(
                     targetX, targetY, ref maskSet, ref pixels, m_width, m_height);
 
-                // Step 4: Fill target patch from best match
+                // Step 4: Fill target patch
                 if (bestPatch >= 0) {
                     FillPatchFromSource(targetX, targetY, bestPatch, ref maskSet, ref pixels, m_width, m_height);
                 } else {
                     FillPatchFromNearest(targetX, targetY, ref maskSet, ref pixels, m_width, m_height);
                 }
 
-                // Step 5: Update confidence and remove filled pixels from mask
+                // Step 5: Update confidence and remove filled pixels
                 UpdateConfidence(targetX, targetY, ref confidence, ref maskSet, m_width, m_height);
             }
 
@@ -131,307 +202,358 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         }
 
         [BurstCompile]
-        private static void GetContourPixelsBurst(
+        private struct ContourJob : IJobParallelFor {
+            [ReadOnly] public NativeArray<int> MaskArray;
+            [ReadOnly] public NativeParallelHashSet<int> MaskSet;
+            [ReadOnly] public int Width;
+            [ReadOnly] public int PixelCount;
+            [WriteOnly] public NativeArray<bool> IsContour;
+
+            public void Execute(int i) {
+                int index = MaskArray[i];
+                int x = index % Width;
+
+                bool isContour = x > 0 && !MaskSet.Contains(index - 1);
+                if (!isContour && x < Width - 1 && !MaskSet.Contains(index + 1)) isContour = true;
+                if (!isContour && index >= Width && !MaskSet.Contains(index - Width)) isContour = true;
+                if (!isContour && index < PixelCount - Width && !MaskSet.Contains(index + Width)) isContour = true;
+
+                IsContour[i] = isContour;
+            }
+        }
+
+        private static void GetContourPixelsParallel(
             ref NativeParallelHashSet<int> maskSet,
             ref NativeList<int> contourPixels,
             int width, int height) {
 
             int pixelCount = width * height;
-            var maskArray = maskSet.ToNativeArray(Allocator.Temp);
+            var maskArray = maskSet.ToNativeArray(Allocator.TempJob);
+            int maskCount = maskArray.Length;
 
-            for (int i = 0; i < maskArray.Length; i++) {
-                int index = maskArray[i];
-                int x = index % width;
+            if (maskCount == 0) {
+                maskArray.Dispose();
+                return;
+            }
 
-                bool isContour = false;
+            var isContour = new NativeArray<bool>(maskCount, Allocator.TempJob);
 
-                // Left
-                if (x > 0 && !maskSet.Contains(index - 1)) isContour = true;
-                // Right
-                if (!isContour && x < width - 1 && !maskSet.Contains(index + 1)) isContour = true;
-                // Up
-                if (!isContour && index >= width && !maskSet.Contains(index - width)) isContour = true;
-                // Down
-                if (!isContour && index < pixelCount - width && !maskSet.Contains(index + width)) isContour = true;
+            var job = new ContourJob {
+                MaskArray = maskArray,
+                MaskSet = maskSet,
+                Width = width,
+                PixelCount = pixelCount,
+                IsContour = isContour
+            };
 
-                if (isContour) {
-                    contourPixels.Add(index);
+            job.Schedule(maskCount, 64).Complete();
+
+            for (int i = 0; i < maskCount; i++) {
+                if (isContour[i]) {
+                    contourPixels.Add(maskArray[i]);
                 }
             }
 
             maskArray.Dispose();
+            isContour.Dispose();
         }
 
-        // Phase 1: Priority based on data term D(p) only - propagates geometry
         [BurstCompile]
-        private static int GetTargetPatchGeometryPhase(
+        private struct GeometryPriorityJob : IJobParallelFor {
+            [ReadOnly] public NativeArray<int> ContourPixels;
+            [ReadOnly] public NativeParallelHashSet<int> MaskSet;
+            [ReadOnly] public NativeArray<Color32> Pixels;
+            [ReadOnly] public int Width;
+            [ReadOnly] public int Height;
+            [WriteOnly] public NativeArray<float> Priorities;
+
+            public void Execute(int i) {
+                int pixel = ContourPixels[i];
+                int x = pixel % Width;
+                int y = pixel / Width;
+
+                float2 normal = EstimateNormalStatic(x, y, MaskSet, Width, Height);
+                Priorities[i] = CalculateDataStatic(x, y, normal, MaskSet, Pixels, Width, Height);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static float2 EstimateNormalStatic(int px, int py, NativeParallelHashSet<int> maskSet, int width, int height) {
+                float GetMask(int x, int y) {
+                    if (x < 0 || x >= width || y < 0 || y >= height) return 0f;
+                    return maskSet.Contains(y * width + x) ? 1f : 0f;
+                }
+
+                float dx = (GetMask(px + 1, py) - GetMask(px - 1, py)) / 2f;
+                float dy = (GetMask(px, py + 1) - GetMask(px, py - 1)) / 2f;
+
+                float2 normal = new float2(dx, dy);
+                float sqrMag = normal.x * normal.x + normal.y * normal.y;
+                return sqrMag > 1e-6f ? math.normalize(normal) : new float2(0f, 1f);
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static float CalculateDataStatic(int px, int py, float2 normal, NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
+                int centerIdx = py * width + px;
+                float centerGray = (pixels[centerIdx].r * 0.299f + pixels[centerIdx].g * 0.587f + pixels[centerIdx].b * 0.114f) / 255f;
+
+                float GetVal(int x, int y) {
+                    if (x < 0 || x >= width || y < 0 || y >= height) return centerGray;
+                    int idx = y * width + x;
+                    if (maskSet.Contains(idx)) return centerGray;
+                    return (pixels[idx].r * 0.299f + pixels[idx].g * 0.587f + pixels[idx].b * 0.114f) / 255f;
+                }
+
+                float gx = -GetVal(px-1, py-1) + GetVal(px+1, py-1) - 2*GetVal(px-1, py) + 2*GetVal(px+1, py) - GetVal(px-1, py+1) + GetVal(px+1, py+1);
+                float gy = GetVal(px-1, py-1) + 2*GetVal(px, py-1) + GetVal(px+1, py-1) - GetVal(px-1, py+1) - 2*GetVal(px, py+1) - GetVal(px+1, py+1);
+
+                float2 isophote = new float2(-gy, gx);
+                return math.abs(isophote.x * normal.x + isophote.y * normal.y) / 255f + 0.001f;
+            }
+        }
+
+        private static int GetTargetGeometryParallel(
             ref NativeList<int> contourPixels,
             ref NativeParallelHashSet<int> maskSet,
             ref NativeArray<Color32> pixels,
             int width, int height,
             out float maxDataTerm) {
 
+            int count = contourPixels.Length;
+            maxDataTerm = 0f;
+            if (count == 0) return -1;
+
+            var priorities = new NativeArray<float>(count, Allocator.TempJob);
+
+            var job = new GeometryPriorityJob {
+                ContourPixels = contourPixels.AsArray(),
+                MaskSet = maskSet,
+                Pixels = pixels,
+                Width = width,
+                Height = height,
+                Priorities = priorities
+            };
+
+            job.Schedule(count, 64).Complete();
+
             float maxPriority = -1f;
             int bestIndex = -1;
-            maxDataTerm = 0f;
-
-            for (int i = 0; i < contourPixels.Length; i++) {
-                int contourPixel = contourPixels[i];
-                int x = contourPixel % width;
-                int y = contourPixel / width;
-
-                float2 normal = EstimateBoundaryNormal(x, y, ref maskSet, width, height);
-                float data = CalculateDataTerm(x, y, normal, ref maskSet, ref pixels, width, height);
-
-                if (data > maxDataTerm) {
-                    maxDataTerm = data;
-                }
-
-                if (data > maxPriority) {
-                    maxPriority = data;
-                    bestIndex = contourPixel;
+            for (int i = 0; i < count; i++) {
+                if (priorities[i] > maxDataTerm) maxDataTerm = priorities[i];
+                if (priorities[i] > maxPriority) {
+                    maxPriority = priorities[i];
+                    bestIndex = contourPixels[i];
                 }
             }
 
+            priorities.Dispose();
             return bestIndex;
         }
 
-        // Phase 2: Priority based on confidence term C(p) only - synthesizes texture
         [BurstCompile]
-        private static int GetTargetPatchTexturePhase(
+        private struct TexturePriorityJob : IJobParallelFor {
+            [ReadOnly] public NativeArray<int> ContourPixels;
+            [ReadOnly] public NativeArray<float> Confidence;
+            [ReadOnly] public int Width;
+            [ReadOnly] public int Height;
+            [WriteOnly] public NativeArray<float> Priorities;
+
+            public void Execute(int i) {
+                int pixel = ContourPixels[i];
+                int px = pixel % Width;
+                int py = pixel / Width;
+
+                float sum = 0f;
+                int cnt = 0;
+                for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                    for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                        int nx = px + dx;
+                        int ny = py + dy;
+                        if (nx >= 0 && nx < Width && ny >= 0 && ny < Height) {
+                            sum += Confidence[ny * Width + nx];
+                            cnt++;
+                        }
+                    }
+                }
+                Priorities[i] = cnt > 0 ? sum / cnt : 0f;
+            }
+        }
+
+        private static int GetTargetTextureParallel(
             ref NativeList<int> contourPixels,
             ref NativeArray<float> confidence,
             int width, int height) {
 
+            int count = contourPixels.Length;
+            if (count == 0) return -1;
+
+            var priorities = new NativeArray<float>(count, Allocator.TempJob);
+
+            var job = new TexturePriorityJob {
+                ContourPixels = contourPixels.AsArray(),
+                Confidence = confidence,
+                Width = width,
+                Height = height,
+                Priorities = priorities
+            };
+
+            job.Schedule(count, 64).Complete();
+
             float maxPriority = -1f;
             int bestIndex = -1;
-
-            for (int i = 0; i < contourPixels.Length; i++) {
-                int contourPixel = contourPixels[i];
-                int x = contourPixel % width;
-                int y = contourPixel / width;
-
-                float conf = CalculateConfidence(x, y, ref confidence, width, height);
-
-                if (conf > maxPriority) {
-                    maxPriority = conf;
-                    bestIndex = contourPixel;
+            for (int i = 0; i < count; i++) {
+                if (priorities[i] > maxPriority) {
+                    maxPriority = priorities[i];
+                    bestIndex = contourPixels[i];
                 }
             }
 
+            priorities.Dispose();
             return bestIndex;
         }
 
         [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float CalculateConfidence(int px, int py, ref NativeArray<float> confidence, int width, int height) {
-            float sumConfidence = 0f;
-            int validPixels = 0;
+        private struct LocalSearchJob : IJobParallelFor {
+            [ReadOnly] public int TargetX;
+            [ReadOnly] public int TargetY;
+            [ReadOnly] public NativeArray<int> SearchPositions;
+            [ReadOnly] public NativeParallelHashSet<int> MaskSet;
+            [ReadOnly] public NativeArray<Color32> Pixels;
+            [ReadOnly] public int Width;
+            [ReadOnly] public int Height;
+            [WriteOnly] public NativeArray<float> Distances;
 
-            for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
-                for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
-                    int nx = px + dx;
-                    int ny = py + dy;
+            public void Execute(int i) {
+                int pos = SearchPositions[i];
+                int sx = pos % Width;
+                int sy = pos / Width;
 
-                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
-
-                    int idx = ny * width + nx;
-                    sumConfidence += confidence[idx];
-                    validPixels++;
+                if (!IsPatchFullyKnownStatic(sx, sy, MaskSet, Width, Height)) {
+                    Distances[i] = float.MaxValue;
+                    return;
                 }
+
+                Distances[i] = CalculateSsdStatic(TargetX, TargetY, sx, sy, MaskSet, Pixels, Width, Height);
             }
 
-            return validPixels > 0 ? sumConfidence / validPixels : 0f;
-        }
-
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float2 EstimateBoundaryNormal(int px, int py, ref NativeParallelHashSet<int> maskSet, int width, int height) {
-            var set = maskSet;
-
-            float GetMaskVal(int x, int y) {
-                if (x < 0 || x >= width || y < 0 || y >= height) return 0f;
-                return set.Contains(y * width + x) ? 1f : 0f;
-            }
-
-            float dx = (GetMaskVal(px + 1, py) - GetMaskVal(px - 1, py)) / 2f;
-            float dy = (GetMaskVal(px, py + 1) - GetMaskVal(px, py - 1)) / 2f;
-
-            float2 normal = new float2(dx, dy);
-            float sqrMag = normal.x * normal.x + normal.y * normal.y;
-
-            if (sqrMag > 1e-6f) {
-                return math.normalize(normal);
-            }
-            return new float2(0f, 1f);
-        }
-
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float CalculateDataTerm(
-            int px, int py, float2 normal,
-            ref NativeParallelHashSet<int> maskSet,
-            ref NativeArray<Color32> pixels,
-            int width, int height) {
-
-            float2 gradient = ComputeGradient(px, py, ref maskSet, ref pixels, width, height);
-            float2 isophote = new float2(-gradient.y, gradient.x);
-            float dot = math.abs(isophote.x * normal.x + isophote.y * normal.y);
-            return dot / AlphaNorm + 0.001f;
-        }
-
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float2 ComputeGradient(
-            int px, int py,
-            ref NativeParallelHashSet<int> maskSet,
-            ref NativeArray<Color32> pixels,
-            int width, int height) {
-
-            int centerIdx = py * width + px;
-            float centerGray = GetGrayscale(pixels[centerIdx]);
-
-            var set = maskSet;
-
-            var array = pixels;
-
-            float GetVal(int x, int y) {
-                if (x < 0 || x >= width || y < 0 || y >= height) {
-                    return centerGray;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static bool IsPatchFullyKnownStatic(int cx, int cy, NativeParallelHashSet<int> maskSet, int width, int height) {
+                for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                    for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                        int nx = cx + dx;
+                        int ny = cy + dy;
+                        if (nx < 0 || nx >= width || ny < 0 || ny >= height) return false;
+                        if (maskSet.Contains(ny * width + nx)) return false;
+                    }
                 }
-                int idx = y * width + x;
-                if (set.Contains(idx)) {
-                    return centerGray;
-                }
-                return GetGrayscale(array[idx]);
+                return true;
             }
 
-            float gx = 0f, gy = 0f;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static float CalculateSsdStatic(int targetX, int targetY, int sourceX, int sourceY,
+                NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
 
-            gx += -1f * GetVal(px - 1, py - 1) + 1f * GetVal(px + 1, py - 1);
-            gx += -2f * GetVal(px - 1, py) + 2f * GetVal(px + 1, py);
-            gx += -1f * GetVal(px - 1, py + 1) + 1f * GetVal(px + 1, py + 1);
+                float sum = 0f;
+                int cnt = 0;
 
-            gy += 1f * GetVal(px - 1, py - 1) + 2f * GetVal(px, py - 1) + 1f * GetVal(px + 1, py - 1);
-            gy += -1f * GetVal(px - 1, py + 1) - 2f * GetVal(px, py + 1) - 1f * GetVal(px + 1, py + 1);
+                for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                    for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                        int tx = targetX + dx;
+                        int ty = targetY + dy;
+                        if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
 
-            return new float2(gx, gy);
+                        int targetIdx = ty * width + tx;
+                        if (maskSet.Contains(targetIdx)) continue;
+
+                        int sx = sourceX + dx;
+                        int sy = sourceY + dy;
+                        int sourceIdx = sy * width + sx;
+
+                        Color32 tc = pixels[targetIdx];
+                        Color32 sc = pixels[sourceIdx];
+
+                        float dr = tc.r - sc.r;
+                        float dg = tc.g - sc.g;
+                        float db = tc.b - sc.b;
+
+                        sum += dr * dr + dg * dg + db * db;
+                        cnt++;
+                    }
+                }
+
+                return cnt > 0 ? sum / cnt : float.MaxValue;
+            }
         }
 
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float GetGrayscale(Color32 c) {
-            return (c.r * 0.299f + c.g * 0.587f + c.b * 0.114f) / 255f;
-        }
-
-        // Find best matching patch using SSD within local search window
-        [BurstCompile]
-        private static int FindBestMatchingPatch(
+        private static int FindBestMatchParallel(
             int targetX, int targetY,
             ref NativeParallelHashSet<int> maskSet,
             ref NativeArray<Color32> pixels,
             int width, int height) {
 
-            float bestDistance = float.MaxValue;
-            int bestPatch = -1;
-
-            // Local search window (patch-in-patch strategy from paper)
             int minX = math.max(PatchRadius, targetX - SearchRadius);
             int maxX = math.min(width - PatchRadius - 1, targetX + SearchRadius);
             int minY = math.max(PatchRadius, targetY - SearchRadius);
             int maxY = math.min(height - PatchRadius - 1, targetY + SearchRadius);
 
+            // Collect search positions using boolean array
+            int pixelCount = width * height;
+            var visited = new NativeArray<bool>(pixelCount, Allocator.Temp);
+
             for (int sy = minY; sy <= maxY; sy++) {
                 for (int sx = minX; sx <= maxX; sx++) {
-                    // Skip if source patch overlaps with target
-                    if (math.abs(sx - targetX) <= PatchRadius && math.abs(sy - targetY) <= PatchRadius) {
+                    if (math.abs(sx - targetX) <= PatchRadius && math.abs(sy - targetY) <= PatchRadius)
                         continue;
-                    }
-
-                    // Check if source patch is fully known
-                    if (!IsPatchFullyKnown(sx, sy, ref maskSet, width, height)) continue;
-
-                    // Calculate SSD
-                    float distance = CalculateSsd(targetX, targetY, sx, sy, ref maskSet, ref pixels, width, height);
-
-                    if (distance >= 0 && distance < bestDistance) {
-                        bestDistance = distance;
-                        bestPatch = sy * width + sx;
-                    }
+                    visited[sy * width + sx] = true;
                 }
             }
+
+            int totalPositions = 0;
+            for (int i = 0; i < pixelCount; i++) {
+                if (visited[i]) totalPositions++;
+            }
+
+            if (totalPositions == 0) {
+                visited.Dispose();
+                return -1;
+            }
+
+            var positionsArray = new NativeArray<int>(totalPositions, Allocator.TempJob);
+            int writeIdx = 0;
+            for (int i = 0; i < pixelCount; i++) {
+                if (visited[i]) positionsArray[writeIdx++] = i;
+            }
+            visited.Dispose();
+
+            var distances = new NativeArray<float>(totalPositions, Allocator.TempJob);
+
+            var job = new LocalSearchJob {
+                TargetX = targetX,
+                TargetY = targetY,
+                SearchPositions = positionsArray,
+                MaskSet = maskSet,
+                Pixels = pixels,
+                Width = width,
+                Height = height,
+                Distances = distances
+            };
+
+            job.Schedule(totalPositions, 64).Complete();
+
+            float bestDist = float.MaxValue;
+            int bestPatch = -1;
+            for (int i = 0; i < totalPositions; i++) {
+                if (distances[i] < bestDist) {
+                    bestDist = distances[i];
+                    bestPatch = positionsArray[i];
+                }
+            }
+
+            positionsArray.Dispose();
+            distances.Dispose();
 
             return bestPatch;
         }
 
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool IsPatchFullyKnown(int cx, int cy, ref NativeParallelHashSet<int> maskSet, int width, int height) {
-            for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
-                for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
-                    int nx = cx + dx;
-                    int ny = cy + dy;
-
-                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
-                        return false;
-                    }
-
-                    if (maskSet.Contains(ny * width + nx)) {
-                        return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        // Simple SSD (Sum of Squared Differences) - only compare known pixels
-        [BurstCompile]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static float CalculateSsd(
-            int targetX, int targetY, int sourceX, int sourceY,
-            ref NativeParallelHashSet<int> maskSet,
-            ref NativeArray<Color32> pixels,
-            int width, int height) {
-
-            float sumDistance = 0f;
-            int validPixels = 0;
-
-            for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
-                for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
-                    int tx = targetX + dx;
-                    int ty = targetY + dy;
-
-                    if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
-
-                    int targetIdx = ty * width + tx;
-
-                    // Only compare known pixels in target patch
-                    if (maskSet.Contains(targetIdx)) continue;
-
-                    int sx = sourceX + dx;
-                    int sy = sourceY + dy;
-                    int sourceIdx = sy * width + sx;
-
-                    Color32 targetColor = pixels[targetIdx];
-                    Color32 sourceColor = pixels[sourceIdx];
-
-                    float dr = targetColor.r - sourceColor.r;
-                    float dg = targetColor.g - sourceColor.g;
-                    float db = targetColor.b - sourceColor.b;
-
-                    sumDistance += dr * dr + dg * dg + db * db;
-                    validPixels++;
-                }
-            }
-
-            if (validPixels == 0) {
-                return -1f;
-            }
-
-            return sumDistance / validPixels;
-        }
-
-        // Fill target patch by copying from best matching source patch
         [BurstCompile]
         private static void FillPatchFromSource(
             int targetX, int targetY, int sourcePatchIdx,
@@ -450,15 +572,12 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
 
                     int targetIdx = ty * width + tx;
-
-                    // Only fill unknown pixels
                     if (!maskSet.Contains(targetIdx)) continue;
 
                     int sx = sourceX + dx;
                     int sy = sourceY + dy;
-                    int sourceIdx = sy * width + sx;
 
-                    pixels[targetIdx] = pixels[sourceIdx];
+                    pixels[targetIdx] = pixels[sy * width + sx];
                 }
             }
         }
@@ -517,7 +636,19 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeParallelHashSet<int> maskSet,
             int width, int height) {
 
-            float patchConfidence = CalculateConfidence(targetX, targetY, ref confidence, width, height);
+            float sum = 0f;
+            int cnt = 0;
+            for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                    int nx = targetX + dx;
+                    int ny = targetY + dy;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        sum += confidence[ny * width + nx];
+                        cnt++;
+                    }
+                }
+            }
+            float patchConfidence = cnt > 0 ? sum / cnt : 0f;
 
             for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
                 for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
@@ -527,7 +658,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
 
                     int targetIdx = ty * width + tx;
-
                     if (!maskSet.Contains(targetIdx)) continue;
 
                     confidence[targetIdx] = patchConfidence;
