@@ -68,7 +68,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         }
 
         public static double GetAverageQuality() {
-            return QualityResults.Average();
+            return QualityResults.Count > 0 ? QualityResults.Average() : -1;
         }
 
         [BurstCompile]
