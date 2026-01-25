@@ -36,9 +36,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         // Local search radius around cached candidates (PatchMatch-inspired)
         private const int LocalSearchRadius = 10;
 
-        // Number of random samples for discovering new candidates
-        private const int RandomSampleCount = 10;
-
         private int m_width;
         private int m_height;
         private int m_pixelCount;
@@ -238,10 +235,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             ref NativeList<int> cachedCandidates,
             ref NativeList<int> outNewCandidates) {
 
-            var random = new Random((uint)DateTime.Now.Ticks);
             var contourPixels = new NativeList<int>(Allocator.Temp);
             var candidates = new NativeList<CandidateInfo>(Allocator.Temp);
-            var searched = new NativeParallelHashSet<int>(1024, Allocator.Temp);
             var candidatePatches = new NativeList<int>(K, Allocator.Temp);
 
             while (!maskSet.IsEmpty) {
@@ -263,18 +258,13 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                 // Step 3: Find K best candidate patches
                 candidates.Clear();
-                searched.Clear();
                 candidatePatches.Clear();
 
                 bool useCached = cachedCandidates.Length > 0;
                 if (useCached) {
-                    SearchAroundCachedCandidatesBurst(
+                    SearchCachedParallel(
                         targetX, targetY, ref maskSet, ref pixels, ref cachedCandidates,
-                        ref candidates, ref searched, m_gaussianWeights, m_width, m_height);
-
-                    SearchRandomSamplesBurst(
-                        targetX, targetY, ref maskSet, ref pixels, ref candidates,
-                        ref random, m_gaussianWeights, m_width, m_height);
+                        ref candidates, m_gaussianWeights, m_width, m_height);
                 } else {
                     SearchFullImageBurst(
                         targetX, targetY, ref maskSet, ref pixels, ref candidates,
@@ -316,7 +306,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             contourPixels.Dispose();
             candidates.Dispose();
-            searched.Dispose();
             candidatePatches.Dispose();
         }
 
@@ -513,76 +502,111 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             return (c.r * 0.299f + c.g * 0.587f + c.b * 0.114f) / 255f;
         }
 
+        // Parallel job for searching around cached candidates
         [BurstCompile]
-        private static void SearchAroundCachedCandidatesBurst(
-            int targetX, int targetY,
-            ref NativeParallelHashSet<int> maskSet,
-            ref NativeArray<Color32> pixels,
-            ref NativeList<int> cachedCandidates,
-            ref NativeList<CandidateInfo> candidates,
-            ref NativeParallelHashSet<int> searched,
-            NativeArray<float> gaussianWeights,
-            int width, int height) {
-            foreach (var cachedPos in cachedCandidates) {
-                int cachedX = cachedPos % width;
-                int cachedY = cachedPos / width;
+        private struct SearchCachedJob : IJobParallelFor {
+            [ReadOnly] public int TargetX;
+            [ReadOnly] public int TargetY;
+            [ReadOnly] public int Width;
+            [ReadOnly] public int Height;
+            [ReadOnly] public NativeArray<int> CachedCandidates;
+            [ReadOnly] public NativeParallelHashSet<int> MaskSet;
+            [ReadOnly] public NativeArray<Color32> Pixels;
+            [ReadOnly] public NativeArray<float> GaussianWeights;
 
-                int minX = math.max(PatchRadius, cachedX - LocalSearchRadius);
-                int maxX = math.min(width - PatchRadius - 1, cachedX + LocalSearchRadius);
-                int minY = math.max(PatchRadius, cachedY - LocalSearchRadius);
-                int maxY = math.min(height - PatchRadius - 1, cachedY + LocalSearchRadius);
+            // Each cached candidate gets a block of results
+            [NativeDisableParallelForRestriction]
+            [WriteOnly] public NativeArray<CandidateInfo> Results;
 
-                for (int sy = minY; sy <= maxY; sy++) {
-                    for (int sx = minX; sx <= maxX; sx++) {
-                        int idx = sy * width + sx;
+            public void Execute(int cacheIndex) {
+                int cachedPos = CachedCandidates[cacheIndex];
+                int cachedX = cachedPos % Width;
+                int cachedY = cachedPos / Width;
 
-                        if (searched.Contains(idx)) continue;
-                        searched.Add(idx);
+                int localSize = (2 * LocalSearchRadius + 1);
+                int resultsPerCache = localSize * localSize;
+                int baseIdx = cacheIndex * resultsPerCache;
 
-                        if (math.abs(sx - targetX) <= PatchRadius && math.abs(sy - targetY) <= PatchRadius) {
+                int resultIdx = 0;
+                for (int dy = -LocalSearchRadius; dy <= LocalSearchRadius; dy++) {
+                    for (int dx = -LocalSearchRadius; dx <= LocalSearchRadius; dx++) {
+                        int sx = cachedX + dx;
+                        int sy = cachedY + dy;
+
+                        // Bounds check
+                        if (sx < PatchRadius || sx >= Width - PatchRadius ||
+                            sy < PatchRadius || sy >= Height - PatchRadius) {
+                            Results[baseIdx + resultIdx++] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
                             continue;
                         }
 
-                        if (!IsPatchFullyKnownBurst(sx, sy, ref maskSet, width, height)) continue;
+                        // Skip if overlapping target
+                        if (math.abs(sx - TargetX) <= PatchRadius && math.abs(sy - TargetY) <= PatchRadius) {
+                            Results[baseIdx + resultIdx++] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
+                            continue;
+                        }
 
-                        float distance = CalculateTextureDistanceBurst(
-                            targetX, targetY, sx, sy, ref maskSet, ref pixels, gaussianWeights, width, height);
+                        if (!IsPatchFullyKnownBurstStatic(sx, sy, MaskSet, Width, Height)) {
+                            Results[baseIdx + resultIdx++] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
+                            continue;
+                        }
+
+                        float distance = CalculateTextureDistanceBurstStatic(
+                            TargetX, TargetY, sx, sy, MaskSet, Pixels, GaussianWeights, Width, Height);
 
                         if (distance >= 0) {
-                            candidates.Add(new CandidateInfo { Index = idx, Distance = distance });
+                            Results[baseIdx + resultIdx++] = new CandidateInfo { Index = sy * Width + sx, Distance = distance };
+                        } else {
+                            Results[baseIdx + resultIdx++] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
                         }
                     }
                 }
             }
         }
 
-        [BurstCompile]
-        private static void SearchRandomSamplesBurst(
+        private static void SearchCachedParallel(
             int targetX, int targetY,
             ref NativeParallelHashSet<int> maskSet,
             ref NativeArray<Color32> pixels,
+            ref NativeList<int> cachedCandidates,
             ref NativeList<CandidateInfo> candidates,
-            ref Random random,
             NativeArray<float> gaussianWeights,
             int width, int height) {
 
-            for (int i = 0; i < RandomSampleCount; i++) {
-                int sx = random.NextInt(PatchRadius, width - PatchRadius);
-                int sy = random.NextInt(PatchRadius, height - PatchRadius);
+            int numCached = cachedCandidates.Length;
+            if (numCached == 0) return;
 
-                if (math.abs(sx - targetX) <= PatchRadius && math.abs(sy - targetY) <= PatchRadius) {
-                    continue;
-                }
+            int localSize = (2 * LocalSearchRadius + 1);
+            int resultsPerCache = localSize * localSize;
+            int totalResults = numCached * resultsPerCache;
 
-                if (!IsPatchFullyKnownBurst(sx, sy, ref maskSet, width, height)) continue;
+            var results = new NativeArray<CandidateInfo>(totalResults, Allocator.TempJob);
 
-                float distance = CalculateTextureDistanceBurst(
-                    targetX, targetY, sx, sy, ref maskSet, ref pixels, gaussianWeights, width, height);
+            var job = new SearchCachedJob {
+                TargetX = targetX,
+                TargetY = targetY,
+                Width = width,
+                Height = height,
+                CachedCandidates = cachedCandidates.AsArray(),
+                MaskSet = maskSet,
+                Pixels = pixels,
+                GaussianWeights = gaussianWeights,
+                Results = results
+            };
 
-                if (distance >= 0) {
-                    candidates.Add(new CandidateInfo { Index = sy * width + sx, Distance = distance });
+            job.Schedule(numCached, 1).Complete();
+
+            // Collect valid results (use hash set to avoid duplicates)
+            var seen = new NativeParallelHashSet<int>(totalResults, Allocator.Temp);
+            for (int i = 0; i < totalResults; i++) {
+                if (results[i].Index >= 0 && !seen.Contains(results[i].Index)) {
+                    seen.Add(results[i].Index);
+                    candidates.Add(results[i]);
                 }
             }
+
+            seen.Dispose();
+            results.Dispose();
         }
 
         // Parallel job for searching the full image
