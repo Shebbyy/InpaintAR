@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using InpaintAR.Scripts.Util;
 using Unity.Burst;
@@ -162,7 +161,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             var searched = new NativeParallelHashSet<int>(1024, Allocator.Temp);
             var candidatePatches = new NativeList<int>(K, Allocator.Temp);
 
-            while (maskSet.Any()) {
+            while (!maskSet.IsEmpty) {
                 // Step 1: Find contour pixels
                 contourPixels.Clear();
                 GetContourPixelsBurst(ref maskSet, ref contourPixels, m_width, m_height);

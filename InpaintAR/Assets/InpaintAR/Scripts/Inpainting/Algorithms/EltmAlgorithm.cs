@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
@@ -88,7 +87,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             var contourPixels = new NativeList<int>(Allocator.Temp);
             bool geometryPhase = true; // Start with geometry phase
 
-            while (maskSet.Any()) {
+            while (!maskSet.IsEmpty) {
                 // Step 1: Find contour pixels
                 contourPixels.Clear();
                 GetContourPixelsBurst(ref maskSet, ref contourPixels, m_width, m_height);
