@@ -36,7 +36,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_pixelCount = m_width * m_height;
 
             // Downscale source pixels
-            var downscaledPixels = DownscalePixels(MPixelBuffer, origWidth, origHeight, m_width, m_height);
+            var downscaledPixels = DownscalePixels(PixelBuffer, origWidth, origHeight, m_width, m_height);
 
             // Downscale mask indices
             var downscaledMask = new HashSet<int>();
@@ -81,11 +81,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             // Blend: use inpainted pixels only where mask was
             foreach (var i in maskPixelIndices) {
-                MPixelBuffer[i] = upscaledPixels[i];
+                PixelBuffer[i] = upscaledPixels[i];
             }
 
             Texture2D resultImage = new Texture2D(origWidth, origHeight, TextureFormat.RGBA32, false);
-            resultImage.SetPixels32(MPixelBuffer);
+            resultImage.SetPixels32(PixelBuffer);
             resultImage.Apply();
 
             return resultImage;

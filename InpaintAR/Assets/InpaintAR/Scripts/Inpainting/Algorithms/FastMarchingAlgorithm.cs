@@ -38,7 +38,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             InpaintFmmBurst(maskPixelIndices);
 
-            resultImage.SetPixels32(MPixelBuffer);
+            resultImage.SetPixels32(PixelBuffer);
             resultImage.Apply();
 
             return resultImage;
@@ -48,7 +48,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private void InpaintFmmBurst(HashSet<int> maskPixelIndices) {
             var distanceMap = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
             var flags = new NativeArray<byte>(m_pixelCount, Allocator.TempJob);
-            var pixels = new NativeArray<Color32>(MPixelBuffer, Allocator.TempJob);
+            var pixels = new NativeArray<Color32>(PixelBuffer, Allocator.TempJob);
 
             // NativeParallelHashSet for O(1) lookup
             var maskIndicesSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
@@ -78,7 +78,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             RunFmmWithHeap(ref heap, ref generations, ref flags, ref distanceMap, ref pixels, m_width, m_height);
 
             // Copy results back
-            pixels.CopyTo(MPixelBuffer);
+            pixels.CopyTo(PixelBuffer);
 
             // Dispose native arrays
             distanceMap.Dispose();

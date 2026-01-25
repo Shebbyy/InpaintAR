@@ -320,7 +320,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             // Upscale to original resolution
             var result = UpsampleTexture(outputTexture, originalWidth, originalHeight);
 
-            MPixelBuffer = result.GetPixels32();
+            PixelBuffer = result.GetPixels32();
 
             // Clean up intermediate texture
             UnityEngine.Object.Destroy(outputTexture);
