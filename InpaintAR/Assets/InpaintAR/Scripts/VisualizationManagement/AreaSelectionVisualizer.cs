@@ -67,6 +67,11 @@ namespace InpaintAR.Scripts.VisualizationManagement {
                 Destroy(m_inpaintedTexture);
             }
 
+            // Dispose algorithm if it implements IDisposable (e.g., LaMa with GPU resources)
+            if (m_abstractInpaintingAlgorithm is System.IDisposable disposable) {
+                disposable.Dispose();
+            }
+
             // Clean up corner sprites and their textures
             m_selectionUiController.Cleanup();
         }

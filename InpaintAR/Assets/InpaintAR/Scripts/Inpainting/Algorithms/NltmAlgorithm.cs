@@ -14,7 +14,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
     // Nonlocal Texture Matching (NLTM) Inpainting Algorithm
     // See DOI 10.1109/TIP.2018.2880681
     // Extended with PatchMatch-inspired temporal coherence for real-time performance
-    // Optimized with Unity Burst compiler
     public class NltmAlgorithm : AbstractInpaintingAlgorithm {
         private const int PatchRadius = 4;
         private const int PatchSize = 2 * PatchRadius + 1;
