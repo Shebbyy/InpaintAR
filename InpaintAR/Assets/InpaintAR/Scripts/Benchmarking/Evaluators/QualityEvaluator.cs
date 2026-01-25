@@ -13,13 +13,13 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         private static readonly List<float> QualityResults = new();
         private static bool _evaluationRunning;
 
-        public static void EvaluateQuality(Color32[] inpaintedImage, int width, int height,
+        public static void EvaluateQuality(Color32[] originalImage, Color32[] inpaintedImage, int width, int height,
             HashSet<int> maskPixelIndices) {
             // only one evaluation can run at a time
             if (_evaluationRunning) return;
             _evaluationRunning = true;
-            
 
+            NativeArray<Color32> nativeOriginal = new NativeArray<Color32>(originalImage, Allocator.TempJob);
             NativeArray<Color32> nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
 
             // Needs to be NativeArray to allow for Burst Compiled Job
@@ -36,6 +36,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
             NativeArray<float> naturalness = new NativeArray<float>(1, Allocator.TempJob);
 
             var qualityJob = new QualityEvaluationJob {
+                OriginalPixels = nativeOriginal,
                 InpaintedPixels = nativeInpainted,
                 Mask = nativeMask,
                 Width = width,
@@ -49,12 +50,13 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
             jobHandle.Complete();
 
             _evaluationRunning = false;
-            
+
             float ssim = structuralSimilarity[0];
             float nat = naturalness[0];
             // Q = α · f1 + (1 − α) · f2
             float overallQuality = StructuralSimilarityWeight * ssim + (1 - StructuralSimilarityWeight) * nat;
 
+            nativeOriginal.Dispose();
             nativeInpainted.Dispose();
             nativeMask.Dispose();
             structuralSimilarity.Dispose();
@@ -73,13 +75,14 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
 
         [BurstCompile]
         private struct QualityEvaluationJob : IJob {
-            public NativeArray<Color32> InpaintedPixels;
-            public NativeArray<byte> Mask;
+            [ReadOnly] public NativeArray<Color32> OriginalPixels;
+            [ReadOnly] public NativeArray<Color32> InpaintedPixels;
+            [ReadOnly] public NativeArray<byte> Mask;
             public int Width;
             public int Height;
 
-            public NativeArray<float> StructuralSimilarity;
-            public NativeArray<float> Naturalness;
+            [WriteOnly] public NativeArray<float> StructuralSimilarity;
+            [WriteOnly] public NativeArray<float> Naturalness;
 
             public void Execute() {
                 float structuralSimilarity = ComputeStructuralSimilarity();
@@ -155,12 +158,12 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
             }
             
             private float ComputeNaturalness() {
-                float nfOriginal = ComputeNaturalnessFeature(InpaintedPixels);
+                float nfOriginal = ComputeNaturalnessFeature(OriginalPixels);
                 float nfInpainted = ComputeNaturalnessFeature(InpaintedPixels);
-    
+
                 // f2 = |NF_Original - NF_Inpainted|
                 float f2 = Mathf.Abs(nfOriginal - nfInpainted);
-    
+
                 // Normalize to [0, 1] range (lower difference = better quality)
                 return 1f / (1f + f2);
             }
