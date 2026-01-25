@@ -30,6 +30,7 @@ namespace InpaintAR.Scripts.Inpainting {
             m_watch.Stop();
             PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
             QualityEvaluator.EvaluateQuality(m_originalPixelBuffer, PixelBuffer, source.width, source.height, maskPixelIndices);
+            ClutterEvaluator.EvaluateClutterReduction(m_originalPixelBuffer, PixelBuffer, source.width, source.height, maskPixelIndices);
 
             return texture;
         }
