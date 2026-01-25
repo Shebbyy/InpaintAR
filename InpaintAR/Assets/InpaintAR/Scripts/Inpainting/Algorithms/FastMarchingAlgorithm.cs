@@ -34,17 +34,11 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_height = TextureUtility.GetImageHeight(source);
             m_pixelCount = m_width * m_height;
 
-            if (MInpaintedPixelBuffer == null || MInpaintedPixelBuffer.Length != m_pixelCount) {
-                MInpaintedPixelBuffer = new Color32[m_pixelCount];
-            }
-
-            Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
-
             Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
 
             InpaintFmmBurst(maskPixelIndices);
 
-            resultImage.SetPixels32(MInpaintedPixelBuffer);
+            resultImage.SetPixels32(MPixelBuffer);
             resultImage.Apply();
 
             return resultImage;
@@ -54,7 +48,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private void InpaintFmmBurst(HashSet<int> maskPixelIndices) {
             var distanceMap = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
             var flags = new NativeArray<byte>(m_pixelCount, Allocator.TempJob);
-            var pixels = new NativeArray<Color32>(MInpaintedPixelBuffer, Allocator.TempJob);
+            var pixels = new NativeArray<Color32>(MPixelBuffer, Allocator.TempJob);
 
             // NativeParallelHashSet for O(1) lookup
             var maskIndicesSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
@@ -84,7 +78,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             RunFmmWithHeap(ref heap, ref generations, ref flags, ref distanceMap, ref pixels, m_width, m_height);
 
             // Copy results back
-            pixels.CopyTo(MInpaintedPixelBuffer);
+            pixels.CopyTo(MPixelBuffer);
 
             // Dispose native arrays
             distanceMap.Dispose();

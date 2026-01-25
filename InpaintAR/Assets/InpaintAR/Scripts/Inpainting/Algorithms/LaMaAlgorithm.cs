@@ -261,7 +261,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             var result = UpsampleTexture(outputTexture, originalWidth, originalHeight);
 
             // Update the inpainted pixel buffer for quality evaluation
-            MInpaintedPixelBuffer = result.GetPixels32();
+            MPixelBuffer = result.GetPixels32();
 
             // Clean up intermediate texture
             UnityEngine.Object.Destroy(outputTexture);

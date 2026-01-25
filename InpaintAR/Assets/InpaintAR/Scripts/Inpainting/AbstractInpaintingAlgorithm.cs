@@ -10,24 +10,23 @@ namespace InpaintAR.Scripts.Inpainting {
         FastMarchingMethod,
         NonLinearTextureMatching,
         ExemplarLocalTextureMatching,
-        LargeMaskInpaintingInference
+        LargeMaskInpaintingInference 
     }
     
     public abstract class AbstractInpaintingAlgorithm {
         private readonly Stopwatch m_watch = new();
-        protected Color32[] MInpaintedPixelBuffer;
-        protected Color32[] MSourcePixelBuffer;
+        protected Color32[] MPixelBuffer;
         public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
             m_watch.Reset();
             m_watch.Start();
             
-            MSourcePixelBuffer = source.GetPixels32();
+            MPixelBuffer = source.GetPixels32();
             
             var texture = InpaintLogic(source, maskPixelIndices);
             
             m_watch.Stop();
             PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
-            QualityEvaluator.EvaluateQuality(MInpaintedPixelBuffer, source.width, source.height, maskPixelIndices);
+            QualityEvaluator.EvaluateQuality(MPixelBuffer, source.width, source.height, maskPixelIndices);
             
             return texture;
         }

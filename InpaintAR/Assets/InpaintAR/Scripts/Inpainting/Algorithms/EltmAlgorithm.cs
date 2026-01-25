@@ -33,12 +33,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_height = TextureUtility.GetImageHeight(source);
             m_pixelCount = m_width * m_height;
 
-            if (MInpaintedPixelBuffer == null || MInpaintedPixelBuffer.Length != m_pixelCount) {
-                MInpaintedPixelBuffer = new Color32[m_pixelCount];
-            }
-            Array.Copy(MSourcePixelBuffer, MInpaintedPixelBuffer, m_pixelCount);
-
-            var pixels = new NativeArray<Color32>(MInpaintedPixelBuffer, Allocator.TempJob);
+            var pixels = new NativeArray<Color32>(MPixelBuffer, Allocator.TempJob);
             var confidence = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
             var maskSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
 
@@ -57,14 +52,14 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             // Run ELTM inpainting
             InpaintEltmBurst(ref pixels, ref confidence, ref maskSet);
 
-            pixels.CopyTo(MInpaintedPixelBuffer);
+            pixels.CopyTo(MPixelBuffer);
 
             pixels.Dispose();
             confidence.Dispose();
             maskSet.Dispose();
 
             Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
-            resultImage.SetPixels32(MInpaintedPixelBuffer);
+            resultImage.SetPixels32(MPixelBuffer);
             resultImage.Apply();
 
             return resultImage;
