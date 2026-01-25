@@ -6,7 +6,7 @@ using Unity.Sentis;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
     // LaMa (Large Mask Inpainting) Algorithm implementation using Unity Sentis.
-    // Performs deep learning-based inpainting at 256x256 resolution
+    // Performs deep learning-based inpainting at a fixed resolution
     public class LaMaAlgorithm : AbstractInpaintingAlgorithm, IDisposable {
         private const int ModelSize = 256;
         // Model must be placed in Assets/Resources/Models/lama.onnx
@@ -20,8 +20,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private bool m_isDisposed;
 
         // Pre-allocated arrays for tensor data (reusable)
-        private float[] m_imageData;  // [3 * 256 * 256] for RGB
-        private float[] m_maskData;   // [256 * 256] for single channel
+        private float[] m_imageData;  // [3 * ModelSize * ModelSize] for RGB
+        private float[] m_maskData;   // [ModelSize * ModelSize] for single channel
 
         // Pre-allocated arrays for texture conversion
         private Color32[] m_downsampledPixels;
@@ -99,7 +99,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             int originalHeight = TextureUtility.GetImageHeight(source);
 
             try {
-                // Step 1: Downsample source texture to 256x256
+                // Step 1: Downsample source texture to ModelSize x ModelSize
                 DownsampleTexture(source);
 
                 // Step 2: Convert mask indices to downsampled coordinates
@@ -135,7 +135,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_downsampledTexture.Apply();
 
             m_downsampledPixels = m_downsampledTexture.GetPixels32();
-            RenderTexture.active = null;
         }
 
         private void PrepareMaskData(HashSet<int> maskPixelIndices, int originalWidth, int originalHeight) {
@@ -191,7 +190,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private void PrepareImageData() {
             // Convert Color32[] to float array in NCHW format
             // Model expects RGB in [0, 1] range with masked regions zeroed out
-            // Layout: [1, 3, 256, 256] flattened = [R channel][G channel][B channel]
+            // Layout: [1, 3, ModelSize, ModelSize] flattened = [R channel][G channel][B channel]
             int channelSize = ModelSize * ModelSize;
 
             for (int y = 0; y < ModelSize; y++) {
@@ -346,8 +345,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             var result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGBA32, false);
             result.ReadPixels(new Rect(0, 0, targetWidth, targetHeight), 0, 0);
             result.Apply();
-
-            RenderTexture.active = null;
 
             return result;
         }
