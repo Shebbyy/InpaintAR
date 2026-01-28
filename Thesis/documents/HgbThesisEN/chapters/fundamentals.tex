@@ -29,18 +29,18 @@ AR is uniquely flawed in that regard due to it enhancing the surrounding environ
 oftentimes allowing objects to be placed freely in the environment and therefore cluttered environments to the space constraints of the user themselves.
 
 \section{Diminished Reality}
-DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality (see \cite{grasset2003interactive}, \cite{mann2002mediated} and \cite{PoelmanAkmanLukotsch2012}), due to the concept of software mediating both the physical and virtual objects the user is allowed to see.
+DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality (see \cite{mann2002mediated}, \cite{grasset2003interactive} and \cite{PoelmanAkmanLukotsch2012}), due to the concept of software mediating both the physical and virtual objects the user is allowed to see.
 DR aims to remove or diminish real world objects from the perception of the user by hiding them from their view. This can be accomplished by either from completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
 however perceives its presence less when looking at different objects \cite{ChengYiFei2022TUDR}.
 
-Many experiments have been done using DR already. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
+There have been many experiments using DR already. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
 These works use similar concepts to the one implemented for this thesis, working with inpainting algorithms to hide physical objects for the users benefit, be it decision making for interior designs, increasing driver safety during overtaking, or in the case of this thesis, in reducing distractions caused by clutter.
 
-There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments done in \cite{ChengYiFei2022TUDR} opacity reduction and outlining provides the best results.
+There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments in \cite{ChengYiFei2022TUDR} opacity reduction and outlining provides the best results.
 This can be interpreted to mean, the less a user notices objects the less they are distracted by them.
 In addition another experiment measured how users react to being able to decide which objects should be hidden compared to every object being detected and hidden automatically. The findings of this experiment have shown a preference for the users to decide for themselves, which objects should be hidden and which should stay \cite{ChengYiFei2022TUDR}.
 
-These findings were taken into account during planning of the solution developed in the following chapters, as to how objects should be hidden and allowing for the user to select the areas and therefore the objects they want to hide for themselves instead of the software deciding.
+These findings were taken into account during planning of the implementation developed in the following chapters, as to how objects should be hidden and allowing for the user to select the areas and therefore the objects they want to hide for themselves instead of the software deciding.
 
 \section{Inpainting}
 \label{cha:Inpainting}
@@ -48,7 +48,7 @@ These findings were taken into account during planning of the solution developed
 Whilst DR itself is a great concept for the use case of reducing clutter, the problem remains of what to overlay over the objects to hide them. A single color block would prove for the easiest solution, but it would ruin the believability of the scene for the user and could prove to be even more distracting than the objects which were in the covered area beforehand.
 Therefore this overlay needs to be filled with a plausible background. Inpainting provides a good solution to fill these regions of the viewport and create believable overlays.
 
-\subsection{Definition}
+\subsubsection{Definition}
 Image inpainting is based on the concept of recovering and completing missing regions in an image or removing objects in it. This concept has been around for many centuries, all the way back to the Renaissance, having been used in image restoration or removing damage caused by deterioration \cite{gillette2006image}.
 In recent years it has gained more popularity due to the improvement of image processing methodologies and the gradual adoption of digital image editing. To automate the inpainting process, several methods have been developed to create such an effect on an area of the users choosing without any further input. These range from 
 static sequential algorithms over convolutional neural network (CNN) based approaches, using neural networks with automatic deep learning up to Generative adversarial network (GAN) based solutions, which train specialized inpainting models using a large number of provided images \cite{ElharroussOmar2020IIAR}.
@@ -66,7 +66,7 @@ Therefore there are several methods specifically for the use in real-time inpain
   \end{center}
 \end{figure}
 \subsection{Evaluated inpainting methodologies}
-As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and be outdated quickly. Therefore, only a few select candidates which promise sufficient performance for DR are being looked at in detail to provide an overview.
+As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and be outdated quickly. Therefore, only a few select candidates which seem promising for DR are being looked at in detail to provide an overview.
 
 From gaining an understanding, which categories correlate to certain desired benefits, readers may get a overview of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
@@ -79,12 +79,11 @@ The algorithm works by creating an image smoothness estimator, which estimates t
 \begin{figure}[hbt!]
   \begin{center}
     \includegraphics[width=0.5\textwidth]{FastMarching.png}
-    \caption{Taken from \cite{TeleaFastMarching2004}; Concept of the Fast-Marching Inpainting}
+    \caption{Concept of the Fast-Marching Inpainting}
     \label{fig:fastMarching}
   \end{center}
 \end{figure}
 
-\b{TODO SG create graphic for FMM as example with drawio and explain the concept before going into mathematics}
 The mathematical formula for the calculation of a single pixels value can be boiled down to this:
 
 \[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]\\
@@ -146,8 +145,9 @@ To support color, the isophote vector, used for the priority calculation, is com
 
 \subsubsection{Exemplar-Based Image Inpainting with modified priorities}
 This method was first proposed 2015 by Deng, see \cite{DengLiang-Jian2015EIIU}.\\
-For this method, many approaches are similar to the nonlocal texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
-Therefore these two algorithms are used as a comparison of such exemplar-based inpainting algorithms compared to other methodologies.
+For this method, many approaches are similar to the non-local texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
+
+Such exemplar-based algorithms put the focus on the surrounding area of the target pixels, therefore reducing the search area for canidate pixel patches marginally and improving the performance, albeit at a potential loss of quality.
 
 Compared to the approach of the prior chapter, the priority function is overhauled to the following:
 
@@ -169,10 +169,10 @@ After finding the patch with the highest similarity, this patch is used to fill 
 This should therefore reduce the computational complexity, reducing the runtime of the process. In return this will cause the method to be more error prone and for the output to potentially be of lower quality.
 
 \subsubsection{Large Mask Inpainting with Fourier Convolutions}
-Moving away from algorithmic methods, many methods also use trained inpainting networks to provide high quality results.
+Moving away from algorithmic methods, many modern methods also use trained inpainting networks to provide high quality results.
 Whilst using inpainting models, might seem slower compared to algorithmic models, most of them provide higher quality images.
 
-One of those networks is the large mask inpainting (LaMa) network, using Fourier Convolutions to inpaint large masks effectively.
+One of those networks is the Large Mask (LaMa) inpainting network, using Fourier Convolutions to inpaint large masks effectively.
 Whenever large areas need to be filled using inpainting, the global context of images needs to be considered. The Fast Fourier Convolution (FFC), first introduced in 2020 by Chi, see \cite{Chi2020FastFC}, is a operator, which allows the usage of global context in early layers of the inpainting pipeline.
 It manages this by splitting up in a local and a global branch, evaluating those two branches before merging the results back together.
 
@@ -181,7 +181,7 @@ As networks are often trained on images with lower resolutions, it is very commo
 \begin{figure}[htb!]
   \begin{center}
     \includegraphics[width=1\textwidth]{LaMa.PNG}
-    \caption{Cited from \cite{SuvorovRoman2022RLMI}, the architecture of the LaMa model and how it was tested, using training-time mask generation}
+    \caption{Taken from \cite{SuvorovRoman2022RLMI}, the architecture of the LaMa model}
     \label{fig:LaMa}
   \end{center}
 \end{figure}
