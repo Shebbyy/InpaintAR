@@ -5,8 +5,8 @@ Before starting with the introduction to the implemented approach, some general 
 All of the concepts as well as which algorithms and methods are being leveraged to reduce the users distraction through visual clutter are being presented, starting from a more detailed explanation on visual clutter and why it is relevant in Mixed Reality (MR), 
 to a more detailed introduction to Diminished Reality (DR), inpainting, how those two concepts can be combined and the inpainting methods analyzed in this thesis.
 
-\section{How to define visual clutter and why it matters for Mixed Reality}
-Clutter can be seen as a state in which physical object, their placement or some visual features causes performance degradations in certain tasks. This can range from many small objects, like a heap of puzzle pieces all the way to single highly distracting objects, like lava lamps.
+\section{Visual Clutter}
+Clutter can be seen as a state in which physical objects, their placement or some visual features cause performance degradations in certain tasks. This can range from many small objects, like a heap of puzzle pieces all the way to single highly distracting objects, like lava lamps.
 It can lead to a decrease in object recognition performance or cause issues when searching for certain objects. In addition clutter also seems to have
 a detrimental effect to short-term memory, whereas not only the number of elements, but their features can have a negative effect as well \cite{RosenholtzRuth2007Mvc}.
 
@@ -18,6 +18,7 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
   \end{center}
 \end{figure}
 
+\subsection{Visual Clutter in Mixed Reality}
 MR, as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display". Therefore AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
 
 As defined by S. Mann and J.Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users perception \cite{Mann2002}.\\
@@ -26,14 +27,6 @@ In these domains all of the factors which may induce clutter and information ove
 
 AR is uniquely flawed in that regard due to it enhancing the surrounding environment of the user. This in turn means there could be a lot of external factors which may cause clutter, starting from the pure concept and interactivity of AR
 oftentimes allowing objects to be placed freely in the environment and therefore cluttered environments to the space constraints of the user themselves.
-
-\begin{figure}[htb!]
-  \begin{center}
-    \includegraphics[width=0.5\textwidth]{clutteredChess.png}
-    \caption{\textbf{TODO SG; Add after UseCase Example done;} An example of virtual objects enhancing an already cluttered environment and therefore worsening the existing visual clutter}
-    \label{fig:clutteredChess}
-  \end{center}
-\end{figure}
 
 \section{Diminished Reality}
 DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality (see \cite{grasset2003interactive}, \cite{mann2002mediated} and \cite{PoelmanAkmanLukotsch2012}), due to the concept of software mediating both the physical and virtual objects the user is allowed to see.
@@ -202,17 +195,27 @@ For this, inpainting models implement multiple functions. In the case of LaMa th
 
 \item In the final step a gradient penalty is applied to stabilize the training data. It has also been proven to in some cases slightly improve performance \cite{SuvorovRoman2022RLMI}\\
 \end{itemize}
-Due to the existence of pre-trained models, the focus in this thesis lies on the integration and evaluation of the model inside a real-time inpainting process.
+Due to the existence of pre-trained models, the focus in this thesis lies on the integration and evaluation of the existing model inside a real-time inpainting process.
+\\\\
+Based on the concepts of each of the analyzed approaches, it is highly likely for the FMM approach to be the most efficient, due to its relative low computational cost, in return it should provide the lowest quality inpainting, due to simply stretching the pixels from the surroundings of the mask inwards.
+In stark contrast, NLTM should provide the highest quality inpainting, albeit at the cost of performance due to having to analyze the entire image and calculating the average of the canidates pixel values. In this regard, ELTM might provide a good trade-off, using the surrounding pixels similarly to FMM, but still analyzing pixel patches for similarity in a similar manner to NLTM
+\\The LaMa Inpainting Model might prove to be the most performant, due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
 
-Thanks to these machine learning models improving with larger and higher quality datasets, the quality metrics of the evaluation might be less relevant though. With more training data and time the results might be improved even further, although the extension of the model might come with a reduction in performance.
-
-\subsection{Summary}
-
-\b{TODO SG overhaul chapter}
-Inpainting using deep learning models, like LaMa and algorithmic methods, like the fast-marching method are very common in the image space for object reduction. DR however comes with its own set of challenges for these methods.
-
-These methods have to be be highly efficient and light on resource use, to allow for the usage of these methods on user devices, like phones, video-based HMDs or regular desktop PCs, whilst at the same time managing real-time framerates of 30-60+ FPS (At least 30 FPS for regular displays, 60+ should be aimed for when using HMDs to reduce motion sickness \cite{WangQile2023Asro})
-
-In addition to this, the results need to be believable enough to not be noticeable to the end user. By only hiding objects from the background and/or overlaying it with virtual objects, the visual quality does not need to be photorealistic, due to the user not focussing on the inpainted area. Therefore this might soften up the quality requirements a bit.
-These results should in addition have as little temporal artifacts as possible, meaning the inpainted region should not change majorly between frames to avoid flickering \cite{GsaxnerChristina2024DDSR}.
-
+\begin{table}[h!]
+\centering
+\begin{tabular}{|p{17em}|c|c|c|}
+  \hline
+  \textbf{Method}& \textbf{Performance} & \textbf{Quality} & \textbf{Plausibility} \\
+  \hline
+  Fast Marching Method & \textcolor{green}{High} & \textcolor{red}{Low} & \textcolor{green}{High} \\
+  \hline
+  Nonlocal Texture Matching and Nonlinear Filtering & \textcolor{red}{Low} & \textcolor{green}{High} & \textcolor{red}{Low} \\
+  \hline
+  Exemplar-Based Image Inpainting with modified priorities & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} \\
+  \hline
+  Large Mask Inpainting with Fourier Convolutions & \textcolor{green}{High} & \textcolor{green}{High} & \textcolor{green}{High} \\
+  \hline
+\end{tabular}
+\caption{Expected evaluation results considering the conceptual design}
+\label{table:inpaintingExpectations}
+\end{table}
