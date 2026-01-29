@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using InpaintAR.Scripts.Benchmarking.Evaluators;
 using InpaintAR.Scripts.Inpainting;
 using InpaintAR.Scripts.Input;
-using InpaintAR.Scripts.SnakeEdgeDetection;
+using InpaintAR.Scripts.MaskCreation;
 using InpaintAR.Scripts.Util;
 using JetBrains.Annotations;
 using UnityEngine;
@@ -107,7 +107,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
                 m_selectionUiController.UpdateCanvasWorldPosition();
 
                 m_selectionUiController.UpdateSelectionMaskPosition(areaDetection.LeftHandCornerScreenPos.Value, areaDetection.RightHandCornerScreenPos.Value);
-                SnakeController.ResetSelectionMask();
+                MaskController.ResetSelectionMask();
                 PerformanceEvaluator.ResetValues();
                 QualityEvaluator.ResetValues();
                 ClutterEvaluator.ResetValues();
@@ -144,7 +144,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
                 m_copiedTexture = TextureUtility.CopyTexture(sourceTexture);
             }
             
-            m_inpaintMask = SnakeController.GetContourMaskPixelIndices(m_selectionUiController.GetFillImage().rectTransform, m_copiedTexture, m_selectionUiController.GetFillRectMask());
+            m_inpaintMask = MaskController.GetMaskPixelIndices(m_selectionUiController.GetFillImage().rectTransform, m_copiedTexture, m_selectionUiController.GetFillRectMask());
             
             // Destroy old inpainted texture before creating new one to prevent memory leak
             if (m_inpaintedTexture) {
