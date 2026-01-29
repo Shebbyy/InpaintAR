@@ -24,7 +24,7 @@ The aforementioned Meta Passthrough api is built on top of the Android Camera2 A
 
 \item The Camera Texture returned by the api is smaller than what a user sees in the quest 3. Whilst there are extensions and improvement over time, as of this moment it is not possible to cover the entire viewport of the user.
 
-\item The Camera Texture returned by the api is inside of the GPU memory. For inpainting and the quality evaluation, this needs to be sent to the CPU which takes up additional latency.\\
+\item The Camera Texture returned by the api is inside of the GPU memory. For inpainting and the quality evaluation, this needs to be sent to the CPU which takes up additional latency \cite{MetaPassthrough}.\\
 \end{itemize}
 
 As for the Code itself, it is written in C\string# 9 on the .Net Standard 2.1. This version of the standard in theory supports all C\string# versions up to 10.0, but the version packaged with the Unity Game Engine only supports the language features up to C\string# 9.0 as of this moment \cite{UnityCSharp}.
