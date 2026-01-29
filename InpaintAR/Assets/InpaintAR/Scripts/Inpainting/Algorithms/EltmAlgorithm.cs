@@ -21,7 +21,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const int SearchRadius = 30;
 
         // Downscale factor for faster processing
-        private const int DownscaleFactor = 8;
+        private const int DownscaleFactor = 6;
 
         // Deng-Huang-Zhao parameters:
         // Confidence regularization parameter ω (prevents confidence from decaying too fast)

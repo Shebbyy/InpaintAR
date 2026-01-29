@@ -18,7 +18,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private const int PatchArea = PatchSize * PatchSize;
 
         // Downscale factor for faster processing (4 = quarter resolution)
-        private const int DownscaleFactor = 4;
+        private const int DownscaleFactor = 6;
 
         // Number of candidate patches K (5-10 recommended according to paper)
         private const int K = 5;

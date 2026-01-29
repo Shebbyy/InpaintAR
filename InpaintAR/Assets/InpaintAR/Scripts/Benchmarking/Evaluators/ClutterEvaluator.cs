@@ -10,52 +10,55 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
     // See DOI  10.1167/7.2.17
     public class ClutterEvaluator {
         private static readonly List<float> ClutterReductionResults = new();
-        private static bool _evaluationRunning;
-
+        private static NativeArray<Color32> _nativeOriginal;
+        private static NativeArray<Color32> _nativeInpainted;
+        private static NativeArray<byte> _nativeMask;
+        private static NativeArray<float> _originalClutter ;
+        private static NativeArray<float> _inpaintedClutter;
+        private static JobHandle? _jobHandle;
         // Evaluates clutter reduction by comparing Feature Congestion clutter
         // between original and inpainted images within the masked region.
         public static void EvaluateClutterReduction(Color32[] originalImage, Color32[] inpaintedImage, int width, int height,
             HashSet<int> maskPixelIndices) {
-            if (_evaluationRunning) return;
-            _evaluationRunning = true;
+            if (_jobHandle is not null) {
+                if (!_jobHandle.Value.IsCompleted) return;
+                
+                float origClut = _originalClutter[0];
+                float inpClut = _inpaintedClutter[0];
+            
+                float clutterReduction = inpClut / origClut * 100;
 
-            NativeArray<Color32> nativeOriginal = new NativeArray<Color32>(originalImage, Allocator.TempJob);
-            NativeArray<Color32> nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
+                _nativeOriginal.Dispose();
+                _nativeInpainted.Dispose();
+                _nativeMask.Dispose();
+                _originalClutter.Dispose();
+                _inpaintedClutter.Dispose();
 
-            NativeArray<byte> nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
-            foreach (int index in maskPixelIndices) {
-                nativeMask[index] = 1;
+                ClutterReductionResults.Add(clutterReduction);
             }
 
-            NativeArray<float> originalClutter = new NativeArray<float>(1, Allocator.TempJob);
-            NativeArray<float> inpaintedClutter = new NativeArray<float>(1, Allocator.TempJob);
+            _nativeOriginal  = new NativeArray<Color32>(originalImage, Allocator.TempJob);
+            _nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
+
+            _nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
+            foreach (int index in maskPixelIndices) {
+                _nativeMask[index] = 1;
+            }
+
+            _originalClutter = new NativeArray<float>(1, Allocator.TempJob);
+            _inpaintedClutter = new NativeArray<float>(1, Allocator.TempJob);
 
             var clutterJob = new ClutterEvaluationJob {
-                OriginalPixels = nativeOriginal,
-                InpaintedPixels = nativeInpainted,
-                Mask = nativeMask,
+                OriginalPixels = _nativeOriginal,
+                InpaintedPixels = _nativeInpainted,
+                Mask = _nativeMask,
                 Width = width,
                 Height = height,
-                OriginalClutter = originalClutter,
-                InpaintedClutter = inpaintedClutter
+                OriginalClutter = _originalClutter,
+                InpaintedClutter = _inpaintedClutter
             };
 
-            JobHandle jobHandle = clutterJob.Schedule();
-            jobHandle.Complete();
-
-            float origClut = originalClutter[0];
-            float inpClut = inpaintedClutter[0];
-            
-            float clutterReduction = inpClut / origClut * 100;
-
-            nativeOriginal.Dispose();
-            nativeInpainted.Dispose();
-            nativeMask.Dispose();
-            originalClutter.Dispose();
-            inpaintedClutter.Dispose();
-
-            ClutterReductionResults.Add(clutterReduction);
-            _evaluationRunning = false;
+            _jobHandle = clutterJob.Schedule();
         }
 
         [BurstCompile]

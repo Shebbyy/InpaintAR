@@ -11,58 +11,60 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
     public class QualityEvaluator {
         private const float StructuralSimilarityWeight = 0.5f;
         private static readonly List<float> QualityResults = new();
-        private static bool _evaluationRunning;
+        private static JobHandle? _jobHandle;
+        private static NativeArray<Color32> _nativeOriginal;
+        private static NativeArray<Color32> _nativeInpainted;
+        private static NativeArray<float> _structuralSimilarity;
+        private static NativeArray<float> _naturalness;
+        private static NativeArray<byte> _nativeMask;
 
         public static void EvaluateQuality(Color32[] originalImage, Color32[] inpaintedImage, int width, int height,
             HashSet<int> maskPixelIndices) {
             // only one evaluation can run at a time
-            if (_evaluationRunning) return;
-            _evaluationRunning = true;
+            if (_jobHandle is not null) {
+                if (!_jobHandle.Value.IsCompleted) return;
+                
+                float ssim = _structuralSimilarity[0];
+                float nat = _naturalness[0];
+                // Q = α · f1 + (1 − α) · f2
+                float overallQuality = StructuralSimilarityWeight * ssim + (1 - StructuralSimilarityWeight) * nat;
 
-            NativeArray<Color32> nativeOriginal = new NativeArray<Color32>(originalImage, Allocator.TempJob);
-            NativeArray<Color32> nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
+                _nativeOriginal.Dispose();
+                _nativeInpainted.Dispose();
+                _nativeMask.Dispose();
+                _structuralSimilarity.Dispose();
+                _naturalness.Dispose();
+
+                QualityResults.Add(overallQuality);
+            }
+
+            _nativeOriginal  = new NativeArray<Color32>(originalImage, Allocator.TempJob);
+            _nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
 
             // Needs to be NativeArray to allow for Burst Compiled Job
-            NativeArray<byte> nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
+            _nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
             for (int i = 0; i < width * height; i++) {
-                nativeMask[i] = 0;
+                _nativeMask[i] = 0;
             }
             // more efficient than .Contains inside of the upper for loop due so little pixels being part of the mask
             foreach (int index in maskPixelIndices) {
-                nativeMask[index] = 1;
+                _nativeMask[index] = 1;
             }
 
-            NativeArray<float> structuralSimilarity = new NativeArray<float>(1, Allocator.TempJob);
-            NativeArray<float> naturalness = new NativeArray<float>(1, Allocator.TempJob);
+            _structuralSimilarity = new NativeArray<float>(1, Allocator.TempJob);
+            _naturalness          = new NativeArray<float>(1, Allocator.TempJob);
 
             var qualityJob = new QualityEvaluationJob {
-                OriginalPixels = nativeOriginal,
-                InpaintedPixels = nativeInpainted,
-                Mask = nativeMask,
+                OriginalPixels = _nativeOriginal,
+                InpaintedPixels = _nativeInpainted,
+                Mask = _nativeMask,
                 Width = width,
                 Height = height,
-                StructuralSimilarity = structuralSimilarity,
-                Naturalness = naturalness
+                StructuralSimilarity = _structuralSimilarity,
+                Naturalness = _naturalness
             };
 
-            JobHandle jobHandle = qualityJob.Schedule();
-
-            jobHandle.Complete();
-
-            _evaluationRunning = false;
-
-            float ssim = structuralSimilarity[0];
-            float nat = naturalness[0];
-            // Q = α · f1 + (1 − α) · f2
-            float overallQuality = StructuralSimilarityWeight * ssim + (1 - StructuralSimilarityWeight) * nat;
-
-            nativeOriginal.Dispose();
-            nativeInpainted.Dispose();
-            nativeMask.Dispose();
-            structuralSimilarity.Dispose();
-            naturalness.Dispose();
-
-            QualityResults.Add(overallQuality);
+            _jobHandle = qualityJob.Schedule();
         }
 
         public static void ResetValues() {
