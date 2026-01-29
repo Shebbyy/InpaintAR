@@ -18,8 +18,8 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
   \end{center}
 \end{figure}
 
-\subsection{Visual Clutter in Mixed Reality}
-MR, as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display". Therefore AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
+\subsubsection{Visual Clutter in Mixed Reality}
+Mixed Reality (MR), as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display". Therefore AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
 
 As defined by S. Mann and J.Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users perception \cite{Mann2002}.\\
 During the design of traditional software and information visualization, information overload and clear user interfaces need to be carefully considered.
@@ -118,7 +118,13 @@ Whilst this approach is a lot more complex compared to the rather simple FMM, it
 
 This approach is also known as exemplar-based inpainting and was established as a cheap and effective way to generate textures from known areas of an image to fill missing areas.
 
-\b{TODO SG create graphic for NLT as example with drawio and explain the concept before going into mathematics; Explain Mathematics in detail, why it is done and how it affects the end result}
+\begin{figure}[htb!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{LaMa.PNG}
+    \caption{TODO SG create graphic for NLT as example with drawio and explain the concept before going into mathematics; Explain Mathematics in detail, why it is done and how it affects the end result}
+    \label{fig:NLTMExplanation}
+  \end{center}
+\end{figure}
 
 It accomplishes this by first prioritizing the patches to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch.\\
 The priority function is defined as:

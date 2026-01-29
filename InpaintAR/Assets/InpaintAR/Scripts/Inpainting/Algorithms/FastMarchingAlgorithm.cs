@@ -25,30 +25,109 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         // Radius for Neighborhood of Inpainting Reference Pixels
         private const int Epsilon = 3;
 
+        // Downscale factor for faster processing (4 = quarter resolution)
+        private const int DownscaleFactor = 6;
+
         private int m_width;
         private int m_height;
         private int m_pixelCount;
 
         protected override Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices) {
-            m_width = TextureUtility.GetImageWidth(source);
-            m_height = TextureUtility.GetImageHeight(source);
+            int origWidth = TextureUtility.GetImageWidth(source);
+            int origHeight = TextureUtility.GetImageHeight(source);
+
+            // Downscale for faster processing
+            m_width = origWidth / DownscaleFactor;
+            m_height = origHeight / DownscaleFactor;
             m_pixelCount = m_width * m_height;
 
-            Texture2D resultImage = new Texture2D(m_width, m_height, TextureFormat.RGBA32, false);
+            // Downscale source pixels
+            var downscaledPixels = DownscalePixels(PixelBuffer, origWidth, origHeight, m_width, m_height);
 
-            InpaintFmmBurst(maskPixelIndices);
+            // Downscale mask indices
+            var downscaledMask = new HashSet<int>();
+            foreach (int idx in maskPixelIndices) {
+                int origX = idx % origWidth;
+                int origY = idx / origWidth;
+                int newX = origX / DownscaleFactor;
+                int newY = origY / DownscaleFactor;
+                if (newX < m_width && newY < m_height) {
+                    downscaledMask.Add(newY * m_width + newX);
+                }
+            }
 
+            // Run FMM on downscaled image
+            var inpaintedSmall = InpaintFmmBurst(downscaledPixels, downscaledMask);
+
+            // Upscale result back to original size
+            var upscaledPixels = UpscalePixels(inpaintedSmall, m_width, m_height, origWidth, origHeight);
+
+            // Blend: use inpainted pixels only where mask was, keep original elsewhere
+            foreach (var i in maskPixelIndices) {
+                PixelBuffer[i] = upscaledPixels[i];
+            }
+
+            Texture2D resultImage = new Texture2D(origWidth, origHeight, TextureFormat.RGBA32, false);
             resultImage.SetPixels32(PixelBuffer);
             resultImage.Apply();
 
             return resultImage;
         }
 
+        private static Color32[] DownscalePixels(Color32[] source, int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+            var result = new Color32[dstWidth * dstHeight];
+            float scaleX = (float)srcWidth / dstWidth;
+            float scaleY = (float)srcHeight / dstHeight;
+
+            for (int y = 0; y < dstHeight; y++) {
+                for (int x = 0; x < dstWidth; x++) {
+                    int srcX = (int)(x * scaleX);
+                    int srcY = (int)(y * scaleY);
+                    int srcIdx = srcY * srcWidth + srcX;
+                    result[y * dstWidth + x] = source[srcIdx];
+                }
+            }
+            return result;
+        }
+
+        private static Color32[] UpscalePixels(Color32[] source, int srcWidth, int srcHeight, int dstWidth, int dstHeight) {
+            var result = new Color32[dstWidth * dstHeight];
+            float scaleX = (float)(srcWidth - 1) / (dstWidth - 1);
+            float scaleY = (float)(srcHeight - 1) / (dstHeight - 1);
+
+            for (int y = 0; y < dstHeight; y++) {
+                for (int x = 0; x < dstWidth; x++) {
+                    float srcXf = x * scaleX;
+                    float srcYf = y * scaleY;
+                    int x0 = (int)srcXf;
+                    int y0 = (int)srcYf;
+                    int x1 = math.min(x0 + 1, srcWidth - 1);
+                    int y1 = math.min(y0 + 1, srcHeight - 1);
+                    float fx = srcXf - x0;
+                    float fy = srcYf - y0;
+
+                    Color32 c00 = source[y0 * srcWidth + x0];
+                    Color32 c10 = source[y0 * srcWidth + x1];
+                    Color32 c01 = source[y1 * srcWidth + x0];
+                    Color32 c11 = source[y1 * srcWidth + x1];
+
+                    // Bilinear interpolation
+                    result[y * dstWidth + x] = new Color32(
+                        (byte)math.lerp(math.lerp(c00.r, c10.r, fx), math.lerp(c01.r, c11.r, fx), fy),
+                        (byte)math.lerp(math.lerp(c00.g, c10.g, fx), math.lerp(c01.g, c11.g, fx), fy),
+                        (byte)math.lerp(math.lerp(c00.b, c10.b, fx), math.lerp(c01.b, c11.b, fx), fy),
+                        255
+                    );
+                }
+            }
+            return result;
+        }
+
         // Implemented as Burst for high performance
-        private void InpaintFmmBurst(HashSet<int> maskPixelIndices) {
+        private Color32[] InpaintFmmBurst(Color32[] inputPixels, HashSet<int> maskPixelIndices) {
             var distanceMap = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
             var flags = new NativeArray<byte>(m_pixelCount, Allocator.TempJob);
-            var pixels = new NativeArray<Color32>(PixelBuffer, Allocator.TempJob);
+            var pixels = new NativeArray<Color32>(inputPixels, Allocator.TempJob);
 
             // NativeParallelHashSet for O(1) lookup
             var maskIndicesSet = new NativeParallelHashSet<int>(maskPixelIndices.Count, Allocator.TempJob);
@@ -77,8 +156,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             // Run FMM main loop with heap and generation tracking
             RunFmmWithHeap(ref heap, ref generations, ref flags, ref distanceMap, ref pixels, m_width, m_height);
 
-            // Copy results back
-            pixels.CopyTo(PixelBuffer);
+            // Copy results to output array
+            var result = new Color32[m_pixelCount];
+            pixels.CopyTo(result);
 
             // Dispose native arrays
             distanceMap.Dispose();
@@ -87,6 +167,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             maskIndices.Dispose();
             heap.Dispose();
             generations.Dispose();
+
+            return result;
         }
 
         [BurstCompile]

@@ -34,7 +34,8 @@ The entire workflow of the prototype can easily be visualized in a flowchart (se
 
 From this state, the user can start the workflow by selecting an area in their viewport, which is then interpreted as the mask for inpainting.
 
-\subsection{Area Selection and Tracking}
+\subsection{User Input}
+\label{cha:UserInput}
 One of the considerations during the conceptualization of the implementation was the ease and simplification of the area selection.
 
 By using Hand-Tracking to select the area, the area selection should be easy to pick up and use. Whilst hand gestures are easier to explain to users, it also avoids the requirement of having controllers to use the prototype,
@@ -52,10 +53,11 @@ By placing their hands on the corners of the area they want to mask the gesture 
 Since the selection should only be triggered by a certain gesture instead of permanently being active, the L-gesture as seen in \ref{fig:AreaGesture}, may allow the user to interpret their index finger and thumb as the contours of the mask
 The selected area can then be kept until the user decides to select a new area to overlay.
 
-After the selection of the area to inpaint is finished, the constraints of the rectangle are being transformed into concrete pixel coordinates on the inpainting overlays image. In \ref{fig:OverlayPipeline} on the upper right-most image, the mask being overlaid over the image can be seen.
-As such a black box may prove distracting in brighter areas, the mask needs to be filled with plausible substitute pixels through inpainting. As these algorithms were designed for static images, there are a few design adjustments and optimizations to make them plausible for real time use.
+After the selection of the area to inpaint is finished, the constraints of the rectangle are being transformed into concrete pixel coordinates on the inpainting overlays image. In \ref{fig:OverlayPipeline}, the mask being overlaid over the image can be seen.
 
-\section{Inpainting Design Decisions}
+\subsection{Inpainting Design Decisions}
+\label{cha:InpaintingDesign}
+As such a black box may prove distracting to the user, especially in brighter areas, this mask needs to be filled with plausible substitute pixels, which can be achieved through inpainting. Since these inpainting algorithms were designed for static images, there are a few design adjustments and optimizations to make them plausible for real time use.
 
 Whilst most of the methodologies analyzed in this thesis have vastly differing implementations, all of them can be boiled down to receiving an array of source pixels and a mask in the form of a list of the pixels to inpaint.
 
@@ -78,26 +80,17 @@ In theory this canidate patch search over the entire image should only be necess
 This would mean, NLTM would use an approach similar to the ELTM algorithm or the PatchMatch algorithm of Barnes, Shechtman, Finkelstein and Goldman from 2009 (see \cite{BarnesConnelly2009Parc}), albeit looking for canidates in the surrounding areas of the prior frames canidates instead of right next to the target pixel patch. As one can see in \ref{fig:NLTMCacheCanidates}, this approach reduces the search area for inpainting canidates decisively and should
 provide a noticeable performance improvement with little to no quality loss for all subsequent frames after the initial full image search frame.
 
-\section{Software Architecture}
+\section{Evaluation Approach}
 
-\begin{figure}[htb!]
-  \begin{center}
-    \includegraphics[width=1\textwidth]{UML.PNG}
-    \caption{UML Diagram of the implementation structure}
-    \label{fig:UML}
-  \end{center}
-\end{figure}
+\subsubsection{Measuring Quality for Inpainting}
 
-A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in \ref{fig:UML}. 
-This allows for components in the implementation to be swapped out independantly of each other.
 
-The entire controlling of the system is handled within the AreaSelectionVisualizer class. This script receives the hand-tracking data from the AreaSelectionGestureHandler and then uses the SelectionUiController to visualize the selection area to the user.
 
-After the user selected their area, the camera feed can be received through a CameraController class, which provides the image data. 
+Use InPainting Quality Benchmarking, Part with Quality Benchmarking without knowing what it should look like,
+also mention that as a small issue in the evaluation
 
-This can then be turned into a mask for the inpainting by referencing the world position of the hands compared to the inpainting overlay and be handed over to the selected inpainting algorithm.
+\subsubsection{Measuring Visual Clutter}
+See Paper Measuring Visual Clutter
 
-To allow for an easy extension with additional inpainting algorithms, the algorithm is created by the InpaintingFactory class. Every Inpainting Algorithm is a derivative of the AbstractInpaintingAlgorithm which takes care of handling the preparation for the inpainting itself, 
-as well as handing over all the data to the evaluation implementations.
-
-The selection of which inpainting algorithm to use still happens inside of the AreaSelectionVisualizer class, which initializes the algorithm on program startup, or whenever the algorithm gets changed through the controller.
+\subsubsection{How Performance is measured}
+Use Clock/Timer for the Inpainting Method from Call to Return + FrameTime + FrameRate
