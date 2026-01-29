@@ -261,7 +261,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 363475422}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2bb24eff552a9724a97d072ade11dd85, type: 3}
   m_Name: 
@@ -949,7 +949,7 @@ MonoBehaviour:
   canvasWidth: 2
   canvasHeight: 1.5
   pixelsPerUnit: 1000
-  inpaintingAlgorithmSelection: 0
+  inpaintingAlgorithmSelection: 2
   showDebugRect: 0
 --- !u!4 &1324206872
 Transform:

@@ -60,7 +60,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 PreAllocateResources();
 
                 m_isInitialized = true;
-                Debug.Log("[LaMa] Model initialized successfully from Resources");
             }
             catch (Exception e) {
                 Debug.LogError($"[LaMa] Failed to initialize model: {e.Message}");
@@ -227,9 +226,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             using var imageTensor = new Tensor<float>(imageShape, m_imageData);
             using var maskTensor = new Tensor<float>(maskShape, m_maskData);
 
-            // Log model input/output info on first run for debugging
-            LogModelInfo();
-
             // Set inputs - LaMa typically uses "image" and "mask" as input names
             m_worker.SetInput("image", imageTensor);
             m_worker.SetInput("mask", maskTensor);
@@ -249,25 +245,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             var cpuTensor = gpuTensor.ReadbackAndClone();
 
             return cpuTensor;
-        }
-
-        private bool m_hasLoggedModelInfo;
-
-        private void LogModelInfo() {
-            if (m_hasLoggedModelInfo || m_model == null) return;
-            m_hasLoggedModelInfo = true;
-
-            Debug.Log("[LaMa] === Model Input/Output Info ===");
-
-            // Log inputs
-            foreach (var input in m_model.inputs) {
-                Debug.Log($"[LaMa] Input: name='{input.name}', shape={input.shape}");
-            }
-
-            // Log outputs
-            foreach (var output in m_model.outputs) {
-                Debug.Log($"[LaMa] Output: name='{output.name}'");
-            }
         }
 
         private bool m_hasLoggedOutputRange;
@@ -291,11 +268,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                         }
                     }
                 }
-                Debug.Log($"[LaMa] Output tensor shape: {outputTensor.shape}");
-                Debug.Log($"[LaMa] Output value range: min={minVal}, max={maxVal}");
-
-                // Log a few sample values
-                Debug.Log($"[LaMa] Sample output[0,0,128,128]: R={outputTensor[0, 0, 128, 128]}, G={outputTensor[0, 1, 128, 128]}, B={outputTensor[0, 2, 128, 128]}");
             }
 
             // Convert NCHW tensor to Color32 array
@@ -370,8 +342,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             m_isDisposed = true;
             m_isInitialized = false;
-
-            Debug.Log("[LaMa] Resources disposed");
         }
 
         ~LaMaAlgorithm() {

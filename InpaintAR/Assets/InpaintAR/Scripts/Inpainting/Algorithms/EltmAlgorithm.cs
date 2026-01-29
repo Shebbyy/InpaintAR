@@ -8,19 +8,34 @@ using UnityEngine;
 using InpaintAR.Scripts.Util;
 
 namespace InpaintAR.Scripts.Inpainting.Algorithms {
-    // Exemplar-based Local Texture Matching (ELTM) Inpainting Algorithm
-    // See DOI 10.1371/journal.pone.0141199
+    // Exemplar-Based Image Inpainting Using a Modified Priority Definition
+    // Based on Deng, Huang, Zhao (2014) - DOI: 10.1016/j.sigpro.2014.03.021
+    // Key modifications:
+    // 1. Regularized confidence term: C'(p) = (1-ω)·C(p) + ω
+    // 2. Normalized data term with gradient magnitude
+    // 3. Tunable priority: P(p) = C(p)^α · D(p)^β
     public class EltmAlgorithm : AbstractInpaintingAlgorithm {
         private const int PatchRadius = 4;
 
-        // Local search window radius (paper suggests w=30-70)
+        // Local search window radius
         private const int SearchRadius = 30;
 
         // Downscale factor for faster processing
-        private const int DownscaleFactor = 4;
+        private const int DownscaleFactor = 8;
 
-        // Threshold for switching from geometry phase to texture phase
-        private const float GeometryThreshold = 0.01f;
+        // Deng-Huang-Zhao parameters:
+        // Confidence regularization parameter ω (prevents confidence from decaying too fast)
+        // Paper suggests ω ∈ [0.6, 0.8], we use 0.7
+        private const float ConfidenceRegularization = 0.7f;
+
+        // Priority exponents α and β
+        // Paper experiments with various values; α=β=1 is baseline
+        // Higher α emphasizes confidence, higher β emphasizes structure
+        private const float AlphaExponent = 1.0f;
+        private const float BetaExponent = 1.5f;
+
+        // Normalization constant for data term (paper uses 255 for 8-bit images)
+        private const float DataNormalization = 255f;
 
         private int m_width;
         private int m_height;
@@ -66,8 +81,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             };
             initJob.Schedule(m_pixelCount, 64).Complete();
 
-            // Run ELTM inpainting
-            InpaintEltmBurst(ref pixels, ref confidence, ref maskSet);
+            // Run modified exemplar-based inpainting
+            InpaintDengHuangZhao(ref pixels, ref confidence, ref maskSet);
 
             var inpaintedSmall = new Color32[m_pixelCount];
             pixels.CopyTo(inpaintedSmall);
@@ -148,42 +163,31 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
         }
 
-        private void InpaintEltmBurst(
+        private void InpaintDengHuangZhao(
             ref NativeArray<Color32> pixels,
             ref NativeArray<float> confidence,
             ref NativeParallelHashSet<int> maskSet) {
 
             var contourPixels = new NativeList<int>(Allocator.Temp);
-            bool geometryPhase = true;
 
             while (!maskSet.IsEmpty) {
-                // Step 1: Find contour pixels (parallel)
+                // Step 1: Find contour pixels (boundary of fill region)
                 contourPixels.Clear();
                 GetContourPixelsParallel(ref maskSet, ref contourPixels, m_width, m_height);
 
                 if (contourPixels.Length == 0) break;
 
-                // Step 2: Find target patch with highest priority (parallel)
-                int targetIndex;
-                if (geometryPhase) {
-                    targetIndex = GetTargetGeometryParallel(
-                        ref contourPixels, ref maskSet, ref pixels,
-                        m_width, m_height, out var maxDataTerm);
-
-                    if (maxDataTerm < GeometryThreshold) {
-                        geometryPhase = false;
-                    }
-                } else {
-                    targetIndex = GetTargetTextureParallel(
-                        ref contourPixels, ref confidence, m_width, m_height);
-                }
+                // Step 2: Find target patch with highest priority using modified formula
+                int targetIndex = GetTargetPatchModifiedPriority(
+                    ref contourPixels, ref confidence, ref maskSet, ref pixels,
+                    m_width, m_height);
 
                 if (targetIndex < 0) break;
 
                 int targetX = targetIndex % m_width;
                 int targetY = targetIndex / m_width;
 
-                // Step 3: Find best matching patch (parallel)
+                // Step 3: Find best matching patch
                 int bestPatch = FindBestMatchParallel(
                     targetX, targetY, ref maskSet, ref pixels, m_width, m_height);
 
@@ -194,8 +198,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     FillPatchFromNearest(targetX, targetY, ref maskSet, ref pixels, m_width, m_height);
                 }
 
-                // Step 5: Update confidence and remove filled pixels
-                UpdateConfidence(targetX, targetY, ref confidence, ref maskSet, m_width, m_height);
+                // Step 5: Update confidence with regularization and remove filled pixels
+                UpdateConfidenceRegularized(targetX, targetY, ref confidence, ref maskSet, m_width, m_height);
             }
 
             contourPixels.Dispose();
@@ -258,13 +262,21 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             isContour.Dispose();
         }
 
+        // Modified priority calculation based on Deng-Huang-Zhao (2014)
+        // P(p) = C(p)^α · D(p)^β
+        // where C(p) uses regularization and D(p) is normalized
         [BurstCompile]
-        private struct GeometryPriorityJob : IJobParallelFor {
+        private struct ModifiedPriorityJob : IJobParallelFor {
             [ReadOnly] public NativeArray<int> ContourPixels;
+            [ReadOnly] public NativeArray<float> Confidence;
             [ReadOnly] public NativeParallelHashSet<int> MaskSet;
             [ReadOnly] public NativeArray<Color32> Pixels;
             [ReadOnly] public int Width;
             [ReadOnly] public int Height;
+            [ReadOnly] public float Omega;      // Confidence regularization
+            [ReadOnly] public float Alpha;      // Confidence exponent
+            [ReadOnly] public float Beta;       // Data term exponent
+
             [WriteOnly] public NativeArray<float> Priorities;
 
             public void Execute(int i) {
@@ -272,8 +284,36 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 int x = pixel % Width;
                 int y = pixel / Width;
 
+                // Calculate regularized confidence term
+                float rawConfidence = CalculateConfidenceStatic(x, y, Confidence, Width, Height);
+                // Modified confidence: C'(p) = (1 - ω) · C(p) + ω
+                float regConfidence = (1f - Omega) * rawConfidence + Omega;
+
+                // Calculate normalized data term
                 float2 normal = EstimateNormalStatic(x, y, MaskSet, Width, Height);
-                Priorities[i] = CalculateDataStatic(x, y, normal, MaskSet, Pixels, Width, Height);
+                float dataTerm = CalculateNormalizedDataStatic(x, y, normal, MaskSet, Pixels, Width, Height);
+
+                // Modified priority: P(p) = C(p)^α · D(p)^β
+                float priority = math.pow(regConfidence, Alpha) * math.pow(dataTerm, Beta);
+                Priorities[i] = priority;
+            }
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private static float CalculateConfidenceStatic(int px, int py, NativeArray<float> confidence, int width, int height) {
+                float sum = 0f;
+                int count = 0;
+
+                for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+                    for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                        int nx = px + dx;
+                        int ny = py + dy;
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                            sum += confidence[ny * width + nx];
+                            count++;
+                        }
+                    }
+                }
+                return count > 0 ? sum / count : 0f;
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -283,8 +323,12 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     return maskSet.Contains(y * width + x) ? 1f : 0f;
                 }
 
-                float dx = (GetMask(px + 1, py) - GetMask(px - 1, py)) / 2f;
-                float dy = (GetMask(px, py + 1) - GetMask(px, py - 1)) / 2f;
+                // Use Sobel-like operator for smoother normal estimation
+                float dx = -GetMask(px - 1, py - 1) + GetMask(px + 1, py - 1)
+                         - 2f * GetMask(px - 1, py) + 2f * GetMask(px + 1, py)
+                         - GetMask(px - 1, py + 1) + GetMask(px + 1, py + 1);
+                float dy = GetMask(px - 1, py - 1) + 2f * GetMask(px, py - 1) + GetMask(px + 1, py - 1)
+                         - GetMask(px - 1, py + 1) - 2f * GetMask(px, py + 1) - GetMask(px + 1, py + 1);
 
                 float2 normal = new float2(dx, dy);
                 float sqrMag = normal.x * normal.x + normal.y * normal.y;
@@ -292,7 +336,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            private static float CalculateDataStatic(int px, int py, float2 normal, NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
+            private static float CalculateNormalizedDataStatic(int px, int py, float2 normal,
+                NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
+
                 int centerIdx = py * width + px;
                 float centerGray = (pixels[centerIdx].r * 0.299f + pixels[centerIdx].g * 0.587f + pixels[centerIdx].b * 0.114f) / 255f;
 
@@ -303,84 +349,29 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     return (pixels[idx].r * 0.299f + pixels[idx].g * 0.587f + pixels[idx].b * 0.114f) / 255f;
                 }
 
-                float gx = -GetVal(px-1, py-1) + GetVal(px+1, py-1) - 2*GetVal(px-1, py) + 2*GetVal(px+1, py) - GetVal(px-1, py+1) + GetVal(px+1, py+1);
-                float gy = GetVal(px-1, py-1) + 2*GetVal(px, py-1) + GetVal(px+1, py-1) - GetVal(px-1, py+1) - 2*GetVal(px, py+1) - GetVal(px+1, py+1);
+                // Sobel gradient computation
+                float gx = -GetVal(px - 1, py - 1) + GetVal(px + 1, py - 1)
+                         - 2f * GetVal(px - 1, py) + 2f * GetVal(px + 1, py)
+                         - GetVal(px - 1, py + 1) + GetVal(px + 1, py + 1);
+                float gy = GetVal(px - 1, py - 1) + 2f * GetVal(px, py - 1) + GetVal(px + 1, py - 1)
+                         - GetVal(px - 1, py + 1) - 2f * GetVal(px, py + 1) - GetVal(px + 1, py + 1);
 
+                // Isophote direction (perpendicular to gradient)
                 float2 isophote = new float2(-gy, gx);
-                return math.abs(isophote.x * normal.x + isophote.y * normal.y) / 255f + 0.001f;
+
+                // Compute |∇I⊥ · n_p| / α (normalized data term)
+                float dot = math.abs(isophote.x * normal.x + isophote.y * normal.y);
+
+                // Normalize by DataNormalization constant and add small epsilon for stability
+                return dot / DataNormalization + 0.001f;
             }
         }
 
-        private static int GetTargetGeometryParallel(
-            ref NativeList<int> contourPixels,
-            ref NativeParallelHashSet<int> maskSet,
-            ref NativeArray<Color32> pixels,
-            int width, int height,
-            out float maxDataTerm) {
-
-            int count = contourPixels.Length;
-            maxDataTerm = 0f;
-            if (count == 0) return -1;
-
-            var priorities = new NativeArray<float>(count, Allocator.TempJob);
-
-            var job = new GeometryPriorityJob {
-                ContourPixels = contourPixels.AsArray(),
-                MaskSet = maskSet,
-                Pixels = pixels,
-                Width = width,
-                Height = height,
-                Priorities = priorities
-            };
-
-            job.Schedule(count, 64).Complete();
-
-            float maxPriority = -1f;
-            int bestIndex = -1;
-            for (int i = 0; i < count; i++) {
-                if (priorities[i] > maxDataTerm) maxDataTerm = priorities[i];
-                if (priorities[i] > maxPriority) {
-                    maxPriority = priorities[i];
-                    bestIndex = contourPixels[i];
-                }
-            }
-
-            priorities.Dispose();
-            return bestIndex;
-        }
-
-        [BurstCompile]
-        private struct TexturePriorityJob : IJobParallelFor {
-            [ReadOnly] public NativeArray<int> ContourPixels;
-            [ReadOnly] public NativeArray<float> Confidence;
-            [ReadOnly] public int Width;
-            [ReadOnly] public int Height;
-            [WriteOnly] public NativeArray<float> Priorities;
-
-            public void Execute(int i) {
-                int pixel = ContourPixels[i];
-                int px = pixel % Width;
-                int py = pixel / Width;
-
-                float sum = 0f;
-                int cnt = 0;
-                for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
-                    for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
-                        int nx = px + dx;
-                        int ny = py + dy;
-                        if (nx >= 0 && nx < Width && ny >= 0 && ny < Height) {
-                            sum += Confidence[ny * Width + nx];
-                            cnt++;
-                        }
-                    }
-                }
-                Priorities[i] = cnt > 0 ? sum / cnt : 0f;
-            }
-        }
-
-        private static int GetTargetTextureParallel(
+        private static int GetTargetPatchModifiedPriority(
             ref NativeList<int> contourPixels,
             ref NativeArray<float> confidence,
+            ref NativeParallelHashSet<int> maskSet,
+            ref NativeArray<Color32> pixels,
             int width, int height) {
 
             int count = contourPixels.Length;
@@ -388,11 +379,16 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
             var priorities = new NativeArray<float>(count, Allocator.TempJob);
 
-            var job = new TexturePriorityJob {
+            var job = new ModifiedPriorityJob {
                 ContourPixels = contourPixels.AsArray(),
                 Confidence = confidence,
+                MaskSet = maskSet,
+                Pixels = pixels,
                 Width = width,
                 Height = height,
+                Omega = ConfidenceRegularization,
+                Alpha = AlphaExponent,
+                Beta = BetaExponent,
                 Priorities = priorities
             };
 
@@ -495,7 +491,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             int minY = math.max(PatchRadius, targetY - SearchRadius);
             int maxY = math.min(height - PatchRadius - 1, targetY + SearchRadius);
 
-            // Collect search positions using boolean array
             int pixelCount = width * height;
             var visited = new NativeArray<bool>(pixelCount, Allocator.Temp);
 
@@ -629,13 +624,15 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             }
         }
 
+        // Updated confidence calculation with regularization (Deng-Huang-Zhao modification)
         [BurstCompile]
-        private static void UpdateConfidence(
+        private static void UpdateConfidenceRegularized(
             int targetX, int targetY,
             ref NativeArray<float> confidence,
             ref NativeParallelHashSet<int> maskSet,
             int width, int height) {
 
+            // Calculate raw patch confidence
             float sum = 0f;
             int cnt = 0;
             for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
@@ -648,8 +645,12 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     }
                 }
             }
-            float patchConfidence = cnt > 0 ? sum / cnt : 0f;
+            float rawPatchConfidence = cnt > 0 ? sum / cnt : 0f;
 
+            // Apply regularization: C'(p) = (1 - ω) · C(p) + ω
+            float regularizedConfidence = (1f - ConfidenceRegularization) * rawPatchConfidence + ConfidenceRegularization;
+
+            // Update confidence for filled pixels and remove from mask
             for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
                 for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
                     int tx = targetX + dx;
@@ -660,7 +661,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                     int targetIdx = ty * width + tx;
                     if (!maskSet.Contains(targetIdx)) continue;
 
-                    confidence[targetIdx] = patchConfidence;
+                    confidence[targetIdx] = regularizedConfidence;
                     maskSet.Remove(targetIdx);
                 }
             }

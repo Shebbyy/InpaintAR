@@ -826,9 +826,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                 // Swap minimum to position i
                 if (minIdx != i) {
-                    var temp = candidates[i];
-                    candidates[i] = candidates[minIdx];
-                    candidates[minIdx] = temp;
+                    (candidates[i], candidates[minIdx]) = (candidates[minIdx], candidates[i]);
                 }
             }
         }
