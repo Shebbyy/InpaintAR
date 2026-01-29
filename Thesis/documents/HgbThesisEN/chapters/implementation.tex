@@ -1,13 +1,34 @@
 \chapter{Implementation}
 \label{cha:Implementation}
 
-Small Introduction sentence to go from concept to implementation, few things which were watched out for in the impl (modern CSharp, debug options, performance optimizations)
+This Chapter goes into detail about the implementation of the prototype created for the evaluation.
+After providing an overview of the hardware and software used during the development, the different components of the program and the implementation details for the inpainting methods are explained in further detail.
 
-\section{Hardware}
-Rather Short
-go into detail about meta quest 3, Inside-Out Handtracking, ...
+\subsubsection{Hardware}
 
-\section{Software}
+As the focus of this thesis lies on the evaluation of inpainting methodologies in an AR environment, a HMD which supports this technology,
+as well as provides access to the camera-data is required. In addition, the HMD should have the capabilities of hand-tracking for the area selection component.
+
+A Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} is chosen for this, as it provides all the necessary features and was just recently extended with its new passthrough api\footnote{https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview}, which allows
+for developers to directly access camera data. The HMD is equipped with two RGB cameras with 18 Pixels Per Degree for video see-through, whose output is displayed on two 2.064x2.208 pixel displays with a refresh rate of up to 120hz.
+
+\subsubsection{Software}
+The implementation is built in the Unity3D Game Engine\footnote{https://unity.com/products/unity-engine} in the Version 6000.1.0f1.
+\\
+It uses the Meta XR Core SDK\footnote{https://assetstore.unity.com/packages/tools/integration/meta-xr-core-sdk-269169} with the Version 83.0.1 and the Meta MR Utility Kit \footnote{https://assetstore.unity.com/packages/tools/integration/meta-mr-utility-kit-272450} with the similar version number for the integration of the Meta Quest 3 HMD and its apis to the prototype.
+
+The aforementioned Meta Passthrough api is built on top of the Android Camera2 API. This allows for the camera to be used in a similar manner to mobile phone cameras, albeit with a few caveats:
+
+\begin{itemize}
+\item As of this moment the passthrough api is not supported over link. This means the software can only be evaluated on device, in the meta quests' standalone mode.
+
+\item The Camera Texture returned by the api is smaller than what a user sees in the quest 3. Whilst there are extensions and improvement over time, as of this moment it is not possible to cover the entire viewport of the user.
+
+\item The Camera Texture returned by the api is inside of the GPU memory. For inpainting and the quality evaluation, this needs to be sent to the CPU which takes up additional latency.\\
+\end{itemize}
+
+As for the Code itself, it is written in C\string# 9 on the .Net Standard 2.1. This version of the standard in theory supports all C\string# versions up to 10.0, but the version packaged with the Unity Game Engine only supports the language features up to C\string# 9.0 as of this moment \cite{UnityCSharp}.
+
 Rather Short
 Explain the AR Library, how it is used / why needed (OVRCameraRig, Hand-Tracking, Passthrough, ...)
 A lot of the Algorithms were implemented using Unitys Burst Compiler, explanation of what it is (Parallelization for CPU Cores, more Lower-Level Compiled Code therefore more performance) ~10x gain in FMM
