@@ -401,7 +401,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
 
                     // Use rsqrt for faster inverse square root
                     float invNormVector = math.rsqrt(math.max(distSq, Eps * Eps));
-                    float normVector = distSq * invNormVector; // distSq / sqrt(distSq) = sqrt(distSq)
 
                     // Directional weight: only consider upstream pixels
                     float2 vector = new float2(dy, dx);
