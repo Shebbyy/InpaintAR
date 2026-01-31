@@ -5,19 +5,13 @@
 todo sollten eigene Absätze sein, statt unterkapitel
 \section{Future Work}
 
-\subsubsection{Evaluation of the algorithms on GPU via shader programming}
+Whilst the work done in this thesis serves as a good starting point, it is possible to branch off in many different directions for further exploration of the usages for real-time inpainting
+and clutter removal. Whilst the approach for area selection, as presented in \ref{cha:Concept} is easy to use and serves its purpose, there are several advancements to automatically detect clutter based
+on a users selection. In 2023 an article by Huynh, Zhou et. al. \cite{HuynhChuong2023SSPC} proposed a methodology to easily detect similar object patterns within an image. This may be used to allow for the user to simply select an object by pointing at it, followed by the SimpSON algorithm creating masks around the image for the necessary inpainting.
 
-\subsubsection{Application to selective planes in VR environments}
+In addition to this, it might be interesting to conduct a user study on the effects of hiding distractions using inpainting in AR, how it affects the user and if there are any differences to other methods of hiding objects. Whilst the work of Cheng, et. al \cite{ChengYiFei2022TUDR} has already laid good groundwork on the effects of DR, inpainting was not considered at that time
+and may outperform the approaches which were analyzed.
 
-\subsubsection{Extension with further algorithms}
+The proposed and implemented evaluation prototype was built in an easily extendable manner, therefore it would be interesting to evaluate more methodologies and algorithms, as there are still many promising algorithms which could not be analyzed in further detail, not to mention newer algorithms and methodologies which might be published over the next years.
 
-\subsubsection{User Study on how distracting the real-time inpainted area is to end users}
-
-\subsubsection{Rework to Event-Based Inpainting Approach rather than per frame}
-
-\subsubsection{Combination with Dynamic Object Detection}
-SimpSON Paper, Single-Click-Distraction-Detection;
-Maybe mention RoboDK AI Model for Detecting Objects by Name and providing the user a table to select which objects should be hidden and shown
-Maybe adding opacity control to only make objects transparent instead of fully hiding / turning the mask transparent afterwards
-Introduction of Video-Optimized Inpainting Methods (currently too performance heavy)
-Maybe StableDiffusion Inpainting?
+As this thesis was heavily focussed on CPU based methodologies, converting these algorithms into GPU-compatible versions and comparing these should definitely be addressed in the future to ensure the best performance of the algorithms.

@@ -3,28 +3,69 @@
 
 The main objective of this thesis was to evaluate which inpainting algorithms are suited for a real-time visual clutter reduction in AR. In this chapter, several different scenarios are evaluated for each algorithm in terms of runtime performance, overall inpainting quality and the visual clutter reduction.
 
-The entire testing was conducted on a Meta Quest 3 running on the current release of HorizonOS, v81.
-
-\subsubsection{Results}
+The entire testing was conducted on a Meta Quest 3 running on the current release of HorizonOS, v81. As the metrics are calculated as average values, the algorithm is allowed to run until the value stabilizes to avoid any outliers to invalidate the data.
 
 For the evaluation, several test scenarios have been prepared, which are aimed at bringing out both the conceptual advantages and disadvantages of the different implemented methodologies, like the texture continuation and edge recognition.
 
-\subsubsection{Clean uniform Background}
+\subsubsection{Uniform Background}
+\label{subcha:UniformBackground}
 
-This serves as a very basic and baseline testcase. Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high quality result. At most there should be some artifacts in terms of the shading.
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{CleanUniformBaseline.jpg}
+    \caption{The environment of the first test scenario, a white desk and background with visual clutter grouped together on top, which needs to be hidden}
+    \label{fig:CleanUniformBaseline}
+  \end{center}
+\end{figure}
+This serves as a very basic and baseline testcase in which the surroundings should be rather plain, in the best case one uniform color. The original baseline image used for the evaluation can be seen in \ref{fig:CleanUniformBaseline}.
+Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high quality result. At most there should be some artifacts in terms of the shading or through the surrounding objects.
 
-<INSERT RESULT>
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{UniformComparison.png}
+    \caption{The resulting images for using the different inpainting algorithms on a uniform background, A = FMM, B = NLTM, C = ELTM, D = LaMa}
+    \label{fig:UniformComparison}
+  \end{center}
+\end{figure}
+
+In terms of performance, as seen in \ref{fig:UniformResults}, FMM performed the best, as expected, followed by ELTM.
+Surprisingly enough, even though the LaMa model is optimized for performance and runs on the GPU, it performed by far the worst, even compared to NLTM. The likely reason for this will be elaborated further upon in \ref{subcha:LaIpEval}, as it seems to be a pattern through all the scenarios.
+
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{UniformResults.png}
+    \caption{The charts displaying the performance and qualitative results of each algorithm in relation to each other for the uniform background test scenario}
+    \label{fig:UniformResults}
+  \end{center}
+\end{figure}
+
+In terms of quality, according to the IIQA, the other algorithms were nowhere near the quality of the LaMa model. Surprisingly enough, whilst all methodologies were served an image with the same downscale quality, LaMa appears to create less artifacts. This is also correlated in the clutter reduction metric, as the noise created by the other methodologies was picked up as additional visual clutter by the visual clutter algorithm, compared to the cleaner result of LaMa.
+Another observation in terms of quality is the superior quality of FMM in comparison to NLTM and ELTM. This is most probably once again correlated to the visual noise. The concept of FMM, in which surrounding pixels are propagated inwards of the mask, seems to cause a lot less visual artifacts during upscaling compared to NLTM and ELTM, which causes the end result to look less grainy.
 
 \subsubsection{Background Pattern}
+\label{subcha:BackgroundPattern}
 
 This scenario is done on a wooden desk, as the patterns of the wood provides a good example of how well the inpainted area can blend in with textured backgrounds.
 
-\subsubsection{Desk with Notebook and Pen}
+<INSERT RESULT>
+
+\subsubsection{Large Area inpainting}
+\label{subcha:LaIpEval}
 
 As the aforementioned test scenarios are focussed on rather small, focussed inpainting masks, this test case aims to show the performance and quality for larger masks. This should also serve as a good stress-test for the performance and how the performance of the methodologies degrades with larger masks.
 
-\subsubsection{Desk with multiple glasses of water}
+<INSERT RESULT>
+
+When looking at the performance metrics, the performance of the LaMa model stayed consistent between all the different masks. As the masks are of different sizes and this also means there are cases in which there is less to inpaint, the reason LaMa is so slow likely is not the fault of the inpainting itself.
+
+It is most likely connected to the inference of the model through the Unity Sentis library. Even when looking at the methods through the Unity3D Profiler, no further details on what causes the performance bottleneck could be found.
+
+
+
+\subsubsection{Reflective Surroundings}
+\label{subcha:ReflectiveSurroundings}
 
 The focus here is to test how well the inpainting algorithms can consider reflective objects in both the inpainting mask, as well as its surroundings for the canidate selection of NLTM and ELTM. 
 These objects should preferrably be avoided as sources, due to the discoloring and blurring of the reflected background in favor of the regular background.
 
+<INSERT RESULT>

@@ -12,6 +12,8 @@ as well as provides access to the camera-data is required. In addition, the HMD 
 A Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} is chosen for this, as it provides all the necessary features, was just recently extended with its new passthrough API\footnote{https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview}, which allows
 for developers to directly access camera data and was readily on hand. The HMD is equipped with two RGB cameras with 18 Pixels Per Degree for video see-through, whose output is displayed on two 2.064x2.208 pixel displays with a refresh rate of up to 120hz.
 
+Whilst the entire implementation in itself is fully device-agnostic, therefore allowing any HMD which has the required features to work, some implementations, like the hand-tracking and controller input or the camera texture source need to be modified according to the api of the required device.
+
 \subsubsection{Software}
 The implementation is built in the Unity3D Game Engine\footnote{https://unity.com/products/unity-engine} in the Version 6000.1.0f1.
 \\
@@ -51,7 +53,7 @@ The HMD camera feed can be received through a CameraController class, which deli
 To allow for an easy extension with additional inpainting algorithms, the algorithm is created by the InpaintingFactory class. Every Inpainting Algorithm is a derivative of the AbstractInpaintingAlgorithm which takes care of handling the preparation for the inpainting itself, 
 as well as handing over all the data to the evaluation implementations.
 
-The selection of which inpainting algorithm to use still happens inside of the AreaSelectionVisualizer class, which initializes the algorithm on program startup, or whenever the algorithm gets changed through the joystick on a controller. This was implemented to ease up the comparison of the inpainting methods by keeping the same mask between methodologies.
+The selection of which inpainting algorithm to use still happens inside of the AreaSelectionVisualizer class, which initializes the algorithm on program startup, or whenever the algorithm gets changed through the controller. This was implemented to ease up the comparison of the inpainting methods by keeping the same mask between methodologies.
 
 \section{Area Selection and Tracking}
 As already mentioned in concept chapter about user input (see \ref{cha:UserInput}), hand-tracking is used for defining the inpainting mask.
