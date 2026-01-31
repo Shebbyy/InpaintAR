@@ -1,5 +1,6 @@
 \chapter{Fundamentals and Related Work}
 \label{cha:Fundamentals}
+\definecolor{ForestGreen}{rgb}{0.0, 0.5, 0.0}
 
 Before starting with the introduction to the implemented approach, some general knowledge and information needs to be further elaborated upon.
 All of the concepts as well as which algorithms and methods are being leveraged to reduce the users distraction through visual clutter are being presented, starting from a more detailed explanation on visual clutter and why it is relevant in Mixed Reality (MR), 
@@ -33,12 +34,12 @@ DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often als
 DR aims to remove or diminish real world objects from the perception of the user by hiding them from their view. This can be accomplished by either from completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
 however perceives its presence less when looking at different objects \cite{ChengYiFei2022TUDR}.
 
-There have been many experiments using DR already. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
+There have already been many experiments using DR. Ranging from visually removing the front vehicle, which is being overtaken from a drivers viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR} to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
 These works use similar concepts to the one implemented for this thesis, working with inpainting algorithms to hide physical objects for the users benefit, be it decision making for interior designs, increasing driver safety during overtaking, or in the case of this thesis, in reducing distractions caused by clutter.
 
 There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments in \cite{ChengYiFei2022TUDR} opacity reduction and outlining provides the best results.
-This can be interpreted to mean, the less a user notices objects the less they are distracted by them.
-In addition another experiment measured how users react to being able to decide which objects should be hidden compared to every object being detected and hidden automatically. The findings of this experiment have shown a preference for the users to decide for themselves, which objects should be hidden and which should stay \cite{ChengYiFei2022TUDR}.
+This can be interpreted to mean the less a user notices objects the less they are distracted by them.
+In addition, another experiment measured how users react to being able to decide which objects should be hidden compared to every object being detected and hidden automatically. The findings of this experiment have shown a preference for the users to decide for themselves, which objects should be hidden and which should stay \cite{ChengYiFei2022TUDR}.
 
 These findings were taken into account during planning of the implementation developed in the following chapters, as to how objects should be hidden and allowing for the user to select the areas and therefore the objects they want to hide for themselves instead of the software deciding.
 
@@ -50,7 +51,7 @@ Therefore this overlay needs to be filled with a plausible background. Inpaintin
 
 \subsubsection{Definition}
 Image inpainting is based on the concept of recovering and completing missing regions in an image or removing objects in it. This concept has been around for many centuries, all the way back to the Renaissance, having been used in image restoration or removing damage caused by deterioration \cite{gillette2006image}.
-In recent years it has gained more popularity due to the improvement of image processing methodologies and the gradual adoption of digital image editing. To automate the inpainting process, several methods have been developed to create such an effect on an area of the users choosing without any further input. These range from 
+In recent years, it has gained more popularity due to the improvement of image processing methodologies and the gradual adoption of digital image editing. To automate the inpainting process, several methods have been developed to create such an effect on an area of the users choosing without any further input. These range from 
 static sequential algorithms over convolutional neural network (CNN) based approaches, using neural networks with automatic deep learning up to Generative adversarial network (GAN) based solutions, which train specialized inpainting models using a large number of provided images \cite{ElharroussOmar2020IIAR}.
 
 These categories and many of the provided methods provide adequate results for the inpainting of images, DR requires these methods to perform the inpainting as quickly as possible to adjust to the users movement and provide believable results.
@@ -88,28 +89,34 @@ The mathematical formula for the calculation of a single pixels value can be boi
 
 \[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]\\
 By calculating the central differences of all the known neighboring pixels, an image gradient may be estimated, which is in this case displayed as $\Delta I$.\\
-$B\epsilon$ in this case describes the known area around the pixel, which the synthesized pixel should be generated from. To avoid any outlier pixels to negatively influence the pixel synthesis, these points are all summed up and weighted by a normalizing function $w$.
-
-This weight function can be described with this formula:
+$B\epsilon$ in this case describes the known area around the pixel, which the synthesized pixel should be generated from. To avoid any outlier pixel values to negatively influence the pixel synthesis, these points are all summed up and weighted by a normalizing function $w$.
+This normalization weight function can be described with this formula:
 
 \[w(p,q) = dir(p,q) \times dst(p,q) \times lev(p,q)\]\\
-whereas these three factors have the following formulas:\\
+\\
+For this weighting function, there are three components, which need to be considered.
+
+\begin{itemize}
+\item The direction (dir) of the incoming pixel in correlation to the target pixel. This is relevant, to avoid information to be lost and to keep structural integrity to some degree. Therefore when moving inwards in the mask, pixel values, which came from the same direction are prioritized over other surrounding values. 
+
+\item The distance (dst) is relevant in regards to a smooth color gradient for the inpainted mask. The further the algorithm moves inwards, the more unstable the surrounding known neighborhood of the pixel becomes due to containing more inpainted pixels with each layer. to avoid intensity artifacts, the values of pixels which are closer to the target pixel are prioritized over pixels which are further away.
+
+\item Lastly the level set (lev) focusses on the distance of the pixels considering the contour of the mask in general, putting a greater weight on source pixels which are closer to the mask itself\\
+\end{itemize}
+whereas these three factors end up with the following mathematical formulas:
 
 \[dir(p,q) = \dfrac{p-q}{||p-q||} \times N(p)\]
 \[dst(p,q) = \dfrac{d_0^2}{||p-q||^2}\]
 \[lev(p,q) = \dfrac{T_0}{1 + |T(p) - T(q)|}\]
-$dir(p,q)$ in this case calculates the priority of the analyzed pixel $q$ in correlation to the pixel $p$s normal direction $N = \Delta T$.
-$dst(p,q)$ defines the distance between the known pixel $q$ and the yet unknown pixel $p$. Closer pixels should be weighted stronger than pixels which are further away.
-$lev(p,q)$ lastly is the level set distance of the two pixels, ensuring that pixels closer to the contour of $p$ contribute more to the resulting value of $p$ than those further away.\\
 $d_0$ and $T_0$ reference the relative interpixel distance, usually set to 1 \cite{TeleaFastMarching2004}. \\
-It was based on the model of manual inpainting heuristics first introduced by Bertalimo, on how to paint a point by introducing colors from a small region around it \cite{Bertalimo2000}.\\\\
+It was based on the model of manual inpainting heuristics first introduced by Bertalimo on how to paint a point by introducing colors from a small region around it \cite{Bertalimo2000}.\\\\
 This algorithm alone can only calculate a value for one color channel. By applying it to all 3 channels of the RGB spectrum it can easily be adjusted to calculate pixels for colored video frames.
 
-The advantages of the algorithm are both its easy-to-implement nature, allowing for an easy understanding of the algorithm, as well as its efficiency and quality considering the simplicity.
+The advantages of the algorithm are both its easy-to-implement nature, allowing for an easy understanding of the algorithm, as well as its efficiency and quality considering the simplicity, whilst its disadvantage is the loss of structural information.
 
-One of the disadvantages, which is present for most algorithmic methodologies, is the issue of larger missing regions. There have been proposals and solutions for this disadvantage for the FMM method though. 
-Nurmala, Horikawa and Du proposed a solution using segmentation of the large missing region through structure propagation to split the missing region into multiple smaller missing image regions \cite{Weiwei2021}. This makes the algorithm very attractive for real time DR use cases, as it is both performant and 
-can handle missing regions of variable sizes
+There have been proposals and solutions for this disadvantage for the FMM method though.
+Nurmala, Horikawa and Du proposed a solution using segmentation of the large missing region through structure propagation to split the missing region into multiple smaller missing image regions \cite{Weiwei2021}. During initial testing it turned out to reduce the performance of the inpainting
+algorithm too much for a real-time usage, considering its quality improvements.
 
 \subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
 \label{cha:NonlocalTexture}
@@ -120,40 +127,58 @@ This approach is also known as exemplar-based inpainting and was established as 
 
 \begin{figure}[htb!]
   \begin{center}
-    \includegraphics[width=1\textwidth]{LaMa.PNG}
-    \caption{TODO SG create graphic for NLT as example with drawio and explain the concept before going into mathematics; Explain Mathematics in detail, why it is done and how it affects the end result}
+    \includegraphics[width=0.5\textwidth]{NLTMExample.PNG}
+    \caption{Taken from \cite{DingRam2019}, It shows an example of the candidate selection for the inpainting patch. The missing areas from the target patch are then filled with normalized and averaged values from the correlating candidate patch pixels}
     \label{fig:NLTMExplanation}
   \end{center}
 \end{figure}
 
-It accomplishes this by first prioritizing the patches to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch.\\
+It accomplishes this by first prioritizing the patches of the mask to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch, as can be seen in the upper left patch of \ref{fig:NLTMExplanation}.\\
 The priority function is defined as:
 \[P(\Psi_p) = C(\Psi_p) \times D(\Psi_p), p \in \delta\Omega\]\\
 In this function, $\Psi_p$ is defined as the selected patch, whereas the pixel p is defined as the center point of the patch, which is a part of the unknown area boundaries $\delta\Omega$.
-$C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known pixels within the given patch. $D(\Psi_p)$ is defined as the dot product of the isophote vector of p ($\Delta I_p$). This vector is defined to go along the direction of equal pixel intensity lines of the known area.
+$C(\Psi_p)$ defines the confidence term, which is defined as the ratio of known pixels within the given patch. 
+
+The function D in the function above represents the data about the strength of the surrounding structural information, like edges and textures at the given pixel and how they pass through the missing region to propagate information for inpainting around these pixels, rather than across them. 
+
+$D(\Psi_p)$ is mathematically defined as the dot product of the isophote vector of p ($\Delta I_p$). 
+This vector represents the edges and textures around the target patch and can be interpreted as a vector with a 90° rotation compared to the gradient, therefore following the contours of the image, which can be recognized by lines of constant intensities.
+As the NLTM algorithm puts a large focus in keeping textures and edges consistent in the inpainted areas, this needs to be considered accordingly.
 
 \[D(\Psi_p) = \dfrac{\Delta I_p \times n_p}{I_{max}}\]
 \[\Delta I_p = \dfrac{1}{2I_{max}} \{[I(x_p, y_p - 1) - I(x_p, y_p + 1)] \times i + [I(x_p + 1, y_p) - I(x_p - 1, y_p)] \times j\}\]
+
+The isomorph vector function shown above, may seem complicated at first, but after breaking it down it becomes rather simple. The subtractions of the intensity, $I(x_p, y_p - 1) - I(x_p, y_p + 1)$ serves to estimate the intensity change in a vertical dimension, whilst the same subtraction with modifications to x serves to provide the intensity change of the horizontal dimension.
+
+To actually create a vector, i and j are defined as unit vectors in the x and y direction, which are used to modify the vectors according to the intensities.
+
+These values are then normalized using the term $\dfrac{1}{2I_{max}}$, which helps to compare the patches with each other, as the intensities may differ majorly between different parts of the mask contour surroundings.
+Through this function, the patches can be prioritized, by considering the existing contours within and comparing them with the contours and textures.
+
+Since the isomorph vector already provides information about which direction the structures of the image wish to continue towards, it should also be considered in which direction the mask needs to be filled when looking at the center of the pixel patch. This is where the normal vector $n_p$ comes in: 
 \[n_p = [M(x_p + 1, y_p) - M(x_p - 1, y_p)] \times i + [M(x_p, y_p + 1) - M(x_p, y_p - 1)] \times j \]
 \\
 $n_p$ in this case defines the normal vector at the center pixel $p$. $M$ returns 1, in case the given coordinate in the parameters is inside of the known pixels and 0 in case it is at the position of an unknown pixel.
-Lastly, i and j are defined as unit vectors in the x and y direction.\\
-After the prioritized target patch is chosen, a non-local texture similarity (NLTS) measure is used to select canidate patches as sources for filling the target region.
+This calculation ensures the filling progresses from the outer contour of the mask inwards, whilst also assuring a consistency for the edge continuation of the isomorph vector.\\
+
+After the prioritized target patch is chosen, a non-local texture similarity (NLTS) measure is used to select candidate patches as sources for filling the target region.
 This NLTS is defined as such:
 \[NLTS(I_p, I_q) = \dfrac{-||(I_p^2-I_q^2)\ o\ G_p||1}{h^2}\]
 $o$ is in this case defined at the element-wise product operator, whilst h is a user-selected parameter, which should be proportionately larger than the maximum color value (usually 255).
 $G_p$ is the Gaussian kernel over the target patch with p at its center.
 
-Using this NLTS measure, a number of source regions may be collected. The more canidates the following algorithm has, the less error prone the inpainting.
+Using this NLTS measure, a number of source regions may be collected. The more candidates the following algorithm has, the less error prone the inpainting.
 
-After deciding on which canidate patches to pick, for each of the missing pixels, the mean value of all the canidates corresponding pixels is calculated and applied to the target pixel.\\
-To support color, the isophote vector, used for the priority calculation, is computed as the average of all three color channels. The NLTS formular too is changed slightly, to sum up the value above for each of the three color channels \cite{DingRam2019}.
+After deciding on which candidate patches to pick, for each of the missing pixels, the mean value of all the candidates corresponding pixels is calculated and applied to the target pixel.\\
+To support color, the isophote vector, used for the priority calculation, is computed as the average of all three color channels. The NLTS needs to be modified as well, to sum up the value above for each of the three color channels \cite{DingRam2019}.
 
 \subsubsection{Exemplar-Based Image Inpainting with modified priorities}
+\label{cha:ELTMTheory}
+
 This method was first proposed 2015 by Deng, see \cite{DengLiang-Jian2015EIIU}.\\
 For this method, many approaches are similar to the non-local texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
 
-Such exemplar-based algorithms put the focus on the surrounding area of the target pixels, therefore reducing the search area for canidate pixel patches marginally and improving the performance, albeit at a potential loss of quality.
+Such exemplar-based algorithms put the focus on the surrounding area of the target pixels, therefore reducing the search area for candidate pixel patches marginally and improving the performance, albeit at a potential loss of quality.
 
 Compared to the approach of the prior chapter, the priority function is overhauled to the following:
 
@@ -170,7 +195,7 @@ To reduce the computational load of the similarity between two patches, the form
 \[\Psi_q = argmin\ d(\Psi_p, \Psi_q)\]
 $d(\Psi_p, \Psi_q)$ in this case describes the sum of squared differences of the known pixels between the two patches.
 
-After finding the patch with the highest similarity, this patch is used to fill the missing pixels of the target patch. This is one of the methodologies in which it differs to the NLTS approach of Ding, Ram, Rodriguez and Jeffrey (see section \ref{cha:NonlocalTexture}). Instead of picking multiple source patches and using mean values it only considers one \cite{DengLiang-Jian2015EIIU}.
+After finding the patch with the highest similarity, this patch is used to fill the missing pixels of the target patch. This is one of the methodologies in which it differs to the NLTS approach of Ding, Ram, Rodriguez and Jeffrey (see section \ref{cha:NonlocalTexture}). Instead of picking multiple source patches and using a mean value it only considers one \cite{DengLiang-Jian2015EIIU}.
 
 This should therefore reduce the computational complexity, reducing the runtime of the process. In return this will cause the method to be more error prone and for the output to potentially be of lower quality.
 
@@ -179,7 +204,7 @@ Moving away from algorithmic methods, many modern methods also use trained inpai
 Whilst using inpainting models, might seem slower compared to algorithmic models, most of them provide higher quality images.
 
 One of those networks is the Large Mask (LaMa) inpainting network, using Fourier Convolutions to inpaint large masks effectively.
-Whenever large areas need to be filled using inpainting, the global context of images needs to be considered. The Fast Fourier Convolution (FFC), first introduced in 2020 by Chi, see \cite{Chi2020FastFC}, is a operator, which allows the usage of global context in early layers of the inpainting pipeline.
+Whenever large areas need to be filled using inpainting, the global context of images needs to be considered. The Fast Fourier Convolution (FFC), first introduced in 2020 by Chi, see \cite{Chi2020FastFC}, is an operator which allows the usage of global context in early layers of the inpainting pipeline.
 It manages this by splitting up in a local and a global branch, evaluating those two branches before merging the results back together.
 
 As networks are often trained on images with lower resolutions, it is very common to first downscale the image, process it and upscale it afterwards. LaMa uses a similar approach.
@@ -197,14 +222,16 @@ For this, inpainting models implement multiple functions. In the case of LaMa th
 \begin{itemize}
 \item The first of the loss functions concerns itself with perceptual loss. This function concerns itself with the evaluation of the distance between different features, which are extracted from the predicted and target images by a pre-trained network.
 
-\item The second function puts its focus on the adversarial loss, focussing on generating naturally looking details. It accomplishes this by using a discriminator, which discriminates between the existing and the generated patches. Thanks to the perceptual loss of the first function, this generator quickly learns to copy the existing areas of the image.
+\item The second function puts its focus on the adversarial loss, focussing on generating naturally looking details. It accomplishes this by using a discriminator, to differentiate between the existing and the generated patches. Thanks to the perceptual loss of the first function, this generator quickly learns to copy the existing areas of the image.
 
 \item In the final step a gradient penalty is applied to stabilize the training data. It has also been proven to in some cases slightly improve performance \cite{SuvorovRoman2022RLMI}\\
 \end{itemize}
 Due to the existence of pre-trained models, the focus in this thesis lies on the integration and evaluation of the existing model inside a real-time inpainting process.
-\\\\
+
+\subsubsection{Expectations for Real-Time Usage}
+
 Based on the concepts of each of the analyzed approaches, it is highly likely for the FMM approach to be the most efficient, due to its relative low computational cost, in return it should provide the lowest quality inpainting, due to simply stretching the pixels from the surroundings of the mask inwards.
-In stark contrast, NLTM should provide the highest quality inpainting, albeit at the cost of performance due to having to analyze the entire image and calculating the average of the canidates pixel values. In this regard, ELTM might provide a good trade-off, using the surrounding pixels similarly to FMM, but still analyzing pixel patches for similarity in a similar manner to NLTM
+In stark contrast, NLTM should provide the highest quality inpainting, albeit at the cost of performance due to having to analyze the entire image and calculating the average of the candidates pixel values. In this regard, ELTM might provide a good trade-off, using the surrounding pixels similarly to FMM, but still analyzing pixel patches for similarity in a similar manner to NLTM
 \\The LaMa Inpainting Model might prove to be the most performant, due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
 
 \begin{table}[h!]
@@ -213,13 +240,13 @@ In stark contrast, NLTM should provide the highest quality inpainting, albeit at
   \hline
   \textbf{Method}& \textbf{Performance} & \textbf{Quality} & \textbf{Plausibility} \\
   \hline
-  Fast Marching Method & \textcolor{green}{High} & \textcolor{red}{Low} & \textcolor{green}{High} \\
+  Fast Marching Method & \textcolor{ForestGreen}{High} & \textcolor{red}{Low} & \textcolor{ForestGreen}{High} \\
   \hline
-  Nonlocal Texture Matching and Nonlinear Filtering & \textcolor{red}{Low} & \textcolor{green}{High} & \textcolor{red}{Low} \\
+  Nonlocal Texture Matching and Nonlinear Filtering & \textcolor{red}{Low} & \textcolor{ForestGreen}{High} & \textcolor{red}{Low} \\
   \hline
   Exemplar-Based Image Inpainting with modified priorities & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} \\
   \hline
-  Large Mask Inpainting with Fourier Convolutions & \textcolor{green}{High} & \textcolor{green}{High} & \textcolor{green}{High} \\
+  Large Mask Inpainting with Fourier Convolutions & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} \\
   \hline
 \end{tabular}
 \caption{Expected evaluation results considering the conceptual design}

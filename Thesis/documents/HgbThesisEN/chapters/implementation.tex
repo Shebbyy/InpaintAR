@@ -9,8 +9,8 @@ After providing an overview of the hardware and software used during the develop
 As the focus of this thesis lies on the evaluation of inpainting methodologies in an AR environment, a HMD which supports this technology,
 as well as provides access to the camera-data is required. In addition, the HMD should have the capabilities of hand-tracking for the area selection component.
 
-A Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} is chosen for this, as it provides all the necessary features and was just recently extended with its new passthrough API\footnote{https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview}, which allows
-for developers to directly access camera data. The HMD is equipped with two RGB cameras with 18 Pixels Per Degree for video see-through, whose output is displayed on two 2.064x2.208 pixel displays with a refresh rate of up to 120hz.
+A Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} is chosen for this, as it provides all the necessary features, was just recently extended with its new passthrough API\footnote{https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview}, which allows
+for developers to directly access camera data and was readily on hand. The HMD is equipped with two RGB cameras with 18 Pixels Per Degree for video see-through, whose output is displayed on two 2.064x2.208 pixel displays with a refresh rate of up to 120hz.
 
 \subsubsection{Software}
 The implementation is built in the Unity3D Game Engine\footnote{https://unity.com/products/unity-engine} in the Version 6000.1.0f1.
@@ -20,9 +20,9 @@ It uses the Meta XR Core SDK\footnote{https://assetstore.unity.com/packages/tool
 The aforementioned Meta Passthrough API is built on top of the Android Camera2 API. This allows for the camera to be used in a similar manner to mobile phone cameras, albeit with a few caveats:
 
 \begin{itemize}
-\item As of this moment the passthrough API is not supported over link. This means the software can only be evaluated on device, in the meta quests' standalone mode.
+\item As of this moment the passthrough API is not supported over link. This means the software can only be evaluated on device, in the Meta Quests' standalone mode.
 
-\item The Camera Texture returned by the API is smaller than what a user sees in the quest 3. Whilst there are extensions and improvement over time, as of this moment it is not possible to cover the entire viewport of the user.
+\item The Camera Texture returned by the API is smaller than what a user sees in the Quest 3. Whilst there are extensions and improvement over time, as of this moment it is not possible to cover the entire viewport of the user.
 
 \item The Camera Texture is inside of the GPU memory. For inpainting and the quality evaluation, this needs to be sent to the CPU which takes up additional latency \cite{MetaPassthrough}.\\
 \end{itemize}
@@ -40,7 +40,7 @@ As for the Code itself, it is written in C\string# 9 on the .Net Standard 2.1. T
 \end{figure}
 
 A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in \ref{fig:UML}. 
-This allows for components in the implementation to be swapped out independantly of each other. Therefore in case this prototype gets extended and improved on in the future, for example with additional inpainting algorithms or different mask detection solutions without affecting other parts of the program.
+This allows for components in the implementation to be swapped out independently of each other. Therefore in case this prototype gets extended and improved on in the future, for example with additional inpainting algorithms or different mask detection solutions, these components may be swapped out without affecting other parts of the system.
 
 The entire controlling of the system is handled within the AreaSelectionVisualizer class. This script receives the hand-tracking data from the AreaSelectionGestureHandler and then uses the SelectionUiController to visualize the selection area to the user.
 
@@ -100,7 +100,7 @@ private bool CheckLShape(OVRSkeleton skeleton, out Vector3 cornerPos) {
 \end{program}
  
 In the example shown in \ref{prog:LShape}, the thumb and index finger are compared, based on the directional vector, created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
-As the base-bone of the thumb is the metacarpal, the rectangles corner is slightly closer to the wrist than the actual corner of the L, this stabilizes the gesture detection, albeit at the cost of a slight displacement.
+As the base-bone of the thumb is the metacarpal, the rectangles corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
 
 \begin{figure}[htb!]
   \begin{center}
@@ -131,11 +131,11 @@ Both the mask and the current frame camera texture are then handed over to the i
 
 The Inpainting algorithms are being called each frame. The reason for this is to allow for an easy comparison of the performance by looking at the Frames per Second (FPS) the application achieves. The target FPS rate for real-time should be at least 60 FPS for HMDs to avoid motion sickness. For regular displays, 30 FPS should also be sufficient \cite{WangQile2023Asro}. 
 
-As both the NLTM and ELTM algorithms require downscaling, this too is applied to the FMM and the LaMa methods to keep the input to the algorithms similar. The default resolution of 1280x1280 would mean 100k+ iterations for the texture matching algorithms for the canidate evaluation, which would make both methodologies infeasable for real-time inpainting with current hardware normally, but by simply downscaling the image and upscaling it again after the inpainting algorithm finished,
+As both the NLTM and ELTM algorithms require downscaling, this too is applied to the FMM and the LaMa methods to keep the input to the algorithms similar. The default resolution of 1280x1280 would mean 100k+ iterations for the texture matching algorithms for the candidate evaluation, which would make both methodologies infeasible for real-time inpainting with current hardware, however by simply downscaling the image and upscaling it again after the inpainting algorithm finished,
 the performance can be improved majorly. As the inpainting aims to overlay objects with background predictions, which are not in the focus for the user, the quality loss is acceptable and should still be superior in quality compared to FMM due to the texture recognition.
 
 \subsubsection{Unity Burst Compiler}
-Since the Mono runtime of unity is rather slow, for such high performance implementations the Unity3D Engine provides the Burst Compiler\footnote{https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html}.
+Since the Mono runtime of unity is rather slow for such high performance implementations, the Unity3D Engine provides the Burst Compiler\footnote{https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/index.html}.
 
 This compiler works by translating the Intermediate Language code generated by C\string# into code specifically generated for the target CPU architecture by using LLVM\footnote{https://llvm.org/}, which can lead to a 10x - 100x performance improvement, similar to writing raw C/C++ code.
 Since the LLVM translation layer does not support the full C\string# language scope, Burst code needs to be written in a specific pattern and marked with the [BurstCompile] Attribute.
@@ -221,33 +221,27 @@ In the default algorithm, the specific entry inside the heap would need to be lo
 To find out if a heap entry is stale, an id is stored with the heap entry. For each pixel to inpaint, the most current id is stored inside of a separate data structure for reference. If this id does not match the entry is declared stale, reducing the asymptotic runtime of the distance update from O(n) to O(log n)
 
 \subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
+\label{cha:NLTMImpl}
 
 As already mentioned in the Concept chapter (see \ref{cha:InpaintingDesign}), the NLTM algorithm by itself is rather slow. 
 
-One of the proposed optimizations was the PatchMatch-oriented approach of looking for subsequent frames canidates within the surroundings of the prior frames canidate pixel patches. One advantage of this is the possibility of parallelizations, as the canidate patches are all independent of one another.
-Therefore this can once again be solved through the implementation of a IJobParallelFor, as seen in \ref{prog:NltmCachedPositions}
+One of the proposed optimizations was the PatchMatch-oriented approach of looking for subsequent frames candidates within the surroundings of the prior frames candidate pixel patches. One advantage of this is the possibility of parallelizations, as the candidate patches are all independent of one another.
+Therefore this can once again be solved through the implementation of a IJobParallelFor as seen in \ref{prog:NltmCachedPositions}
 
 \begin{program}[h!]
-\caption{Nonlocal Texture Matching cached canidate patch search}
+\caption{Nonlocal Texture Matching cached candidate patch search}
 \label{prog:NltmCachedPositions}
 \begin{CsCode}
 // Parallel job for searching specific positions
 [BurstCompile]
 private struct SearchPositionsJob : IJobParallelFor {
-    [ReadOnly] public int TargetX;
-    [ReadOnly] public int TargetY;
-    [ReadOnly] public int Width;
-    [ReadOnly] public int Height;
-    [ReadOnly] public NativeArray<int> SearchPositions;
-    [ReadOnly] public NativeParallelHashSet<int> MaskSet;
-    [ReadOnly] public NativeArray<Color32> Pixels;
-    [ReadOnly] public NativeArray<float> GaussianWeights;
-    [WriteOnly] public NativeArray<CandidateInfo> Results;
+    ...
+
     public void Execute(int index) {
         int pos = SearchPositions[index];
         int sx = pos % Width;
         int sy = pos / Width;
-        // Canidate Patches which contain parts of the mask are not valid
+        // candidate Patches which contain parts of the mask are not valid
         if (!IsPatchFullyKnownBurstStatic(sx, sy, MaskSet, Width, Height)) {
             Results[index] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
             return;
@@ -264,13 +258,13 @@ private struct SearchPositionsJob : IJobParallelFor {
 \end{CsCode}
 \end{program}
 
-The NLTM Implementation is only configured to use the best 4 canidate patches for the alpha trimmed mean values.
-This means the found canidates for each target patch need to be sorted in order of the texture similarity. As there is a very large number of canidates, of which only the best 4 are required, the overhead of sorting any more canidates is unnecessary.
+The NLTM Implementation is only configured to use the best 4 candidate patches for the alpha trimmed mean values.
+This means the found candidates for each target patch need to be sorted in order of the texture similarity. As there is a very large number of candidates, of which only the best 4 are required, the overhead of sorting any more candidates is unnecessary.
 
-Therefore the sort algorithm only uses a partial sort, using the selection sort as it seems the easiest to implement using deconstruction in C\string#, as can be seen in \ref{prog:NLTMSort}.
+Therefore the sort algorithm only uses a partial sort, using the selection sort algorithm, as it is the easiest to implement using deconstruction in C\string#, as can be seen in \ref{prog:NLTMSort}.
 
 \begin{program}[h!]
-\caption{Nonlocal Texture Matching Canidate Patch Partial Sort}
+\caption{Nonlocal Texture Matching candidate Patch Partial Sort}
 \label{prog:NLTMSort}
 \begin{CsCode}
 private static void SortCandidates(ref NativeList<CandidateInfo> candidates) {
@@ -298,6 +292,63 @@ By simply using these optimizations, the Time Per Pixel, which was tracked durin
 
 \subsubsection{Exemplar-Based Image Inpainting with modified priorities}
 
+The implementation of this algorithm is in large parts similar to the NLTM Algorithm presented in \ref{cha:NLTMImpl}, although there are several large changes:
+
+\begin{itemize}
+    \item The Priority Function was overhauled according to the thesis presented in \ref{cha:ELTMTheory}. Due to these changes, the fill order of the masked area stays accurate and does not degrade. This means the patches targeted for inpainting are of higher quality and the overall filled area should be more consistent.
+    \item Instead of using an alpha trimmed mean value for the pixels, the best patch is picked. This makes the algorithm a lot more performance, albeit at the cost of artifacts in case the best matching patch contains any noise or artifacts.
+    \item Whilst the NLTM Algorithm used a performance heavy gaussian-weighted distance for its candidate selection, whilst ELTM uses a simple sum of squared differences. This means ELTM will be worse for matching textures, but in return it should provide superior performance.
+    \item The candidate search is limited to a local area instead of the entire image, although the modified NLTM algorithm uses a similar approach, albeit using the local area of the prior frames candidate patches rather than the target patches local area.
+\end{itemize}
+
+The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search, as seen in \ref{prog:ELTMcandidateSearch}.
+
+\begin{program}[h!]
+\caption{Exemplar-Based Image Inpainting local candidate search}
+\label{prog:ELTMcandidateSearch}
+\begin{CsCode}
+[BurstCompile]
+private struct LocalSearchJob : IJobParallelFor {
+    ...
+
+    public void Execute(int i) {
+        int pos = SearchPositions[i];
+        int sx = pos % Width;
+        int sy = pos / Width;
+        if (!IsPatchFullyKnownStatic(sx, sy, MaskSet, Width, Height)) {
+            Distances[i] = float.MaxValue;
+            return;
+        }
+        Distances[i] = CalculateSsdStatic(TargetX, TargetY, sx, sy, MaskSet, Pixels, Width, Height);
+    }
+
+    ...
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static float CalculateSsdStatic(int targetX, int targetY, int sourceX, int sourceY,
+        NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
+        float sum = 0f;
+        int cnt = 0;
+        for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
+            for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
+                ...
+
+                Color32 targetColor = pixels[targetIdx];
+                Color32 sourceColor = pixels[sourceIdx];
+                float diffRed = targetColor.r - sourceColor.r;
+                float diffGreen = targetColor.g - sourceColor.g;
+                float diffBlue = targetColor.b - sourceColor.b;
+                sum += diffRed * diffRed + diffGreen * diffGreen + diffBlue * diffBlue;
+                cnt++;
+            }
+        }
+        return cnt > 0 ? sum / cnt : float.MaxValue;
+    }
+}
+\end{CsCode}
+\end{program}
+Each patch gets its texture distance calculated accordingly, of which the patch with the lowest distance and therefore the highest similarity is picked and used to fill out the missing pixels of the target patch with the correlating pixels of the selected source patch.
+
 \subsubsection{Large Mask Inpainting Model Integration}
 
 As training a new inpainting model lies out of scope for this thesis, the provided model\footnote{https://github.com/advimman/lama} which was trained by the original LaMa authors back in 2021 for their paper (see \cite{SuvorovRoman2022RLMI}) was used.
@@ -306,7 +357,7 @@ The Unity developers created the Sentis library for the integration of pretraine
 
 This library only offers support for models in the Open Neural Network Exchange (ONNX) format, whilst the provided LaMa model is merely a Checkpoint file. Therefore this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to ONNX.
 
-By using this script and exporting the model with the Opset-Version 15 it can then be imported by the Sentis engine during the applications runtime, as seen in \ref{prog:LaMaImport}.
+By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the applications runtime, as seen in \ref{prog:LaMaImport}.
 
 \begin{program}[h!]
 \caption{LaMa Model Initialization}
@@ -329,9 +380,8 @@ private void Initialize() {
 \end{CsCode}
 \end{program}
 
-Both the source image and the inpainting mask are both put into the model through tensors. 
-The size of these needs to be defined during the ONNX export and has been set to 512x512 pixels for the evaluation. Therefore the input texture and mask need to both be downscaled accordingly and upscaled afterwards, similarily to the NLTM and ELTM implementations.
-todo sg maybe change tensor, if 256x256 is used after all
+Both the source image and the inpainting mask are both put into the model through tensors.
+The size of these needs to be defined during the ONNX export and has been set to 256x256 pixels for the evaluation. Therefore the input texture and mask need to both be downscaled accordingly and upscaled afterwards, similarily to the NLTM and ELTM implementations.
 
 Running the model is just as simple, with just a few lines of code, as seen in \ref{prog:LaMaInference} to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes
 
@@ -367,7 +417,7 @@ In terms of implementation complexity, it was by far the easiest to integrate, a
 
 \section{Evaluation Background Jobs}
 
-As the quality and clutter evaluation algorithms need a lot of computational resources they cannot run in the foreground for each frame, due to it affecting the performance evaluation severely. Therefore the Unity Job System is used for these evaluations, albeit with the jobs running in the background rather than blocking the main thread, like in the inpainting implementations.
+As the quality and clutter evaluation algorithms need a lot of computational resources they cannot run in the foreground for each frame, due to it affecting the performance evaluation severely. Therefore, the Unity Job System is used for these evaluations, albeit with the jobs running in the background rather than blocking the main thread like in the inpainting implementations.
 
 This means the quality and clutter evaluation works on a "evaluate if ready" principle, only evaluating frames whenever there is no other frame being evaluated at the moment of the call, as seen on \ref{fig:EvaluationBackgroundSchedule}.
 
@@ -392,10 +442,10 @@ As this implementation is meant as a prototype and the Meta Quest Passthrough AP
     This means, the inpainting area is limited around the middle of the users viewport and cannot quite reach the edges yet.
 
     \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the skybox causes the overlay of the inpainted texture to be slightly offset in some cases.
-    whilst this could be avoided by calculating the correction transformation and applying it, but this would be out of the scope of this thesis, as it is not too visible on the inpainted areas, as long as the mask leaves some padding between the edges and the object to be removed
+    whilst this could be avoided by calculating the correction transformation and applying it, this would be out of the scope of this thesis, as it is not too visible on the inpainted areas as long as the mask leaves some padding between the edges and the object to be removed
 
     \item The implementations of the inpainting algorithms and evaluations are built for the CPU (except for LaMa, as it can be ran on the GPU by setting a flag during the model initialization),
-    due to the large complexity and in part major rewrites which are necessary to get the algorithms to run on GLSL shader code instead of C\string#.
+    due to the large complexity and in part major rewrites which are necessary to get the algorithms and data structures to run on GLSL shader code instead of C\string#.
 
     \item The inpainting mask does not adjust to the objects behind it. This means, if a hand is placed behind the mask or the object behind the mask is moved, the mask will not adjust for the change, therefore painting over the hand or the now empty space. This could be solved by adjusting the mask dependant on the objects behind it,
     but this would once again add more performance degradations and complexity due to needing to track the objects movements and reacting to new objects added behind the mask.

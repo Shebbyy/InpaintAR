@@ -1,25 +1,30 @@
 \chapter{Evaluation}
 \label{cha:Evaluation}
 
-When the Evaluation was conducted, in what environment
+The main objective of this thesis was to evaluate which inpainting algorithms are suited for a real-time visual clutter reduction in AR. In this chapter, several different scenarios are evaluated for each algorithm in terms of runtime performance, overall inpainting quality and the visual clutter reduction.
 
-\section{Testing Setup}
+The entire testing was conducted on a Meta Quest 3 running on the current release of HorizonOS, v81.
 
-\subsection{Hardware Setup}
-1x Meta Quest 3 Standalone
+\subsubsection{Results}
 
-\section{Results}
-
-\subsection{Quality Metrics}
-Graph of the quality metrics (Quality + Visual Clutter remaining) per test-scenario for each of the methods + explanation
-SubSubsection for each of the methods evaluated
-Graph of the performance metrics per test-scenario for each of the methods + explanation
-
+For the evaluation, several test scenarios have been prepared, which are aimed at bringing out both the conceptual advantages and disadvantages of the different implemented methodologies, like the texture continuation and edge recognition.
 
 \subsubsection{Clean uniform Background}
 
+This serves as a very basic and baseline testcase. Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high quality result. At most there should be some artifacts in terms of the shading.
+
+<INSERT RESULT>
+
 \subsubsection{Background Pattern}
+
+This scenario is done on a wooden desk, as the patterns of the wood provides a good example of how well the inpainted area can blend in with textured backgrounds.
 
 \subsubsection{Desk with Notebook and Pen}
 
+As the aforementioned test scenarios are focussed on rather small, focussed inpainting masks, this test case aims to show the performance and quality for larger masks. This should also serve as a good stress-test for the performance and how the performance of the methodologies degrades with larger masks.
+
 \subsubsection{Desk with multiple glasses of water}
+
+The focus here is to test how well the inpainting algorithms can consider reflective objects in both the inpainting mask, as well as its surroundings for the canidate selection of NLTM and ELTM. 
+These objects should preferrably be avoided as sources, due to the discoloring and blurring of the reflected background in favor of the regular background.
+
