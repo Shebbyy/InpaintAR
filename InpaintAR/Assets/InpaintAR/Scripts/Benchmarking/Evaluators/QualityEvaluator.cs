@@ -9,7 +9,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
     // Image Inpainting Quality Assessment (IIQA) based on Guided Regional Statistics (GRS)
     // See DOI 10.1587/transinf.2018EDL8206
     public class QualityEvaluator {
-        private const float StructuralSimilarityWeight = 0.5f;
+        private const float StructuralSimilarityWeight = 0.6f;
         private static readonly List<float> QualityResults = new();
         private static JobHandle? _jobHandle;
         private static NativeArray<Color32> _nativeOriginal;

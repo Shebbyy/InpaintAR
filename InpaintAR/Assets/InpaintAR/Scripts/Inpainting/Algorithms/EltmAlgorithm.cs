@@ -464,14 +464,14 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                         int sy = sourceY + dy;
                         int sourceIdx = sy * width + sx;
 
-                        Color32 tc = pixels[targetIdx];
-                        Color32 sc = pixels[sourceIdx];
+                        Color32 targetColor = pixels[targetIdx];
+                        Color32 sourceColor = pixels[sourceIdx];
 
-                        float dr = tc.r - sc.r;
-                        float dg = tc.g - sc.g;
-                        float db = tc.b - sc.b;
+                        float diffRed = targetColor.r - sourceColor.r;
+                        float diffGreen = targetColor.g - sourceColor.g;
+                        float diffBlue = targetColor.b - sourceColor.b;
 
-                        sum += dr * dr + dg * dg + db * db;
+                        sum += diffRed * diffRed + diffGreen * diffGreen + diffBlue * diffBlue;
                         cnt++;
                     }
                 }
