@@ -355,7 +355,8 @@ Each patch gets its texture distance calculated accordingly, of which the patch 
 
 As training a new inpainting model lies out of scope for this thesis, the provided model\footnote{https://github.com/advimman/lama} which was trained by the original LaMa authors back in 2021 for their paper (see \cite{SuvorovRoman2022RLMI}) was used.
 
-The Unity developers created the Sentis library for the integration of pretrained neural network models into applications for real-time use. This library also allows for those models to be ran directly on the GPU \cite{UnitySentis}.
+The Unity developers created the Sentis library for the integration of pretrained neural network models into applications for real-time use. This library also allows for those models to be ran directly on the GPU \cite{UnitySentis}. There have been attempts to get the model to run on the GPU, but it caused several crashes due to running out of GPU memory, whenever a screen recording is running in parallel.
+In addition to this, the entire OS would become rather unresponsive, which made the GPU computation of this model unusable. Therefore it was evaluated using the CPU, just like the other approaches
 
 This library only offers support for models in the Open Neural Network Exchange (ONNX) format, whilst the provided LaMa model is merely a Checkpoint file. Therefore this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to ONNX.
 
@@ -374,8 +375,8 @@ private void Initialize() {
     // Load the model from the asset
     m_model = ModelLoader.Load(modelAsset);
 
-    // Create worker with GPU compute backend for Quest optimization
-    m_worker = new Worker(m_model, BackendType.GPUCompute);
+    // Create worker with CPU backend for Quest, for GPU BackendType.GPUCompute
+    m_worker = new Worker(m_model, BackendType.CPU);
 
     ...
 }
@@ -404,10 +405,10 @@ private Tensor<float> RunInference() {
 
     m_worker.Schedule();
 
-    var gpuTensor = m_worker.PeekOutput() as Tensor<float>;
+    var tensor = m_worker.PeekOutput() as Tensor<float>;
 
-    // Download from GPU to CPU - ReadbackAndClone returns a new CPU-readable tensor
-    var cpuTensor = gpuTensor.ReadbackAndClone();
+    // Download from Tensor to CPU - ReadbackAndClone returns a new CPU-readable tensor
+    var cpuTensor = tensor.ReadbackAndClone();
     return cpuTensor;
 }
 \end{CsCode}
@@ -446,8 +447,7 @@ As this implementation is meant as a prototype and the Meta Quest Passthrough AP
     \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the skybox causes the overlay of the inpainted texture to be slightly offset in some cases.
     whilst this could be avoided by calculating the correction transformation and applying it, this would be out of the scope of this thesis, as it is not too visible on the inpainted areas as long as the mask leaves some padding between the edges and the object to be removed
 
-    \item The implementations of the inpainting algorithms and evaluations are built for the CPU (except for LaMa, as it can be ran on the GPU by setting a flag during the model initialization),
-    due to the large complexity and in part major rewrites which are necessary to get the algorithms and data structures to run on GLSL shader code instead of C\string#.
+    \item The implementations of the inpainting algorithms and evaluations are built for the CPU, due to the large complexity and in part major rewrites which are necessary to get the algorithms and data structures to run on GLSL shader code instead of C\string#.
 
     \item The inpainting mask does not adjust to the objects behind it. This means, if a hand is placed behind the mask or the object behind the mask is moved, the mask will not adjust for the change, therefore painting over the hand or the now empty space. This could be solved by adjusting the mask dependant on the objects behind it,
     but this would once again add more performance degradations and complexity due to needing to track the objects movements and reacting to new objects added behind the mask.

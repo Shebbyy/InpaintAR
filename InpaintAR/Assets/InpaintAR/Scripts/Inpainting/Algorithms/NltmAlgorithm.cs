@@ -449,13 +449,13 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private static float CalculateDataStatic(int px, int py, float2 normal, NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
                 int centerIdx = py * width + px;
-                float centerGray = (pixels[centerIdx].r * 0.299f + pixels[centerIdx].g * 0.587f + pixels[centerIdx].b * 0.114f) / 255f;
+                float centerGray = ((Color)pixels[centerIdx]).grayscale / 255f;
 
                 float GetVal(int x, int y) {
                     if (x < 0 || x >= width || y < 0 || y >= height) return centerGray;
                     int idx = y * width + x;
                     if (maskSet.Contains(idx)) return centerGray;
-                    return (pixels[idx].r * 0.299f + pixels[idx].g * 0.587f + pixels[idx].b * 0.114f) / 255f;
+                    return ((Color)pixels[idx]).grayscale / 255f;
                 }
 
                 float gx = -GetVal(px-1, py-1) + GetVal(px+1, py-1) - 2*GetVal(px-1, py) + 2*GetVal(px+1, py) - GetVal(px-1, py+1) + GetVal(px+1, py+1);

@@ -232,7 +232,7 @@ Due to the existence of pre-trained models, the focus in this thesis lies on the
 
 Based on the concepts of each of the analyzed approaches, it is highly likely for the FMM approach to be the most efficient, due to its relative low computational cost, in return it should provide the lowest quality inpainting, due to simply stretching the pixels from the surroundings of the mask inwards.
 In stark contrast, NLTM should provide the highest quality inpainting, albeit at the cost of performance due to having to analyze the entire image and calculating the average of the candidates pixel values. In this regard, ELTM might provide a good trade-off, using the surrounding pixels similarly to FMM, but still analyzing pixel patches for similarity in a similar manner to NLTM
-\\The LaMa Inpainting Model might prove to be the most performant, due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
+\\The LaMa Inpainting Model might prove to be very performant, due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead, which is unlikely. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
 
 \begin{table}[h!]
 \centering
@@ -246,7 +246,7 @@ In stark contrast, NLTM should provide the highest quality inpainting, albeit at
   \hline
   Exemplar-Based Image Inpainting with modified priorities & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} \\
   \hline
-  Large Mask Inpainting with Fourier Convolutions & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} \\
+  Large Mask Inpainting with Fourier Convolutions & \textcolor{ForestGreen}{Medium} & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} \\
   \hline
 \end{tabular}
 \caption{Expected evaluation results considering the conceptual design}

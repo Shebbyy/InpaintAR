@@ -8,7 +8,7 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         private static int _totalInpaintedPixels;
 
         public static double GetTotalFPS() {
-            return (1.0 / Time.smoothDeltaTime);
+            return (1.0 / Time.deltaTime);
         }
 
         public static double GetAverageInpaintingTime() {

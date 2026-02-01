@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using InpaintAR.Scripts.Benchmarking;
 using InpaintAR.Scripts.Benchmarking.Evaluators;
 using InpaintAR.Scripts.Inpainting;
 using InpaintAR.Scripts.Input;
@@ -10,7 +11,7 @@ using UnityEngine;
 
 namespace InpaintAR.Scripts.VisualizationManagement {
     public class AreaSelectionVisualizer : MonoBehaviour {
-        [Header("RequiredData")] 
+        [Header("RequiredData")]
         [Tooltip("Area Detection Object. If null, attempts to find it in the scene.")]
         public AreaSelectionGestureHandler areaDetection;
 
@@ -23,27 +24,31 @@ namespace InpaintAR.Scripts.VisualizationManagement {
         [Header("World Space Canvas Settings")]
         [Tooltip("Physical width of the canvas in world units")]
         public float canvasWidth = 2.0f;
-        
+
         [Tooltip("Physical height of the canvas in world units")]
         public float canvasHeight = 1.5f;
-        
+
         [Tooltip("Pixels per unit for the world space canvas")]
         public float pixelsPerUnit = 1000f;
 
-        [Header("Inpainting Settings")] 
-        [Tooltip("Which algorithm to use for the inpainting")] 
+        [Header("Inpainting Settings")]
+        [Tooltip("Which algorithm to use for the inpainting")]
         public InpaintingAlgorithms inpaintingAlgorithmSelection;
 
-        [Header("Debug Settings")] 
+        [Header("Debug Settings")]
         [Tooltip("Uses a solid red box instead of the camera texture for display")]
         public bool showDebugRect = true;
-        
+
         [CanBeNull] private Texture2D m_copiedTexture; // Copy of the passthrough texture for inpainting, etc.
         [CanBeNull] private HashSet<int> m_inpaintMask;
         [CanBeNull] private Texture2D m_inpaintedTexture;
         private AbstractInpaintingAlgorithm m_abstractInpaintingAlgorithm;
         private CameraController m_cameraController;
         private SelectionUiController m_selectionUiController;
+
+        // Algorithm switching
+        private bool m_joystickReleased = true;
+        private static readonly int AlgorithmCount = Enum.GetValues(typeof(InpaintingAlgorithms)).Length;
 
         private void Start() {
             if (!areaDetection) {
@@ -57,6 +62,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             m_selectionUiController.CreateUICanvasAndCorners(canvasWidth, canvasHeight, pixelsPerUnit, cornerSpriteSize, cornerSpriteThickness);
             
             m_abstractInpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
+            MetricsUI.CurrentAlgorithm = inpaintingAlgorithmSelection;
         }
         
         private void OnDestroy() {
@@ -79,6 +85,8 @@ namespace InpaintAR.Scripts.VisualizationManagement {
 
 
         void Update() {
+            HandleAlgorithmSwitching();
+
             if (!areaDetection
                 || !m_selectionUiController.GetLeftCornerBox()
                 || !m_selectionUiController.GetRightCornerBox()) return;
@@ -164,6 +172,32 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             cornerElem.gameObject.SetActive(true);
 
             cornerElem.localPosition = m_cameraController.ScreenPointToLocalPoint((RectTransform)cornerElem.parent, screenPos.Value);
+        }
+
+        private void HandleAlgorithmSwitching() {
+            if (!OVRInput.GetDown(OVRInput.Button.Two)) return;
+
+            int currentIndex = (int)inpaintingAlgorithmSelection;
+
+            currentIndex = (currentIndex + 1) % AlgorithmCount;
+
+            SwitchAlgorithm((InpaintingAlgorithms)currentIndex);
+        }
+
+        private void SwitchAlgorithm(InpaintingAlgorithms newAlgorithm) {
+            // for LaMa
+            if (m_abstractInpaintingAlgorithm is IDisposable disposable) {
+                disposable.Dispose();
+            }
+
+            inpaintingAlgorithmSelection = newAlgorithm;
+            m_abstractInpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
+
+            // Reset all evaluations
+            PerformanceEvaluator.ResetValues();
+            QualityEvaluator.ResetValues();
+            ClutterEvaluator.ResetValues();
+            MetricsUI.CurrentAlgorithm = inpaintingAlgorithmSelection;
         }
     }
 }

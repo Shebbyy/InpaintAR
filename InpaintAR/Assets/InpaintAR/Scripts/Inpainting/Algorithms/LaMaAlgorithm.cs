@@ -41,6 +41,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             if (m_isInitialized) return;
 
             try {
+                // Force GPU resource cleanup before initializing
+                Resources.UnloadUnusedAssets();
+
                 // Load the model asset from Resources folder
                 var modelAsset = Resources.Load<ModelAsset>(ModelResourcePath);
 
@@ -54,7 +57,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 m_model = ModelLoader.Load(modelAsset);
 
                 // Create worker with GPU compute backend for Quest optimization
-                m_worker = new Worker(m_model, BackendType.GPUCompute);
+                m_worker = new Worker(m_model, BackendType.CPU);
 
                 // Pre-allocate tensors
                 PreAllocateResources();

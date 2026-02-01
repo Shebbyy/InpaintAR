@@ -5,15 +5,16 @@ The main objective of this thesis was to evaluate which inpainting algorithms ar
 
 The entire testing was conducted on a Meta Quest 3 running on the current release of HorizonOS, v81. As the metrics are calculated as average values, the algorithm is allowed to run until the value stabilizes to avoid any outliers to invalidate the data.
 
-For the evaluation, several test scenarios have been prepared, which are aimed at bringing out both the conceptual advantages and disadvantages of the different implemented methodologies, like the texture continuation and edge recognition.
+For the evaluation, the first two test scenarios have been prepared, which are aimed at bringing out both the conceptual advantages and disadvantages of the different implemented methodologies, like the texture continuation and edge recognition. The two following scenarios have been designed to stress test the inpainting implementations in
+difficult usage scenarios, like very large masks and reflective surfaces, which some inpainting methods might have difficulties with.
 
-\subsubsection{Uniform Background}
-\label{subcha:UniformBackground}
+\section{Uniform Background}
+\label{sec:UniformBackground}
 
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.75\textwidth]{CleanUniformBaseline.jpg}
-    \caption{The environment of the first test scenario, a white desk and background with visual clutter grouped together on top, which needs to be hidden}
+    \caption{Uniform Background Test Scenario Baseline Image}
     \label{fig:CleanUniformBaseline}
   \end{center}
 \end{figure}
@@ -23,47 +24,99 @@ Since the surrounding background does not contain any patterns or textures, it s
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{UniformComparison.png}
-    \caption{The resulting images for using the different inpainting algorithms on a uniform background, A = FMM, B = NLTM, C = ELTM, D = LaMa}
+    \caption{Uniform Background Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
     \label{fig:UniformComparison}
   \end{center}
 \end{figure}
 
-In terms of performance, as seen in \ref{fig:UniformResults}, FMM performed the best, as expected, followed by ELTM.
-Surprisingly enough, even though the LaMa model is optimized for performance and runs on the GPU, it performed by far the worst, even compared to NLTM. The likely reason for this will be elaborated further upon in \ref{subcha:LaIpEval}, as it seems to be a pattern through all the scenarios.
-
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{UniformResults.png}
-    \caption{The charts displaying the performance and qualitative results of each algorithm in relation to each other for the uniform background test scenario}
+    \caption{Uniform Background Test Scenario: Evaluation Result Charts}
     \label{fig:UniformResults}
   \end{center}
 \end{figure}
 
+In terms of performance, as seen in \ref{fig:UniformResults}, FMM performed the best, as expected, followed by ELTM.
+Surprisingly enough, even though the LaMa model is optimized for performance, it performed by far the worst, even compared to NLTM. As prior tests with the GPUCompute have shown a similar performance, the most likely culprit is the inference time for the model, as if it would be bottlenecked by the CPU, the GPUCompute should have lead to significant runtime improvements.
+
 In terms of quality, according to the IIQA, the other algorithms were nowhere near the quality of the LaMa model. Surprisingly enough, whilst all methodologies were served an image with the same downscale quality, LaMa appears to create less artifacts. This is also correlated in the clutter reduction metric, as the noise created by the other methodologies was picked up as additional visual clutter by the visual clutter algorithm, compared to the cleaner result of LaMa.
 Another observation in terms of quality is the superior quality of FMM in comparison to NLTM and ELTM. This is most probably once again correlated to the visual noise. The concept of FMM, in which surrounding pixels are propagated inwards of the mask, seems to cause a lot less visual artifacts during upscaling compared to NLTM and ELTM, which causes the end result to look less grainy.
 
-\subsubsection{Background Pattern}
-\label{subcha:BackgroundPattern}
+\section{Textured Background}
+\label{sec:BackgroundPattern}
+
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{BackgroundBaseline.png}
+    \caption{Textured Background Test Scenario Baseline Image}
+    \label{fig:BackgroundBaseline}
+  \end{center}
+\end{figure}
 
 This scenario is done on a wooden desk, as the patterns of the wood provides a good example of how well the inpainted area can blend in with textured backgrounds.
 
-<INSERT RESULT>
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{BackgroundPatternComparison.png}
+    \caption{Textured Background Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \label{fig:BackgroundPatternComparison}
+  \end{center}
+\end{figure}
 
-\subsubsection{Large Area inpainting}
-\label{subcha:LaIpEval}
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{BackgroundResults.png}
+    \caption{Textured Background Scenario: Evaluation Result Charts}
+    \label{fig:BackgroundResults}
+  \end{center}
+\end{figure}
 
-As the aforementioned test scenarios are focussed on rather small, focussed inpainting masks, this test case aims to show the performance and quality for larger masks. This should also serve as a good stress-test for the performance and how the performance of the methodologies degrades with larger masks.
+The performance metrics of this test case are very similar in reference to \ref{sec:UniformBackground}, albeit with the framerate being lower overall. This can be correlated to the larger mask, which needs to be inpainted in this test scenario.
 
-<INSERT RESULT>
+In terms of quality, ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction too, ended up completely different, with NLTM and FMM being about on par with each other. Most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
+NLTM is most probably suffering here from the missing source information due to the downscaled inpainting.
 
-When looking at the performance metrics, the performance of the LaMa model stayed consistent between all the different masks. As the masks are of different sizes and this also means there are cases in which there is less to inpaint, the reason LaMa is so slow likely is not the fault of the inpainting itself.
+ELTM seems to handle the downscaled source image very well though, still delivering a resulting overlay, which seems to reduce the clutter reasonably. But it is still overtaken by far, by the LaMa model, which pays for its quality with the slow runtime, which lags behind the other methodologies by far.
 
-It is most likely connected to the inference of the model through the Unity Sentis library. Even when looking at the methods through the Unity3D Profiler, no further details on what causes the performance bottleneck could be found.
+\section{Large Area Inpainting}
+\label{sec:LaIpEval}
 
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{LargeMaskBaseline.png}
+    \caption{Large Area Inpainting background test scenario baseline image}
+    \label{fig:LargeMaskBaseline}
+  \end{center}
+\end{figure}
 
+As the aforementioned test scenarios are focussed on rather small, focussed inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regards to stress-testing the implementations in a difficult but plausible scenario.
 
-\subsubsection{Reflective Surroundings}
-\label{subcha:ReflectiveSurroundings}
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{LargeMaskComparison.png}
+    \caption{Large Mask Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \label{fig:LargeMaskComparison}
+  \end{center}
+\end{figure}
+
+Interestingly enough, when looking at the comparison, FMM and NLTM look almost similar. The only way to differentiate between the two is the slight grainyness and what looks like the wood pattern in the bottom right part of the overlay. This scenario defines a large part of the viewport as the mask, therefore the areas available to use for the canidate search is very limited. It seems like the quality of the NLTM inpainting suffered from it, whilst the ELTM inpainting seems to have benefitted from it.
+
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{LargeMaskResults.png}
+    \caption{Large Mask Test Scenario: Evaluation Result Charts}
+    \label{fig:LargeMaskResults}
+  \end{center}
+\end{figure}
+
+The ELTM algorithm performed surprisingly well in this scenario. 
+Whilst the performance degradation is definetly noticable, both the quality and the clutter reduction are both rather high. 
+Considering one of the difficulties with large masks is the loss of structural information and patterns, the algorithm was able to keep a consistent pattern very well. 
+The other algorithms performed as expected, considering the last test cases, although NLTM losing more performance compared to LaMa is interesting, it is to be expected, as LaMa was optimized for such large masks.
+
+\section{Reflective Surroundings}
+\label{sec:ReflectiveSurroundings}
 
 The focus here is to test how well the inpainting algorithms can consider reflective objects in both the inpainting mask, as well as its surroundings for the canidate selection of NLTM and ELTM. 
 These objects should preferrably be avoided as sources, due to the discoloring and blurring of the reflected background in favor of the regular background.
