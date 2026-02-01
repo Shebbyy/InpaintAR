@@ -441,14 +441,14 @@ Performance on the other hand is rather easy to calculate and aggregate, therefo
 As this implementation is meant as a prototype and the Meta Quest Passthrough API is still rather new, there are several limitations regarding the implementation:
 
 \begin{itemize}
-    \item The Meta Quest Passthrough API as of this moment only supports fixed, rather small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the skybox.
+    \item The Meta Quest Passthrough API as of this moment only supports fixed, rather small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the sky box.
     This means, the inpainting area is limited around the middle of the users viewport and cannot quite reach the edges yet.
 
-    \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the skybox causes the overlay of the inpainted texture to be slightly offset in some cases.
+    \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the sky box causes the overlay of the inpainted texture to be slightly offset in some cases.
     whilst this could be avoided by calculating the correction transformation and applying it, this would be out of the scope of this thesis, as it is not too visible on the inpainted areas as long as the mask leaves some padding between the edges and the object to be removed
 
     \item The implementations of the inpainting algorithms and evaluations are built for the CPU, due to the large complexity and in part major rewrites which are necessary to get the algorithms and data structures to run on GLSL shader code instead of C\string#.
 
-    \item The inpainting mask does not adjust to the objects behind it. This means, if a hand is placed behind the mask or the object behind the mask is moved, the mask will not adjust for the change, therefore painting over the hand or the now empty space. This could be solved by adjusting the mask dependant on the objects behind it,
-    but this would once again add more performance degradations and complexity due to needing to track the objects movements and reacting to new objects added behind the mask.
+    \item The mask does not adjust to the objects behind it. If a hand is placed behind the mask or the object behind the mask is moved, the mask will not adjust for the change, therefore painting over the hand or the now empty space. This could be solved by adjusting the mask dependant on the objects behind it,
+    but this would once again add more performance degradations and complexity due to needing to track the objects movements and reacting to changes in the environment.
 \end{itemize}

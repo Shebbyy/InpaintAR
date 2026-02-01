@@ -118,7 +118,36 @@ The other algorithms performed as expected, considering the last test cases, alt
 \section{Reflective Surroundings}
 \label{sec:ReflectiveSurroundings}
 
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=0.75\textwidth]{ReflectionBaseline.png}
+    \caption{Reflective Surroundings Inpainting background test scenario baseline image}
+    \label{fig:ReflectionBaseline}
+  \end{center}
+\end{figure}
+
 The focus here is to test how well the inpainting algorithms can consider reflective objects in both the inpainting mask, as well as its surroundings for the canidate selection of NLTM and ELTM. 
 These objects should preferrably be avoided as sources, due to the discoloring and blurring of the reflected background in favor of the regular background.
 
-<INSERT RESULT>
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{ReflectionComparison.png}
+    \caption{Reflection Surroundings Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \label{fig:ReflectionComparison}
+  \end{center}
+\end{figure}
+
+While I personally only expected quality degradations for NLTM and ELTM, which was confirmed, as seen in \ref{fig:ReflectionComparison}, the results of the LaMa model became a lot more blurry as well. This is most likely because of the slight blurryness caused by the glasses in the surroundings influencing the quality of the generated overlay. Whilst FMM may at first look like it also degraded, the black patch on top is a normal behavior of FMM, as it picked up the pixels of the keyboard above as its reference pixels, as there werent any others in the proximity.
+
+In addition ELTM seems to have kept the pattern of the glassware, taking the color of the wood but keeping the gradients of the glass, which is a quite interesting behavior.
+\begin{figure}[h!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{ReflectionResults.png}
+    \caption{Reflection Surroundings Test Scenario: Evaluation Result Charts}
+    \label{fig:ReflectionResults}
+  \end{center}
+\end{figure}
+
+In terms of performance, the result was once again as expected, but performance was not the focus of this test case.
+
+Considering the quality, it seems the IIQA and the clutter reduction algorithms both are not suited well for such use cases, as the values for ELTM and LaMa are rather high, even though the resulting images do not look natural. This may be in regards to how the boundaries are considered for quality and clutter removal, whereas the pattern of the glass may have unintentionally become the reference pattern for the quality evaluation.

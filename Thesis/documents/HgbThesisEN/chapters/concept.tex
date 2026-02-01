@@ -109,8 +109,7 @@ This approach has been shown to outperform other quality assessment metrics, as 
 As the reason for this implementation is to reduce clutter, it is important to calculate the reduction of clutter in the image thanks to the image. This is relevant, as depending on the inpainting quality, the noise might increase to cause the area to become even more distracting than without inpainting.
 
 For this, the approach suggested by Rosenholtz, Li and Nakano to measure the clutter by detecting unusual features and outliers inside of an image was used (see \cite{RosenholtzRuth2007Mvc}), albeit in a simplified manner.
-
-For this, the metric considers the color, contrast and the orientation of features inside of an image.
+To accomplish this, the metric considers the color, contrast and the orientation of features inside of an image.
 
 \begin{itemize}
   \item In terms of the color, the areas of the image are compared in terms of covariance and distribution. This means, if the pixels in a given area are close or similar in color, it is assumed to be perceived as little to no clutter. 
@@ -129,5 +128,4 @@ In terms of performance, the most common performance metric in real-time graphic
 
 As the Total FPS can be affected by a lot of different external factors, like the mask preparation, receiving data from the camera and other secondary components, the time for inpainting is measured in an isolated manner as well.
 This can then be used to calculate a FPS metric, which only takes the time required for the inpainting algorithm itself into account.
-
 By analyzing and comparing both of these numbers, the performance of the inpainting algorithm itself and the addition overhead of the necessary preparations for inpainting an image are all taken into account.
