@@ -18,8 +18,8 @@ difficult usage scenarios, like very large masks and reflective surfaces, which 
     \label{fig:CleanUniformBaseline}
   \end{center}
 \end{figure}
-This serves as a very basic and baseline testcase in which the surroundings should be rather plain, in the best case one uniform color. The original baseline image used for the evaluation can be seen in \ref{fig:CleanUniformBaseline}.
-Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high quality result. At most there should be some artifacts in terms of the shading or through the surrounding objects.
+This serves as a very basic and baseline testcase in which the surroundings should be rather plain, in the best case, one uniform color. The original baseline image used for the evaluation can be seen in \ref{fig:CleanUniformBaseline}.
+Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high-quality result. At most, there should be some artifacts in terms of the shading or through the surrounding objects.
 
 \begin{figure}[h!]
   \begin{center}
@@ -38,10 +38,10 @@ Since the surrounding background does not contain any patterns or textures, it s
 \end{figure}
 
 In terms of performance, as seen in \ref{fig:UniformResults}, FMM performed the best, as expected, followed by ELTM.
-Surprisingly enough, even though the LaMa model is optimized for performance, it performed by far the worst, even compared to NLTM. As prior tests with the GPUCompute have shown a similar performance, the most likely culprit is the inference time for the model, as if it would be bottlenecked by the CPU, the GPUCompute should have lead to significant runtime improvements.
+Surprisingly enough, even though the LaMa model is optimized for performance, it performed by far the worst, even compared to NLTM. As prior tests with the GPUCompute have shown a similar performance, the most likely culprit is the inference time for the model, as if it were bottlenecked by the CPU, the prototyping with GPUCompute should have led to significant runtime improvements.
 
-In terms of quality, according to the IIQA, the other algorithms were nowhere near the quality of the LaMa model. Surprisingly enough, whilst all methodologies were served an image with the same downscale quality, LaMa appears to create less artifacts. This is also correlated in the clutter reduction metric, as the noise created by the other methodologies was picked up as additional visual clutter by the visual clutter algorithm, compared to the cleaner result of LaMa.
-Another observation in terms of quality is the superior quality of FMM in comparison to NLTM and ELTM. This is most probably once again correlated to the visual noise. The concept of FMM, in which surrounding pixels are propagated inwards of the mask, seems to cause a lot less visual artifacts during upscaling compared to NLTM and ELTM, which causes the end result to look less grainy.
+In terms of quality, according to the IIQA, the other algorithms were nowhere near the quality of the LaMa model. Surprisingly enough, whilst all methodologies were given an image with the same downscale quality, LaMa appears to create fewer artifacts. This is also correlated in the clutter reduction metric, as the noise created by the other methodologies was picked up as additional visual clutter by the visual clutter algorithm, compared to the cleaner result of LaMa.
+Another observation in terms of quality is the superior quality of FMM in comparison to NLTM and ELTM. This is most probably once again correlated to the visual noise. The concept of FMM, in which surrounding pixels are propagated inwards of the mask, seems to cause a lot fewer visual artifacts during upscaling compared to NLTM and ELTM, which causes the end result to look less grainy.
 
 \section{Textured Background}
 \label{sec:BackgroundPattern}
@@ -54,7 +54,7 @@ Another observation in terms of quality is the superior quality of FMM in compar
   \end{center}
 \end{figure}
 
-This scenario is done on a wooden desk, as the patterns of the wood provides a good example of how well the inpainted area can blend in with textured backgrounds.
+This scenario is done on a wooden desk, as the texture of the wood provides a good example of how well the inpainted area can blend in with textured backgrounds.
 
 \begin{figure}[h!]
   \begin{center}
@@ -72,12 +72,12 @@ This scenario is done on a wooden desk, as the patterns of the wood provides a g
   \end{center}
 \end{figure}
 
-The performance metrics of this test case are very similar in reference to \ref{sec:UniformBackground}, albeit with the framerate being lower overall. This can be correlated to the larger mask, which needs to be inpainted in this test scenario.
+The performance metrics of this test case are very similar in reference to \ref{sec:UniformBackground}, albeit with the framerate being lower overall. This can be correlated to the larger mask which needs to be inpainted in this test scenario.
 
-In terms of quality, ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction too, ended up completely different, with NLTM and FMM being about on par with each other. Most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
+In terms of quality, ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction, too, ended up completely different, with NLTM and FMM being about on par with each other. Most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
 NLTM is most probably suffering here from the missing source information due to the downscaled inpainting.
 
-ELTM seems to handle the downscaled source image very well though, still delivering a resulting overlay, which seems to reduce the clutter reasonably. But it is still overtaken by far, by the LaMa model, which pays for its quality with the slow runtime, which lags behind the other methodologies by far.
+ELTM seems to handle the downscaled source image very well though, still delivering a result, which reduces the clutter reasonably well whilst producing a texture which can blend in well. But it is still significantly overtaken by the LaMa model, which pays for its quality with the slow runtime. It lags behind the other methodologies by far.
 
 \section{Large Area Inpainting}
 \label{sec:LaIpEval}
@@ -90,7 +90,7 @@ ELTM seems to handle the downscaled source image very well though, still deliver
   \end{center}
 \end{figure}
 
-As the aforementioned test scenarios are focussed on rather small, focussed inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regards to stress-testing the implementations in a difficult but plausible scenario.
+As the aforementioned test scenarios are focused on rather small, targeted inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regard to stress-testing the implementations in a difficult but plausible scenario.
 
 \begin{figure}[h!]
   \begin{center}
@@ -100,7 +100,9 @@ As the aforementioned test scenarios are focussed on rather small, focussed inpa
   \end{center}
 \end{figure}
 
-Interestingly enough, when looking at the comparison, FMM and NLTM look almost similar. The only way to differentiate between the two is the slight grainyness and what looks like the wood pattern in the bottom right part of the overlay. This scenario defines a large part of the viewport as the mask, therefore the areas available to use for the canidate search is very limited. It seems like the quality of the NLTM inpainting suffered from it, whilst the ELTM inpainting seems to have benefitted from it.
+Interestingly enough, when looking at the comparison, FMM and NLTM look almost similar. The only way to differentiate between the two is the slight graininess and what looks like the wood pattern in the bottom right part of the overlay. 
+This scenario defines a large part of the viewport as the mask, therefore, the areas available to use for the candidate search are very limited. 
+It seems like the quality of the NLTM inpainting suffered from it, whilst the ELTM inpainting seems to have benefited from it.
 
 \begin{figure}[h!]
   \begin{center}
@@ -111,9 +113,9 @@ Interestingly enough, when looking at the comparison, FMM and NLTM look almost s
 \end{figure}
 
 The ELTM algorithm performed surprisingly well in this scenario. 
-Whilst the performance degradation is definetly noticable, both the quality and the clutter reduction are both rather high. 
+Whilst the performance degradation is definitely noticeable, both the quality and the clutter reduction are rather high. 
 Considering one of the difficulties with large masks is the loss of structural information and patterns, the algorithm was able to keep a consistent pattern very well. 
-The other algorithms performed as expected, considering the last test cases, although NLTM losing more performance compared to LaMa is interesting, it is to be expected, as LaMa was optimized for such large masks.
+The other algorithms performed as expected, considering the last test cases, although NLTM losing more performance compared to LaMa might seem questionable at first, it is to be expected, as LaMa was optimized for such large masks.
 
 \section{Reflective Surroundings}
 \label{sec:ReflectiveSurroundings}
@@ -126,8 +128,8 @@ The other algorithms performed as expected, considering the last test cases, alt
   \end{center}
 \end{figure}
 
-The focus here is to test how well the inpainting algorithms can consider reflective objects in both the inpainting mask, as well as its surroundings for the canidate selection of NLTM and ELTM. 
-These objects should preferrably be avoided as sources, due to the discoloring and blurring of the reflected background in favor of the regular background.
+The focus here is to test how well the inpainting algorithms can consider reflective objects in both the inpainting mask, as well as its surroundings for the candidate selection of NLTM and ELTM. 
+These objects should preferably be avoided as sources due to the discoloring and blurring of the reflected background in favor of the regular background.
 
 \begin{figure}[h!]
   \begin{center}
@@ -137,9 +139,9 @@ These objects should preferrably be avoided as sources, due to the discoloring a
   \end{center}
 \end{figure}
 
-While I personally only expected quality degradations for NLTM and ELTM, which was confirmed, as seen in \ref{fig:ReflectionComparison}, the results of the LaMa model became a lot more blurry as well. This is most likely because of the slight blurryness caused by the glasses in the surroundings influencing the quality of the generated overlay. Whilst FMM may at first look like it also degraded, the black patch on top is a normal behavior of FMM, as it picked up the pixels of the keyboard above as its reference pixels, as there werent any others in the proximity.
+While I personally only expected quality degradations for NLTM and ELTM, which were confirmed, as seen in \ref{fig:ReflectionComparison}, the results of the LaMa model became a lot more blurry as well. This is most likely because of the slight blurryness caused by the glasses in the surroundings influencing the quality of the generated overlay. Whilst FMM may at first look like it also degraded, the black patch on top is a normal behavior of FMM, as it picked up the pixels of the keyboard above as its reference pixels, as there werent any others in the proximity.
 
-In addition ELTM seems to have kept the pattern of the glassware, taking the color of the wood but keeping the gradients of the glass, which is a quite interesting behavior.
+In addition ELTM seems to have kept the pattern of the glassware, taking the color of the wood but keeping the gradients of the glass, which is quite an interesting behavior.
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{ReflectionResults.png}
@@ -150,4 +152,5 @@ In addition ELTM seems to have kept the pattern of the glassware, taking the col
 
 In terms of performance, the result was once again as expected, but performance was not the focus of this test case.
 
-Considering the quality, it seems the IIQA and the clutter reduction algorithms both are not suited well for such use cases, as the values for ELTM and LaMa are rather high, even though the resulting images do not look natural. This may be in regards to how the boundaries are considered for quality and clutter removal, whereas the pattern of the glass may have unintentionally become the reference pattern for the quality evaluation.
+Considering the quality, it seems the IIQA and the clutter reduction algorithms both are not suited well for such use cases, as the values for ELTM and LaMa are rather high, even though the resulting images do not look natural. 
+This may be in regard to how the boundaries are considered for quality and clutter removal, whereas the pattern of the glass may have unintentionally become the reference pattern for the quality evaluation.

@@ -1,0 +1,1794 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{anyt/global//global/global/global}
+    \entry{BarnesConnelly2009Parc}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=4e74e92ac258a7344d22dd0661d08dd2}{%
+           family={Barnes},
+           familyi={B\bibinitperiod},
+           given={Connelly},
+           giveni={C\bibinitperiod}}}%
+        {{hash=739ef881fb9e0c2c8d7110c90325d960}{%
+           family={Shechtman},
+           familyi={S\bibinitperiod},
+           given={Eli},
+           giveni={E\bibinitperiod}}}%
+        {{hash=6f8bf2b360bfdaa449b42edbd887cb99}{%
+           family={Finkelstein},
+           familyi={F\bibinitperiod},
+           given={Adam},
+           giveni={A\bibinitperiod}}}%
+        {{hash=73f1f1fd46977d69cc9ca95d408b9373}{%
+           family={Goldman},
+           familyi={G\bibinitperiod},
+           given={Dan\bibnamedelima B},
+           giveni={D\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+      }
+      \strng{namehash}{f2bdfaf37a494ea69981af1e3f4153b2}
+      \strng{fullhash}{feef9d33b86feffc265169bb0a69eae7}
+      \strng{fullhashraw}{feef9d33b86feffc265169bb0a69eae7}
+      \strng{bibnamehash}{f2bdfaf37a494ea69981af1e3f4153b2}
+      \strng{authorbibnamehash}{f2bdfaf37a494ea69981af1e3f4153b2}
+      \strng{authornamehash}{f2bdfaf37a494ea69981af1e3f4153b2}
+      \strng{authorfullhash}{feef9d33b86feffc265169bb0a69eae7}
+      \strng{authorfullhashraw}{feef9d33b86feffc265169bb0a69eae7}
+      \field{labelalpha}{Bar+09}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{This paper presents interactive image editing tools using a new randomized algorithm for quickly finding approximate nearest-neighbor matches between image patches. Previous research in graphics and vision has leveraged such nearest-neighbor searches to provide a variety of high-level digital image editing tools. However, the cost of computing a field of such matches for an entire image has eluded previous efforts to provide interactive performance. Our algorithm offers substantial performance improvements over the previous state of the art (20-100x), enabling its use in interactive editing tools. The key insights driving the algorithm are that some good patch matches can be found via random sampling, and that natural coherence in the imagery allows us to propagate such matches quickly to surrounding areas. We offer theoretical analysis of the convergence properties of the algorithm, as well as empirical and practical evidence for its high quality and performance. This one simple algorithm forms the basis for a variety of tools -- image retargeting, completion and reshuffling -- that can be used together in the context of a high-level image editing application. Finally, we propose additional intuitive constraints on the synthesis process that offer the user a level of control unavailable in previous methods.}
+      \field{issn}{0730-0301}
+      \field{journaltitle}{ACM transactions on graphics}
+      \field{number}{3}
+      \field{title}{PatchMatch: a randomized correspondence algorithm for structural image editing}
+      \field{volume}{28}
+      \field{year}{2009}
+      \field{pages}{1\bibrangedash 11}
+      \range{pages}{11}
+    \endentry
+    \entry{Bertalimo2000}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=d7ba521be236b277a50615d61e88fdc2}{%
+           family={Bertalmio},
+           familyi={B\bibinitperiod},
+           given={Marcelo},
+           giveni={M\bibinitperiod}}}%
+        {{hash=c8b95715cbbf5962b79737d877773fee}{%
+           family={Sapiro},
+           familyi={S\bibinitperiod},
+           given={Guillermo},
+           giveni={G\bibinitperiod}}}%
+        {{hash=953e412bcc8a158c176440236bd578ba}{%
+           family={Caselles},
+           familyi={C\bibinitperiod},
+           given={Vincent},
+           giveni={V\bibinitperiod}}}%
+        {{hash=223ea30fa22c124b63b2498db703df7a}{%
+           family={Ballester},
+           familyi={B\bibinitperiod},
+           given={Coloma},
+           giveni={C\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM Press/Addison-Wesley Publishing Co.}%
+      }
+      \strng{namehash}{713e32e642a34a16ff2a21937d72eab0}
+      \strng{fullhash}{47efca64e7987afd3586b244d32356e8}
+      \strng{fullhashraw}{47efca64e7987afd3586b244d32356e8}
+      \strng{bibnamehash}{713e32e642a34a16ff2a21937d72eab0}
+      \strng{authorbibnamehash}{713e32e642a34a16ff2a21937d72eab0}
+      \strng{authornamehash}{713e32e642a34a16ff2a21937d72eab0}
+      \strng{authorfullhash}{47efca64e7987afd3586b244d32356e8}
+      \strng{authorfullhashraw}{47efca64e7987afd3586b244d32356e8}
+      \field{labelalpha}{Ber+00}
+      \field{sortinit}{B}
+      \field{sortinithash}{d7095fff47cda75ca2589920aae98399}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Inpainting, the technique of modifying an image in an undetectable form, is as ancient as art itself. The goals and applications of inpainting are numerous, from the restoration of damaged paintings and photographs to the removal/replacement of selected objects. In this paper, we introduce a novel algorithm for digital inpainting of still images that attempts to replicate the basic techniques used by professional restorators. After the user selects the regions to be restored, the algorithm automatically fills-in these regions with information surrounding them. The fill-in is done in such a way that isophote lines arriving at the regions' boundaries are completed inside. In contrast with previous approaches, the technique here introduced does not require the user to specify where the novel information comes from. This is automatically done (and in a fast way), thereby allowing to simultaneously fill-in numerous regions containing completely different structures and surrounding backgrounds. In addition, no limitations are imposed on the topology of the region to be inpainted. Applications of this technique include the restoration of old photographs and damaged film; removal of superimposed text like dates, subtitles, or publicity; and the removal of entire objects from the image like microphones or wires in special effects.}
+      \field{booktitle}{Proceedings of the 27th Annual Conference on Computer Graphics and Interactive Techniques}
+      \field{isbn}{1581132085}
+      \field{series}{SIGGRAPH '00}
+      \field{title}{Image inpainting}
+      \field{year}{2000}
+      \field{pages}{417\bibrangedash 424}
+      \range{pages}{8}
+      \verb{doi}
+      \verb 10.1145/344779.344972
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1145/344779.344972
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1145/344779.344972
+      \endverb
+      \keyw{anisotropic diffusion,image restoration,inpainting,isophotes}
+    \endentry
+    \entry{ChengYiFei2022TUDR}{inproceedings}{}{}
+      \name{author}{5}{}{%
+        {{hash=4c47c6172a67e9ba99e59d9d9e9b4cbc}{%
+           family={Cheng},
+           familyi={C\bibinitperiod},
+           given={Yi\bibnamedelima Fei},
+           giveni={Y\bibinitperiod\bibinitdelim F\bibinitperiod}}}%
+        {{hash=77767a8ffc26a7be0f529d6f3c2fa70e}{%
+           family={Yin},
+           familyi={Y\bibinitperiod},
+           given={Hang},
+           giveni={H\bibinitperiod}}}%
+        {{hash=f94bbbdac2095e752f6591e3983d06e1}{%
+           family={Yan},
+           familyi={Y\bibinitperiod},
+           given={Yukang},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=b7acb83ee6ea8b479331ffd00d0e2e0f}{%
+           family={Gugenheimer},
+           familyi={G\bibinitperiod},
+           given={Jan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=ec1efa460a489e16de57c6737956770c}{%
+           family={Lindlbauer},
+           familyi={L\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{0c1d180ea936eebced554a4f1c7f2802}
+      \strng{fullhash}{cc79d05f71bd04167a014197fd3b42c1}
+      \strng{fullhashraw}{cc79d05f71bd04167a014197fd3b42c1}
+      \strng{bibnamehash}{0c1d180ea936eebced554a4f1c7f2802}
+      \strng{authorbibnamehash}{0c1d180ea936eebced554a4f1c7f2802}
+      \strng{authornamehash}{0c1d180ea936eebced554a4f1c7f2802}
+      \strng{authorfullhash}{cc79d05f71bd04167a014197fd3b42c1}
+      \strng{authorfullhashraw}{cc79d05f71bd04167a014197fd3b42c1}
+      \field{labelalpha}{Che+22}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Diminished reality (DR) refers to the concept of removing content from a user’s visual environment. While its implementation is becoming feasible, it is still unclear how users perceive and interact in DR-enabled environments and what applications it benefits. To address this challenge, we first conduct a formative study to compare user perceptions of DR and mediated reality effects (e. g., changing the color or size of target elements) in four example scenarios. Participants preferred removing objects through opacity reduction (i. e., the standard DR implementation) and appreciated mechanisms for maintaining a contextual understanding of diminished items (e. g., outlining). In a second study, we explore the user experience of performing tasks within DR-enabled environments. Participants selected which objects to diminish and the magnitude of the effects when performing two separate tasks (video viewing, assembly). Participants were comfortable with decreased contextual understanding, particularly for less mobile tasks. Based on the results, we define guidelines for creating general DR-enabled environments.}
+      \field{booktitle}{Proceedings of the 2022 CHI Conference on Human Factors in Computing Systems}
+      \field{isbn}{9781450391573}
+      \field{title}{Towards Understanding Diminished Reality}
+      \field{year}{2022}
+      \field{pages}{1\bibrangedash 16}
+      \range{pages}{16}
+    \endentry
+    \entry{Chi2020FastFC}{inproceedings}{}{}
+      \name{author}{3}{}{%
+        {{hash=d4058744fdc3e7e6d5a6a3658cd126ca}{%
+           family={Chi},
+           familyi={C\bibinitperiod},
+           given={Lu},
+           giveni={L\bibinitperiod}}}%
+        {{hash=d8ea617854d2fd06a4306c072661b6ec}{%
+           family={Jiang},
+           familyi={J\bibinitperiod},
+           given={Borui},
+           giveni={B\bibinitperiod}}}%
+        {{hash=af98612c629a6e4eac71f63040d8ebee}{%
+           family={Mu},
+           familyi={M\bibinitperiod},
+           given={Yadong},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{fullhash}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{fullhashraw}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{bibnamehash}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{authorbibnamehash}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{authornamehash}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{authorfullhash}{5b344bc1be5205942a4fdf28efddfb1d}
+      \strng{authorfullhashraw}{5b344bc1be5205942a4fdf28efddfb1d}
+      \field{labelalpha}{CJM20}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Neural Information Processing Systems}
+      \field{title}{Fast Fourier Convolution}
+      \field{year}{2020}
+      \verb{urlraw}
+      \verb https://api.semanticscholar.org/CorpusID:227276693
+      \endverb
+      \verb{url}
+      \verb https://api.semanticscholar.org/CorpusID:227276693
+      \endverb
+    \endentry
+    \entry{DengLiang-Jian2015EIIU}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=753af472e779a3655ecdc2af8452f4be}{%
+           family={Deng},
+           familyi={D\bibinitperiod},
+           given={Liang-Jian},
+           giveni={L\bibinithyphendelim J\bibinitperiod}}}%
+        {{hash=94bfb5c3072f025b20bc09266d00e451}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={Ting-Zhu},
+           giveni={T\bibinithyphendelim Z\bibinitperiod}}}%
+        {{hash=1dc6eee17b63ae613000410eababf60f}{%
+           family={Zhao},
+           familyi={Z\bibinitperiod},
+           given={Xi-Le},
+           giveni={X\bibinithyphendelim L\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {United States}%
+      }
+      \list{publisher}{1}{%
+        {Public Library of Science}%
+      }
+      \strng{namehash}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{fullhash}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{fullhashraw}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{bibnamehash}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{authorbibnamehash}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{authornamehash}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{authorfullhash}{743e0f9367877e62dc3a0e51b4f22259}
+      \strng{authorfullhashraw}{743e0f9367877e62dc3a0e51b4f22259}
+      \field{labelalpha}{DHZ15}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Exemplar-based algorithms are a popular technique for image inpainting. They mainly have two important phases: deciding the filling-in order and selecting good exemplars. Traditional exemplar-based algorithms are to search suitable patches from source regions to fill in the missing parts, but they have to face a problem: improper selection of exemplars. To improve the problem, we introduce an independent strategy through investigating the process of patches propagation in this paper. We first define a new separated priority definition to propagate geometry and then synthesize image textures, aiming to well recover image geometry and textures. In addition, an automatic algorithm is designed to estimate steps for the new separated priority definition. Comparing with some competitive approaches, the new priority definition can recover image geometry and textures well.}
+      \field{issn}{1932-6203}
+      \field{journaltitle}{PloS one}
+      \field{number}{10}
+      \field{title}{Exemplar-Based Image Inpainting Using a Modified Priority Definition}
+      \field{volume}{10}
+      \field{year}{2015}
+      \field{pages}{e0141199}
+      \range{pages}{-1}
+      \keyw{Algorithms ; Computer graphics ; Differential equations Partial ; Geometry ; Information organization ; Information retrieval ; Methodology ; Methods ; Science ; Signal processing}
+    \endentry
+    \entry{DingRam2019}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=c8cffd1d771842171fc17430213f060b}{%
+           family={Ding},
+           familyi={D\bibinitperiod},
+           given={Ding},
+           giveni={D\bibinitperiod}}}%
+        {{hash=b4c781cd83ab084a0bbb4f1ba0b93f8c}{%
+           family={Ram},
+           familyi={R\bibinitperiod},
+           given={Sundaresh},
+           giveni={S\bibinitperiod}}}%
+        {{hash=91d1df751b86d9e6ee000482a06badf2}{%
+           family={Rodriguez},
+           familyi={R\bibinitperiod},
+           given={Jeffrey\bibnamedelima J.},
+           giveni={J\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {United States}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{fullhash}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{fullhashraw}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{bibnamehash}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{authorbibnamehash}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{authornamehash}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{authorfullhash}{135744b41b7bfc2b8ddf879fea398451}
+      \strng{authorfullhashraw}{135744b41b7bfc2b8ddf879fea398451}
+      \field{labelalpha}{DRR19}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Nonlocal texture similarity and local intensity smoothness are both essential for solving most image inpainting problems. In this paper, we propose a novel image inpainting algorithm that is capable of reproducing the underlying textural details using a nonlocal texture measure and also smoothing pixel intensity seamlessly in order to achieve natural-looking inpainted images. For matching texture, we propose a Gaussian-weighted nonlocal texture similarity measure to obtain multiple candidate patches for each target patch. To compute the pixel intensity, we apply the α-trimmed mean filter to the candidate patches to inpaint the target patch pixel-by-pixel. The proposed algorithm is compared with four current image inpainting algorithms under different scenarios, including object removal, texture synthesis, and error concealment. Experimental results show that the proposed algorithm outperforms the existing algorithms when inpainting large missing regions in images with texture and geometric structures.}
+      \field{issn}{1057-7149}
+      \field{journaltitle}{IEEE transactions on image processing}
+      \field{number}{4}
+      \field{title}{Image Inpainting Using Nonlocal Texture Matching and Nonlinear Filtering}
+      \field{volume}{28}
+      \field{year}{2019}
+      \field{pages}{1705\bibrangedash 1719}
+      \range{pages}{15}
+      \keyw{Algorithms ; Filters and filtration ; Image processing ; Image reconstruction ; Indexes ; Random access memory ; Resemblance (Philosophy) ; Texture}
+    \endentry
+    \entry{ElharroussOmar2020IIAR}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=1a9172cad9d8b936569ebb28cfd64c17}{%
+           family={Elharrouss},
+           familyi={E\bibinitperiod},
+           given={Omar},
+           giveni={O\bibinitperiod}}}%
+        {{hash=be12120df38ac998b51d2f4247082d7c}{%
+           family={Almaadeed},
+           familyi={A\bibinitperiod},
+           given={Noor},
+           giveni={N\bibinitperiod}}}%
+        {{hash=fb3d997d61f73bda600b3f8d3223b947}{%
+           family={Al-Maadeed},
+           familyi={A\bibinithyphendelim M\bibinitperiod},
+           given={Somaya},
+           giveni={S\bibinitperiod}}}%
+        {{hash=7973f4cdf49acbb5ac167dbb28e23570}{%
+           family={Akbari},
+           familyi={A\bibinitperiod},
+           given={Younes},
+           giveni={Y\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York}%
+      }
+      \list{publisher}{1}{%
+        {Springer US}%
+      }
+      \strng{namehash}{ed2534222ae6c735bc7e9ebcf03b4454}
+      \strng{fullhash}{b53c35b82c8bff08e7b7808bfd256577}
+      \strng{fullhashraw}{b53c35b82c8bff08e7b7808bfd256577}
+      \strng{bibnamehash}{ed2534222ae6c735bc7e9ebcf03b4454}
+      \strng{authorbibnamehash}{ed2534222ae6c735bc7e9ebcf03b4454}
+      \strng{authornamehash}{ed2534222ae6c735bc7e9ebcf03b4454}
+      \strng{authorfullhash}{b53c35b82c8bff08e7b7808bfd256577}
+      \strng{authorfullhashraw}{b53c35b82c8bff08e7b7808bfd256577}
+      \field{labelalpha}{Elh+20}
+      \field{sortinit}{E}
+      \field{sortinithash}{8da8a182d344d5b9047633dfc0cc9131}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Although image inpainting, or the art of repairing the old and deteriorated images, has been around for many years, it has recently gained even more popularity, because of the recent development in image processing techniques. With the improvement of image processing tools and the flexibility of digital image editing, automatic image inpainting has found important applications in computer vision and has also become an important and challenging topic of research in image processing. This paper reviews the existing image inpainting approaches, that were classified into three subcategories, sequential-based, CNN-based, and GAN-based methods. In addition, for each category, a list of methods for different types of distortion on images are presented. Furthermore, the paper also presents available datasets. Last but not least, we present the results of real evaluations of the three categories of image inpainting methods performed on the used datasets, for different types of image distortion. We also present the evaluations metrics and discuss the performance of these methods in terms of these metrics. This overview can be used as a reference for image inpainting researchers, and it can also facilitate the comparison of the methods as well as the datasets used. The main contribution of this paper is the presentation of the three categories of image inpainting methods along with a list of available datasets that the researchers can use to evaluate their proposed methodology against.}
+      \field{issn}{1370-4621}
+      \field{journaltitle}{Neural processing letters}
+      \field{number}{2}
+      \field{title}{Image Inpainting: A Review}
+      \field{volume}{51}
+      \field{year}{2020}
+      \field{pages}{2007\bibrangedash 2028}
+      \range{pages}{22}
+      \keyw{Algorithms ; Artificial intelligence ; Computational intelligence ; Computer science ; Computer vision ; Digital images ; Forgery ; Image processing ; Methodology ; Methods}
+    \endentry
+    \entry{grasset2003interactive}{inproceedings}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{2}{}{%
+        {{hash=5ffbb53fda83183a35a0fda528af08fe}{%
+           family={Grasset},
+           familyi={G\bibinitperiod},
+           given={Raphael},
+           giveni={R\bibinitperiod}}}%
+        {{hash=e3fd3730a6d01c9fa9ac5b68141ddaa6}{%
+           family={Gascuel},
+           familyi={G\bibinitperiod},
+           given={J-D},
+           giveni={J\bibinithyphendelim D\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{fullhash}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{fullhashraw}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{bibnamehash}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{authorbibnamehash}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{authornamehash}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{authorfullhash}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \strng{authorfullhashraw}{7d1fd22be6f2daa2427c3100ad6881a8}
+      \field{labelalpha}{GG+03}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{The Second IEEE and ACM International Symposium on Mixed and Augmented Reality, 2003. Proceedings.}
+      \field{title}{Interactive mediated reality}
+      \field{year}{2003}
+      \field{pages}{302\bibrangedash 303}
+      \range{pages}{2}
+    \endentry
+    \entry{gillette2006image}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=df1868759245b1713da23681f4b12dec}{%
+           family={Gillette},
+           familyi={G\bibinitperiod},
+           given={Alan},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{df1868759245b1713da23681f4b12dec}
+      \strng{fullhash}{df1868759245b1713da23681f4b12dec}
+      \strng{fullhashraw}{df1868759245b1713da23681f4b12dec}
+      \strng{bibnamehash}{df1868759245b1713da23681f4b12dec}
+      \strng{authorbibnamehash}{df1868759245b1713da23681f4b12dec}
+      \strng{authornamehash}{df1868759245b1713da23681f4b12dec}
+      \strng{authorfullhash}{df1868759245b1713da23681f4b12dec}
+      \strng{authorfullhashraw}{df1868759245b1713da23681f4b12dec}
+      \field{labelalpha}{Gil06}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{number}{03}
+      \field{title}{Image inpainting using a modified Cahn-Hilliard equation}
+      \field{volume}{68}
+      \field{year}{2006}
+    \endentry
+    \entry{ImageNaturalness}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=91a6a100f845256314456de5a81927b4}{%
+           family={Gong},
+           familyi={G\bibinitperiod},
+           given={Yuanhao},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=05b78ad6a8cf70e7290895d6ca358f8f}{%
+           family={Sbalzarini},
+           familyi={S\bibinitperiod},
+           given={Ivo},
+           giveni={I\bibinitperiod}}}%
+        {{hash=c28cbc2901395b4ae713740941e45d6f}{%
+           family={Jawahar},
+           familyi={J\bibinitperiod},
+           given={C.V.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=a7492c500a6dde75d6174384a596a479}{%
+           family={Shan},
+           familyi={S\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{6c11672b266a8894929e023dbe5d8789}
+      \strng{fullhash}{106d94bf42ae9374d2be47f893cf8385}
+      \strng{fullhashraw}{106d94bf42ae9374d2be47f893cf8385}
+      \strng{bibnamehash}{6c11672b266a8894929e023dbe5d8789}
+      \strng{authorbibnamehash}{6c11672b266a8894929e023dbe5d8789}
+      \strng{authornamehash}{6c11672b266a8894929e023dbe5d8789}
+      \strng{authorfullhash}{106d94bf42ae9374d2be47f893cf8385}
+      \strng{authorfullhashraw}{106d94bf42ae9374d2be47f893cf8385}
+      \field{labelalpha}{Gon+14}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Computer Vision – ACCV 2014 Workshop}
+      \field{month}{01}
+      \field{title}{Image enhancement by gradient distribution specification}
+      \field{year}{2014}
+      \field{pages}{47\bibrangedash 62}
+      \range{pages}{16}
+    \endentry
+    \entry{GsaxnerChristina2024DDSR}{inproceedings}{}{}
+      \name{author}{7}{}{%
+        {{hash=9896d4630de2cec4911052d7b7ce8517}{%
+           family={Gsaxner},
+           familyi={G\bibinitperiod},
+           given={Christina},
+           giveni={C\bibinitperiod}}}%
+        {{hash=19c5ee32b1b732b2a29023725a50bcca}{%
+           family={Mori},
+           familyi={M\bibinitperiod},
+           given={Shohei},
+           giveni={S\bibinitperiod}}}%
+        {{hash=b31d42dd4ba4466eb4b996d6e714dc68}{%
+           family={Schmalstieg},
+           familyi={S\bibinitperiod},
+           given={Dieter},
+           giveni={D\bibinitperiod}}}%
+        {{hash=c9a59ad74e0ba8e8c16df239e9af56b6}{%
+           family={Egger},
+           familyi={E\bibinitperiod},
+           given={Jan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=34bdab32b4ed838002a8c49a12db2162}{%
+           family={Paar},
+           familyi={P\bibinitperiod},
+           given={Gerhard},
+           giveni={G\bibinitperiod}}}%
+        {{hash=1ac01f57369917b149fb3cf1c09a8fd6}{%
+           family={Bailer},
+           familyi={B\bibinitperiod},
+           given={Werner},
+           giveni={W\bibinitperiod}}}%
+        {{hash=7fff406aaf42d6f94c421b2446185efd}{%
+           family={Kalkofen},
+           familyi={K\bibinitperiod},
+           given={Denis},
+           giveni={D\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{444f7bd90319afe2e3e198eb42fd574b}
+      \strng{fullhash}{329bea0f8ff71ad1df4b388edd0d2da9}
+      \strng{fullhashraw}{329bea0f8ff71ad1df4b388edd0d2da9}
+      \strng{bibnamehash}{444f7bd90319afe2e3e198eb42fd574b}
+      \strng{authorbibnamehash}{444f7bd90319afe2e3e198eb42fd574b}
+      \strng{authornamehash}{444f7bd90319afe2e3e198eb42fd574b}
+      \strng{authorfullhash}{329bea0f8ff71ad1df4b388edd0d2da9}
+      \strng{authorfullhashraw}{329bea0f8ff71ad1df4b388edd0d2da9}
+      \field{labelalpha}{Gsa+24}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Diminished reality (DR) refers to the removal of real objects from the environment by virtually replacing them with their background. Modern DR frameworks use inpainting to hallucinate unobserved regions. While recent deep learning-based inpainting is promising, the DR use case is complicated by the need to generate coherent structure and 3D geometry (i.e., depth), in particular for advanced applications, such as 3D scene editing. In this paper, we propose Deep DR, a first RGB-D inpainting framework fulfilling all requirements of DR: Plausible image and geometry inpainting with coherent structure, running at real-time frame rates, with minimal temporal artifacts. Our structure-aware generative network allows us to explicitly condition color and depth outputs on the scene semantics, overcoming the difficulty of reconstructing sharp and consistent boundaries in regions with complex backgrounds. Experimental results show that the proposed framework can outperform related work qualitatively and quantitatively.}
+      \field{booktitle}{Proceedings (International Conference on 3D Vision. Online) 3DV}
+      \field{isbn}{9798350362459}
+      \field{issn}{2475-7888}
+      \field{title}{DeepDR: Deep Structure-Aware RGB-D Inpainting for Diminished Reality}
+      \field{year}{2024}
+      \field{pages}{750\bibrangedash 760}
+      \range{pages}{11}
+      \keyw{Computer architecture ; Geometry ; Inpainting ; Measurement ; Mixed reality ; Semantics}
+    \endentry
+    \entry{HerlingJ2010Asor}{inproceedings}{}{}
+      \name{author}{2}{}{%
+        {{hash=98061bbcb9ea60b1430a1b92f42b47ff}{%
+           family={Herling},
+           familyi={H\bibinitperiod},
+           given={J},
+           giveni={J\bibinitperiod}}}%
+        {{hash=cc8156eb6f09a4eca75e872432892ed0}{%
+           family={Broll},
+           familyi={B\bibinitperiod},
+           given={W},
+           giveni={W\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{fullhash}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{fullhashraw}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{bibnamehash}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{authorbibnamehash}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{authornamehash}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{authorfullhash}{1204a7e1d382fa688df1dae787f2d828}
+      \strng{authorfullhashraw}{1204a7e1d382fa688df1dae787f2d828}
+      \field{labelalpha}{HB10}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{While Augmented Reality has always been restricted to adding artificial content to the real environment, Diminished Reality allows for removing real world content. Existing approaches however, either require complex setups or are not applicable in real-time. In this paper we present our approach for removing real-world objects from a live video stream of the user's real environment. Our approach is based on a simple setup and neither requires any pre-processing nor any information on the structure and location of the objects to be removed or on their background. Our approach is based on the identification of the objects to be removed combined with an image completion and synthesis algorithm. The performance of our approach is one to two magnitudes better than that of previous work in the area of image completion, providing real-time object cancellation on standard laptop or tablet computers.}
+      \field{booktitle}{2010 9th IEEE International Symposium on Mixed and Augmented Reality}
+      \field{isbn}{9781424493432}
+      \field{title}{Advanced self-contained object removal for realizing real-time Diminished Reality in unconstrained environments}
+      \field{year}{2010}
+      \field{pages}{207\bibrangedash 212}
+      \range{pages}{6}
+      \keyw{Augmented reality ; Cameras ; Pipelines ; Streaming technology (Telecommunications)}
+    \endentry
+    \entry{HongJunlei2024VNCE}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=dfa3434686cbf3ec76d7e21dfb2b8b57}{%
+           family={Hong},
+           familyi={H\bibinitperiod},
+           given={Junlei},
+           giveni={J\bibinitperiod}}}%
+        {{hash=b14ab5f66d5567c3df51a9f32e8b5aa7}{%
+           family={Langlotz},
+           familyi={L\bibinitperiod},
+           given={Tobias},
+           giveni={T\bibinitperiod}}}%
+        {{hash=fec94b2e6f95667065c45e05e9ec889d}{%
+           family={Sutton},
+           familyi={S\bibinitperiod},
+           given={Jonathan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=7dc8a1be4d57790fcccd12ed85845c30}{%
+           family={Regenbrecht},
+           familyi={R\bibinitperiod},
+           given={Holger},
+           giveni={H\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{504a9bb21a5a822af5eb53d6b036119f}
+      \strng{fullhash}{46a661e7ac8834cf56d1e7eb5f7b59e8}
+      \strng{fullhashraw}{46a661e7ac8834cf56d1e7eb5f7b59e8}
+      \strng{bibnamehash}{504a9bb21a5a822af5eb53d6b036119f}
+      \strng{authorbibnamehash}{504a9bb21a5a822af5eb53d6b036119f}
+      \strng{authornamehash}{504a9bb21a5a822af5eb53d6b036119f}
+      \strng{authorfullhash}{46a661e7ac8834cf56d1e7eb5f7b59e8}
+      \strng{authorfullhashraw}{46a661e7ac8834cf56d1e7eb5f7b59e8}
+      \field{labelalpha}{Hon+24}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Acoustic noise control or cancellation (ANC) is a commonplace component of modern audio headphones. ANC aims to actively mitigate disturbing environmental noise for a quieter and improved listening experience. ANC is digitally controlling frequency and amplitude characteristics of sound. Much less explored is visual noise and active visual noise control, which we address here. We first explore visual noise and scenarios in which visual noise arises based on findings from four workshops we conducted. We then introduce the concept of visual noise cancellation (VNC) and how it can be used to reduce identified effects of visual noise. In addition, we developed head-worn demonstration prototypes to practically explore the concept of active VNC with selected scenarios in a user study. Finally, we discuss the application of VNC, including vision augmentations that moderate the user’s view of the environment to address perceptual needs and to provide augmented reality content.}
+      \field{issn}{1073-0516}
+      \field{journaltitle}{ACM transactions on computer-human interaction}
+      \field{number}{2}
+      \field{title}{Visual Noise Cancellation: Exploring Visual Discomfort and Opportunities for Vision Augmentations}
+      \field{volume}{31}
+      \field{year}{2024}
+      \field{pages}{1\bibrangedash 26}
+      \range{pages}{26}
+    \endentry
+    \entry{HuynhChuong2023SSPC}{inproceedings}{}{}
+      \name{author}{7}{}{%
+        {{hash=96d3e16a52ae77b3f5e0ba9ff001183f}{%
+           family={Huynh},
+           familyi={H\bibinitperiod},
+           given={Chuong},
+           giveni={C\bibinitperiod}}}%
+        {{hash=a493198ade3ac7ff3168b478a82d1615}{%
+           family={Zhou},
+           familyi={Z\bibinitperiod},
+           given={Yuqian},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=1576e7b81fbcc0350eff6ab2cac23be4}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Zhe},
+           giveni={Z\bibinitperiod}}}%
+        {{hash=4e74e92ac258a7344d22dd0661d08dd2}{%
+           family={Barnes},
+           familyi={B\bibinitperiod},
+           given={Connelly},
+           giveni={C\bibinitperiod}}}%
+        {{hash=739ef881fb9e0c2c8d7110c90325d960}{%
+           family={Shechtman},
+           familyi={S\bibinitperiod},
+           given={Eli},
+           giveni={E\bibinitperiod}}}%
+        {{hash=9f754e6f083b267b99e58789434605ad}{%
+           family={Amirghodsi},
+           familyi={A\bibinitperiod},
+           given={Sohrab},
+           giveni={S\bibinitperiod}}}%
+        {{hash=7244177886497a3743e18fc63c2efcad}{%
+           family={Shrivastava},
+           familyi={S\bibinitperiod},
+           given={Abhinav},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{c9b94309307ba57ccb7aeb7c171b194f}
+      \strng{fullhash}{85f35a2e75b630d6fa289cb0811f4c40}
+      \strng{fullhashraw}{85f35a2e75b630d6fa289cb0811f4c40}
+      \strng{bibnamehash}{c9b94309307ba57ccb7aeb7c171b194f}
+      \strng{authorbibnamehash}{c9b94309307ba57ccb7aeb7c171b194f}
+      \strng{authornamehash}{c9b94309307ba57ccb7aeb7c171b194f}
+      \strng{authorfullhash}{85f35a2e75b630d6fa289cb0811f4c40}
+      \strng{authorfullhashraw}{85f35a2e75b630d6fa289cb0811f4c40}
+      \field{labelalpha}{Huy+23}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{In photo editing, it is common practice to remove visual distractions to improve the overall image quality and highlight the primary subject. However, manually selecting and removing these small and dense distracting regions can be a laborious and time-consuming task. In this paper, we propose an interactive distractor selection method that is optimized to achieve the task with just a single click. Our method surpasses the precision and recall achieved by the traditional method of running panoptic segmentation and then selecting the segments containing the clicks. We also showcase how a transformer-based module can be used to identify more distracting regions similar to the user's click position. Our experiments demonstrate that the model can effectively and accurately segment unknown distracting objects interactively and in groups. By significantly simplifying the photo cleaning and retouching process, our proposed model provides inspiration for exploring rare object segmentation and group selection with a single click. More information can be found at https://github.com/hmchuong/SimpSON.}
+      \field{booktitle}{Proceedings (IEEE Computer Society Conference on Computer Vision and Pattern Recognition. Online)}
+      \field{isbn}{9798350301298}
+      \field{issn}{1063-6919}
+      \field{title}{SimpSON: Simplifying Photo Cleanup with Single-Click Distracting Object Segmentation Network}
+      \field{year}{2023}
+      \field{pages}{14518\bibrangedash 14527}
+      \range{pages}{10}
+      \keyw{Cleaning ; Computer vision ; Pipelines ; Visualization}
+    \endentry
+    \entry{Liang2019InpaintingQuality}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=439285d4b13c0b53fd19fa08d6f0245f}{%
+           family={LIANG},
+           familyi={L\bibinitperiod},
+           given={Song},
+           giveni={S\bibinitperiod}}}%
+        {{hash=b564f83845524835f9d795bbd456de77}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Leida},
+           giveni={L\bibinitperiod}}}%
+        {{hash=7c0185a3a0076fa5a0d4ca8a02922726}{%
+           family={HU},
+           familyi={H\bibinitperiod},
+           given={Bo},
+           giveni={B\bibinitperiod}}}%
+        {{hash=fa026f4e5bbbb0f36314f2b7515cb567}{%
+           family={ZHANG},
+           familyi={Z\bibinitperiod},
+           given={Jianying},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{9fedeeefb5a76d072b831ebd71808a19}
+      \strng{fullhash}{719685dec848c2ba8b6161531f669478}
+      \strng{fullhashraw}{719685dec848c2ba8b6161531f669478}
+      \strng{bibnamehash}{9fedeeefb5a76d072b831ebd71808a19}
+      \strng{authorbibnamehash}{9fedeeefb5a76d072b831ebd71808a19}
+      \strng{authornamehash}{9fedeeefb5a76d072b831ebd71808a19}
+      \strng{authorfullhash}{719685dec848c2ba8b6161531f669478}
+      \strng{authorfullhashraw}{719685dec848c2ba8b6161531f669478}
+      \field{labelalpha}{LIA+19}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEICE Transactions on Information and Systems}
+      \field{month}{07}
+      \field{title}{Quality Index for Benchmarking Image Inpainting Algorithms with Guided Regional Statistics}
+      \field{volume}{E102.D}
+      \field{year}{2019}
+      \field{pages}{1430\bibrangedash 1433}
+      \range{pages}{4}
+      \verb{doi}
+      \verb 10.1587/transinf.2018EDL8206
+      \endverb
+    \endentry
+    \entry{LiuWeimin2025Rtai}{article}{}{}
+      \name{author}{5}{}{%
+        {{hash=c01671523f412fd78c0f8ffb0c67c2ce}{%
+           family={Liu},
+           familyi={L\bibinitperiod},
+           given={Weimin},
+           giveni={W\bibinitperiod}}}%
+        {{hash=8619b51743b51784fc42a85221e96f93}{%
+           family={Pan},
+           familyi={P\bibinitperiod},
+           given={Junjun},
+           giveni={J\bibinitperiod}}}%
+        {{hash=0666c042852b5aeb42978b93f6424ae4}{%
+           family={Jia},
+           familyi={J\bibinitperiod},
+           given={Liyun},
+           giveni={L\bibinitperiod}}}%
+        {{hash=6772b148eccb57db0461db4f6119fd3b}{%
+           family={Rao},
+           familyi={R\bibinitperiod},
+           given={Sijing},
+           giveni={S\bibinitperiod}}}%
+        {{hash=ef798adc79789a6d6f17352c939fbeea}{%
+           family={Zang},
+           familyi={Z\bibinitperiod},
+           given={Jie},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Ireland}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier B.V}%
+      }
+      \strng{namehash}{96767c4e367718915cba06f24e3d7f8c}
+      \strng{fullhash}{532c345bb23d0d021028be7e1805d039}
+      \strng{fullhashraw}{532c345bb23d0d021028be7e1805d039}
+      \strng{bibnamehash}{96767c4e367718915cba06f24e3d7f8c}
+      \strng{authorbibnamehash}{96767c4e367718915cba06f24e3d7f8c}
+      \strng{authornamehash}{96767c4e367718915cba06f24e3d7f8c}
+      \strng{authorfullhash}{532c345bb23d0d021028be7e1805d039}
+      \strng{authorfullhashraw}{532c345bb23d0d021028be7e1805d039}
+      \field{labelalpha}{Liu+25}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Deep anterior lamellar keratoplasty (DALK) is a widely used treatment for eye diseases and requires accurate and even stitch positions during the suturing process. In this regard, the utilization of Augmented Reality (AR) navigation systems shows promising potential in enhancing the stitching process, and a clear and unoccluded view of the corneal regions would help surgeons better plan the stitching positions. In this work, we present a joint-learning and iterative network for AR-based suturing navigation. This network aims to improve the performance of the inpainting under serious occlusion in the suturing process. And it can provide both original instruments and inpainted corneal masks along with inpainted frames. The network is based on feature reuse, iterative modules, and mask propagation structures to greatly reduce the computational cost. For the requirement of end-to-end training, we also propose a novel dataset synthesis method to construct a dataset with both occluded and unoccluded image pairs, along with mask and optical flow annotations. We also develop a novel pipeline based on the grid propagation method and inpainted optical flow outputs to provide clear and stable inpainted frames. Based on the synthetic datasets, compared to the recent outstanding inpainting networks, our framework reaches a better trade-off between performance and computation efficiency. Our Iter-S model finally gets a mean endpoint error (mEPE) of 1.69, a peak signal-to-noise ratio (PSNR) of 36.86, and a structure similarity index measure (SSIM) of 0.976, along with a low inpainting inference time of 16.26ms. Based on the Iter-S, we construct a novel AR navigation system with a frame rate of around 35.14ms/28FPS on average. The iterative modules can progressively refine the outputs while providing a favorable trade-off between visual performance and real-time computation efficiency based on the selection of iteration times. Our AR navigation framework can provide stable and accurate tracking outputs with well-inpainted results in real time under severe occlusion conditions, which demonstrates the benefits of guiding the stitching operations of surgeons in corneal surgeries. [Display omitted] •A novel joint learning-based iterative framework for AR DALK surgical navigation.•Iterative multi-task modules for better balancing time cost and performance.•An innovative data synthesis strategy and construct a new dataset.}
+      \field{issn}{0169-2607}
+      \field{journaltitle}{Computer methods and programs in biomedicine}
+      \field{title}{Real-time tracking and inpainting network with joint learning iterative modules for AR-based DALK surgical navigation}
+      \field{volume}{272}
+      \field{year}{2025}
+      \field{pages}{109068}
+      \range{pages}{1}
+      \keyw{Algorithms ; Augmented reality ; Human beings ; Inpainting ; Machine learning ; Optic Flow}
+    \endentry
+    \entry{MaXiaojin2023VDSL}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=3715a72c3e22d3a8245aec2c67ffbdc8}{%
+           family={Ma},
+           familyi={M\bibinitperiod},
+           given={Xiaojin},
+           giveni={X\bibinitperiod}}}%
+        {{hash=a4781ffb1d40481fb8bd7c3db9923cdc}{%
+           family={Abrams},
+           familyi={A\bibinitperiod},
+           given={Richard\bibnamedelima A.},
+           giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Los Angeles, CA}%
+      }
+      \list{publisher}{1}{%
+        {SAGE Publications}%
+      }
+      \strng{namehash}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{fullhash}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{fullhashraw}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{bibnamehash}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{authorbibnamehash}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{authornamehash}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{authorfullhash}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \strng{authorfullhashraw}{f01fdd2b8e91ad69b5004c19c39077cc}
+      \field{labelalpha}{MA23}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Efficient search of the environment requires that people attend to the desired elements in a scene and ignore the undesired ones. Recent research has shown that this endeavor can benefit from the ability to proactively suppress distractors with known features, but little is known about the mechanisms that produce the suppression. We show here in five experiments (N = 120 college students) that, surprisingly, identification of a sought-for target is enhanced when it is grouped with a suppressed distractor compared with when it is in a different perceptual group. The results show that the suppressive mechanism not only downweights undesired elements but also enhances responses to task-relevant elements in competition for attention with the distractor, fine tuning the suppression. The findings extend the understanding of how people efficiently process their visual world.}
+      \field{issn}{0956-7976}
+      \field{journaltitle}{Psychological science}
+      \field{number}{12}
+      \field{title}{Visual Distraction’s “Silver Lining”: Distractor Suppression Boosts Attention to Competing Stimuli}
+      \field{volume}{34}
+      \field{year}{2023}
+      \field{pages}{1336\bibrangedash 1349}
+      \range{pages}{14}
+      \keyw{Attention}
+    \endentry
+    \entry{mann2002mediated}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=5a8d6facf34d0307b1f6ff90cede73d1}{%
+           family={Mann},
+           familyi={M\bibinitperiod},
+           given={Steve},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{2}{%
+        {MIT Press Journal Presence: teleoperators}%
+        {virtual environments}%
+      }
+      \strng{namehash}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{fullhash}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{fullhashraw}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{bibnamehash}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{authorbibnamehash}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{authornamehash}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{authorfullhash}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \strng{authorfullhashraw}{5a8d6facf34d0307b1f6ff90cede73d1}
+      \field{labelalpha}{Man02}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Presence Connect}
+      \field{title}{Mediated reality with implementations for everyday life}
+      \field{volume}{1}
+      \field{year}{2002}
+      \field{pages}{2002}
+      \range{pages}{1}
+    \endentry
+    \entry{Mann2002}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=738ab3d9e4e239c4a5d812e3a94f5e7f}{%
+           family={Mann},
+           familyi={M\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=2236d5201c104ab9ee9ef278b15913b6}{%
+           family={Fung},
+           familyi={F\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{fullhash}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{fullhashraw}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{bibnamehash}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{authorbibnamehash}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{authornamehash}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{authorfullhash}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \strng{authorfullhashraw}{b85b5b0a3dcd6784f84d1addf4e2aa37}
+      \field{labelalpha}{MF02}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Presence}
+      \field{month}{04}
+      \field{title}{EyeTap Devices for Augmented, Deliberately Diminished, or Otherwise Altered Visual Perception of Rigid Planar Patches of Real-World Scenes}
+      \field{volume}{11}
+      \field{year}{2002}
+      \field{pages}{158\bibrangedash 175}
+      \range{pages}{18}
+      \verb{doi}
+      \verb 10.1162/1054746021470603
+      \endverb
+    \endentry
+    \entry{Milgram1994}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=d57f1b339e2089ac1411a8c32cef1cb7}{%
+           family={Milgram},
+           familyi={M\bibinitperiod},
+           given={Paul},
+           giveni={P\bibinitperiod}}}%
+        {{hash=96db085832621999022bfc3356648b17}{%
+           family={Takemura},
+           familyi={T\bibinitperiod},
+           given={Haruo},
+           giveni={H\bibinitperiod}}}%
+        {{hash=88561ec18bcd5616274f981b10fa2fd8}{%
+           family={Utsumi},
+           familyi={U\bibinitperiod},
+           given={Akira},
+           giveni={A\bibinitperiod}}}%
+        {{hash=510bc74af0101eb8fa9ec3ddf4db5b2c}{%
+           family={Kishino},
+           familyi={K\bibinitperiod},
+           given={Fumio},
+           giveni={F\bibinitperiod}}}%
+      }
+      \name{editor}{1}{}{%
+        {{hash=52f929bf5f34e7131997fcc02df6f693}{%
+           family={Das},
+           familyi={D\bibinitperiod},
+           given={Hari},
+           giveni={H\bibinitperiod}}}%
+      }
+      \list{organization}{2}{%
+        {International Society for Optics}%
+        {Photonics}%
+      }
+      \list{publisher}{1}{%
+        {SPIE}%
+      }
+      \strng{namehash}{0c73e83d6398ffd1d90ae4b58a04ce42}
+      \strng{fullhash}{e2b0b5e6451a6093bb48d9816ad5a358}
+      \strng{fullhashraw}{e2b0b5e6451a6093bb48d9816ad5a358}
+      \strng{bibnamehash}{0c73e83d6398ffd1d90ae4b58a04ce42}
+      \strng{authorbibnamehash}{0c73e83d6398ffd1d90ae4b58a04ce42}
+      \strng{authornamehash}{0c73e83d6398ffd1d90ae4b58a04ce42}
+      \strng{authorfullhash}{e2b0b5e6451a6093bb48d9816ad5a358}
+      \strng{authorfullhashraw}{e2b0b5e6451a6093bb48d9816ad5a358}
+      \strng{editorbibnamehash}{52f929bf5f34e7131997fcc02df6f693}
+      \strng{editornamehash}{52f929bf5f34e7131997fcc02df6f693}
+      \strng{editorfullhash}{52f929bf5f34e7131997fcc02df6f693}
+      \strng{editorfullhashraw}{52f929bf5f34e7131997fcc02df6f693}
+      \field{labelalpha}{Mil+95}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Telemanipulator and Telepresence Technologies}
+      \field{title}{{Augmented reality: a class of displays on the reality-virtuality continuum}}
+      \field{volume}{2351}
+      \field{year}{1995}
+      \field{pages}{282\bibrangedash 292}
+      \range{pages}{11}
+      \verb{doi}
+      \verb 10.1117/12.197321
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1117/12.197321
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1117/12.197321
+      \endverb
+    \endentry
+    \entry{Milgram1994MR}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=d57f1b339e2089ac1411a8c32cef1cb7}{%
+           family={Milgram},
+           familyi={M\bibinitperiod},
+           given={Paul},
+           giveni={P\bibinitperiod}}}%
+        {{hash=510bc74af0101eb8fa9ec3ddf4db5b2c}{%
+           family={Kishino},
+           familyi={K\bibinitperiod},
+           given={Fumio},
+           giveni={F\bibinitperiod}}}%
+      }
+      \strng{namehash}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{fullhash}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{fullhashraw}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{bibnamehash}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{authorbibnamehash}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{authornamehash}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{authorfullhash}{647ca6082ff6db4a282769334a54c7d3}
+      \strng{authorfullhashraw}{647ca6082ff6db4a282769334a54c7d3}
+      \field{labelalpha}{MK94}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEICE Trans. Information Systems}
+      \field{month}{12}
+      \field{title}{A Taxonomy of Mixed Reality Visual Displays}
+      \field{volume}{vol. E77-D, no. 12}
+      \field{year}{1994}
+      \field{pages}{1321\bibrangedash 1329}
+      \range{pages}{9}
+    \endentry
+    \entry{PoelmanAkmanLukotsch2012}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=7e795c13a223b8aeaa772629b399a2c1}{%
+           family={Poelman},
+           familyi={P\bibinitperiod},
+           given={Ronald},
+           giveni={R\bibinitperiod}}}%
+        {{hash=7eba7b519abc7d957c4a5d487d4d2dab}{%
+           family={Akman},
+           familyi={A\bibinitperiod},
+           given={Oytun},
+           giveni={O\bibinitperiod}}}%
+        {{hash=c773607d3ef97c5cd16d19342b6c90e4}{%
+           family={Lukosch},
+           familyi={L\bibinitperiod},
+           given={Stephan},
+           giveni={S\bibinitperiod}}}%
+        {{hash=0bb74f009abe062350d00d20479bcc82}{%
+           family={Jonker},
+           familyi={J\bibinitperiod},
+           given={Pieter},
+           giveni={P\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Seattle, Washington, USA}%
+      }
+      \list{publisher}{1}{%
+        {Association for Computing Machinery}%
+      }
+      \strng{namehash}{84a7785b2ef7fdda6618dd51d9c6c7d0}
+      \strng{fullhash}{7c72b301a636cb70a21b7683040c99f2}
+      \strng{fullhashraw}{7c72b301a636cb70a21b7683040c99f2}
+      \strng{bibnamehash}{84a7785b2ef7fdda6618dd51d9c6c7d0}
+      \strng{authorbibnamehash}{84a7785b2ef7fdda6618dd51d9c6c7d0}
+      \strng{authornamehash}{84a7785b2ef7fdda6618dd51d9c6c7d0}
+      \strng{authorfullhash}{7c72b301a636cb70a21b7683040c99f2}
+      \strng{authorfullhashraw}{7c72b301a636cb70a21b7683040c99f2}
+      \field{labelalpha}{Poe+12}
+      \field{sortinit}{P}
+      \field{sortinithash}{ff3bcf24f47321b42cb156c2cc8a8422}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{This paper presents a novel mediated reality system designed to support collaboration between crime scene investigators during a first analysis on a crime scene, remotely supported by expert colleagues. Requirements elicited from interviews and interactive sessions with practicing crime scene investigators, provided the design criteria for a head mounted display capable of real-time map-making for spatial collaboration. The resulting system is evaluated in a staged crime scene experiment in which lay investigators collaboratively solve a spatial problem with remote experts. The results show that our novel approach to remote spatial interaction with the physical scene enables investigators to tackle current issues on site in collaboration with experts at a distance.}
+      \field{booktitle}{Proceedings of the ACM 2012 Conference on Computer Supported Cooperative Work}
+      \field{isbn}{9781450310864}
+      \field{series}{CSCW '12}
+      \field{title}{As if being there: mediated reality for crime scene investigation}
+      \field{year}{2012}
+      \field{pages}{1267\bibrangedash 1276}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1145/2145204.2145394
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1145/2145204.2145394
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1145/2145204.2145394
+      \endverb
+      \keyw{mediated reality,collaborative spatial analysis,augmented reality}
+    \endentry
+    \entry{RameauFrancois2016ARAR}{article}{}{}
+      \name{author}{6}{}{%
+        {{hash=dfc6d00da4e816e0090eff29d5d6303b}{%
+           family={Rameau},
+           familyi={R\bibinitperiod},
+           given={Francois},
+           giveni={F\bibinitperiod}}}%
+        {{hash=c6481e3d37f99acab265880c70ce69ca}{%
+           family={Ha},
+           familyi={H\bibinitperiod},
+           given={Hyowon},
+           giveni={H\bibinitperiod}}}%
+        {{hash=b8412b7d8d71d5d53419d6abd401027b}{%
+           family={Joo},
+           familyi={J\bibinitperiod},
+           given={Kyungdon},
+           giveni={K\bibinitperiod}}}%
+        {{hash=79d2b31c2a3fc75e6cccc1680e48804f}{%
+           family={Choi},
+           familyi={C\bibinitperiod},
+           given={Jinsoo},
+           giveni={J\bibinitperiod}}}%
+        {{hash=121724979e45ef856e7c6b08bc7652ed}{%
+           family={Park},
+           familyi={P\bibinitperiod},
+           given={Kibaek},
+           giveni={K\bibinitperiod}}}%
+        {{hash=6d1ab3d0c6ded61b91ff3b155878558f}{%
+           family={Kweon},
+           familyi={K\bibinitperiod},
+           given={In\bibnamedelima So},
+           giveni={I\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {United States}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{c407df3621be1799982924a52f389db6}
+      \strng{fullhash}{62a8d9d2e3eb8b0aa141acb8341dae6d}
+      \strng{fullhashraw}{62a8d9d2e3eb8b0aa141acb8341dae6d}
+      \strng{bibnamehash}{c407df3621be1799982924a52f389db6}
+      \strng{authorbibnamehash}{c407df3621be1799982924a52f389db6}
+      \strng{authornamehash}{c407df3621be1799982924a52f389db6}
+      \strng{authorfullhash}{62a8d9d2e3eb8b0aa141acb8341dae6d}
+      \strng{authorfullhashraw}{62a8d9d2e3eb8b0aa141acb8341dae6d}
+      \field{labelalpha}{Ram+16}
+      \field{sortinit}{R}
+      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{One of the most hazardous driving scenario is the overtaking of a slower vehicle, indeed, in this case the front vehicle (being overtaken) can occlude an important part of the field of view of the rear vehicle's driver. This lack of visibility is the most probable cause of accidents in this context. Recent research works tend to prove that augmented reality applied to assisted driving can significantly reduce the risk of accidents. In this paper, we present a real-time marker-less system to see through cars. For this purpose, two cars are equipped with cameras and an appropriate wireless communication system. The stereo vision system mounted on the front car allows to create a sparse 3D map of the environment where the rear car can be localized. Using this inter-car pose estimation, a synthetic image is generated to overcome the occlusion and to create a seamless see-through effect which preserves the structure of the scene.}
+      \field{issn}{1077-2626}
+      \field{journaltitle}{IEEE transactions on visualization and computer graphics}
+      \field{number}{11}
+      \field{title}{A Real-Time Augmented Reality System to See-Through Cars}
+      \field{volume}{22}
+      \field{year}{2016}
+      \field{pages}{2395\bibrangedash 2404}
+      \range{pages}{10}
+      \keyw{Accident investigation ; Accidents ; Augmented reality ; Automobiles ; Cameras ; Realtime . . . ; Telecommunication systems ; Visibility}
+    \endentry
+    \entry{RosenholtzRuth2007Mvc}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=7f5e1c5dc3b8dfe057a8c22014b6176f}{%
+           family={Rosenholtz},
+           familyi={R\bibinitperiod},
+           given={Ruth},
+           giveni={R\bibinitperiod}}}%
+        {{hash=9541f6fdf7e193e3e0ebcbe9b33340ff}{%
+           family={Li},
+           familyi={L\bibinitperiod},
+           given={Yuanzhen},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=293fb666c184a2f1fe07709f9caf77e5}{%
+           family={Nakano},
+           familyi={N\bibinitperiod},
+           given={Lisa},
+           giveni={L\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {United States}%
+      }
+      \strng{namehash}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{fullhash}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{fullhashraw}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{bibnamehash}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{authorbibnamehash}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{authornamehash}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{authorfullhash}{d22940c100d0a422a0d21a34745c6d7a}
+      \strng{authorfullhashraw}{d22940c100d0a422a0d21a34745c6d7a}
+      \field{labelalpha}{RLN07}
+      \field{sortinit}{R}
+      \field{sortinithash}{5e1c39a9d46ffb6bebd8f801023a9486}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Visual clutter concerns designers of user interfaces and information visualizations. This should not surprise visual perception researchers because excess and/or disorganized display items can cause crowding, masking, decreased recognition performance due to occlusion, greater difficulty at both segmenting a scene and performing visual search, and so on. Given a reliable measure of the visual clutter in a display, designers could optimize display clutter. Furthermore, a measure of visual clutter could help generalize models like Guided Search (J. M. Wolfe, 1994) by providing a substitute for "set size" more easily computable on more complex and natural imagery. In this article, we present and test several measures of visual clutter, which operate on arbitrary images as input. The first is a new version of the Feature Congestion measure of visual clutter presented in R. Rosenholtz, Y. Li, S. Mansfield, and Z. Jin (2005). This Feature Congestion measure of visual clutter is based on the analogy that the more cluttered a display or scene is, the more difficult it would be to add a new item that would reliably draw attention. A second measure of visual clutter, Subband Entropy, is based on the notion that clutter is related to the visual information in the display. Finally, we test a third measure, Edge Density, used by M. L. Mack and A. Oliva (2004) as a measure of subjective visual complexity. We explore the use of these measures as stand-ins for set size in visual search models and demonstrate that they correlate well with search performance in complex imagery. This includes the search-in-clutter displays of J. M. Wolfe, A. Oliva, T. S. Horowitz, S. Butcher, and A. Bompas (2002) and Bravo and Farid (2004), as well as new search experiments. An additional experiment suggests that color variability, accounted for by Feature Congestion but not the Edge Density measure or the Subband Entropy measure, does matter for visual clutter.}
+      \field{issn}{1534-7362}
+      \field{journaltitle}{Journal of vision (Charlottesville, Va.)}
+      \field{number}{2}
+      \field{title}{Measuring visual clutter}
+      \field{volume}{7}
+      \field{year}{2007}
+      \field{pages}{17}
+      \range{pages}{1}
+      \keyw{Entropy ; Human beings}
+    \endentry
+    \entry{Sethian1999}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=640998ce725c2d0747c982811d8c8b78}{%
+           family={Sethian},
+           familyi={S\bibinitperiod},
+           given={J.\bibnamedelimi A.},
+           giveni={J\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+      }
+      \strng{namehash}{640998ce725c2d0747c982811d8c8b78}
+      \strng{fullhash}{640998ce725c2d0747c982811d8c8b78}
+      \strng{fullhashraw}{640998ce725c2d0747c982811d8c8b78}
+      \strng{bibnamehash}{640998ce725c2d0747c982811d8c8b78}
+      \strng{authorbibnamehash}{640998ce725c2d0747c982811d8c8b78}
+      \strng{authornamehash}{640998ce725c2d0747c982811d8c8b78}
+      \strng{authorfullhash}{640998ce725c2d0747c982811d8c8b78}
+      \strng{authorfullhashraw}{640998ce725c2d0747c982811d8c8b78}
+      \field{labelalpha}{Set99}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Fast Marching Methods are numerical schemes for computing solutions to the nonlinear Eikonal equation and related static Hamilton--Jacobi equations. Based on entropy-satisfying upwind schemes and fast sorting techniques, they yield consistent, accurate, and highly efficient algorithms. They are optimal in the sense that the computational complexity of the algorithms is O(N log N), where N is the total number of points in the domain. The schemes are of use in a variety of applications, including problems in shape offsetting, computing distances from complex curves and surfaces, shape-from-shading, photolithographic development, computing first arrivals in seismic travel times, construction of shortest geodesics on surfaces, optimal path planning around obstacles, and visibility and reflection calculations. In this paper, we review the development of these techniques, including the theoretical and numerical underpinnings; provide details of the computational schemes, including higher order versions; and demonstrate the techniques in a collection of different areas.}
+      \field{journaltitle}{SIAM Review}
+      \field{number}{2}
+      \field{title}{Fast Marching Methods}
+      \field{volume}{41}
+      \field{year}{1999}
+      \field{pages}{199\bibrangedash 235}
+      \range{pages}{37}
+      \verb{doi}
+      \verb 10.1137/S0036144598347059
+      \endverb
+      \verb{eprint}
+      \verb https://doi.org/10.1137/S0036144598347059
+      \endverb
+      \verb{urlraw}
+      \verb https://doi.org/10.1137/S0036144598347059
+      \endverb
+      \verb{url}
+      \verb https://doi.org/10.1137/S0036144598347059
+      \endverb
+    \endentry
+    \entry{Weiwei2021}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=1ff620890af125354db4242d6de61ce0}{%
+           family={Sari},
+           familyi={S\bibinitperiod},
+           given={Irawati\bibnamedelima Nurmala},
+           giveni={I\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+        {{hash=2f3cd13da9fbcfc51445458e59a3e188}{%
+           family={Horikawa},
+           familyi={H\bibinitperiod},
+           given={Emiko},
+           giveni={E\bibinitperiod}}}%
+        {{hash=a56c492a012e15ba8ba7bc866353a09f}{%
+           family={Du},
+           familyi={D\bibinitperiod},
+           given={Weiwei},
+           giveni={W\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Piscataway}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{fullhash}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{fullhashraw}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{bibnamehash}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{authorbibnamehash}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{authornamehash}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{authorfullhash}{bcd16da17c9754f63e90c40baeec1eb3}
+      \strng{authorfullhashraw}{bcd16da17c9754f63e90c40baeec1eb3}
+      \field{labelalpha}{SHD21}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Image inpainting is a challenging reconstruction of the damaged image in photography, especially for more valued artwork than before. The damages are mostly caused by scratches and worn out, so they cannot be easily fixed physically. Thus, many scientists proposed sophisticated methods for restoring the damaged image into a new one similar to an original image. However, these methods have not solved the problem effectively if the missing region is large. In this paper, we focus on how to restore a large missing region in image inpainting. This algorithm is composed of two steps: structure propagation and color propagation. In structure propagation, we segment a large region (non-homogeneous) into several small regions (homogeneous) based on the salient structure of missing region. Then, we applied a simple pixel-based inpainting method called the Fast Marching Method (FMM) to fill in the missing homogeneous regions by color propagation. In the experimental section, we applied several kinds of missing regions, such as irregular and regular missing regions, in large sizes. The results show that our proposed method performs well in various conditions.}
+      \field{issn}{2169-3536}
+      \field{journaltitle}{IEEE Access}
+      \field{title}{Interactive Image Inpainting of Large-Scale Missing Region}
+      \field{volume}{9}
+      \field{year}{2021}
+      \field{pages}{56430\bibrangedash 56442}
+      \range{pages}{13}
+      \keyw{Algorithms ; Color ; Flow charts ; Image processing ; Image reconstruction ; Image segmentation ; Propagation}
+    \endentry
+    \entry{SiltanenSanni2017Drfa}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=0d361409ae2aeb2d8a4b2183e6036e6b}{%
+           family={Siltanen},
+           familyi={S\bibinitperiod},
+           given={Sanni},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Berlin/Heidelberg}%
+      }
+      \list{publisher}{1}{%
+        {Springer Berlin Heidelberg}%
+      }
+      \strng{namehash}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{fullhash}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{fullhashraw}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{bibnamehash}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{authorbibnamehash}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{authornamehash}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{authorfullhash}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \strng{authorfullhashraw}{0d361409ae2aeb2d8a4b2183e6036e6b}
+      \field{labelalpha}{Sil17}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{A modular real-time diminished reality pipeline for indoor applications is presented. The pipeline includes a novel inpainting method which requires no prior information of the textures behind the object to be diminished. The inpainting method operates on rectified images and adapts to scene illumination. In typically challenging illumination situations, the method produces more realistic results in indoor scenes than previous approaches. Modularity enables using alternative implementations in different stages and adapting the pipeline for different applications. Finally, practical solutions to problems occurring in diminished reality applications, for example interior design, are discussed.}
+      \field{issn}{0178-2789}
+      \field{journaltitle}{The Visual computer}
+      \field{number}{2}
+      \field{title}{Diminished reality for augmented reality interior design}
+      \field{volume}{33}
+      \field{year}{2017}
+      \field{pages}{193\bibrangedash 208}
+      \range{pages}{16}
+      \keyw{Artificial intelligence ; Augmented reality ; Cameras ; Computer graphics ; Computer science ; Furniture ; Lighting ; Modular coordination (Architecture) ; Modularity (Engineering) ; Realtime . . .}
+    \endentry
+    \entry{SuvorovRoman2022RLMI}{article}{}{}
+      \name{author}{10}{}{%
+        {{hash=b7a41c8f359a28ffb1061e3e5078302b}{%
+           family={Suvorov},
+           familyi={S\bibinitperiod},
+           given={Roman},
+           giveni={R\bibinitperiod}}}%
+        {{hash=ef10ea726b143c9b586407942cca1a0d}{%
+           family={Logacheva},
+           familyi={L\bibinitperiod},
+           given={Elizaveta},
+           giveni={E\bibinitperiod}}}%
+        {{hash=38eff343f9a9887d349baf12dbf9f542}{%
+           family={Mashikhin},
+           familyi={M\bibinitperiod},
+           given={Anton},
+           giveni={A\bibinitperiod}}}%
+        {{hash=a0ec443cd4e9322e4992402c1c8b2660}{%
+           family={Remizova},
+           familyi={R\bibinitperiod},
+           given={Anastasia},
+           giveni={A\bibinitperiod}}}%
+        {{hash=395346ab9bd3dfba874ce720989a1176}{%
+           family={Ashukha},
+           familyi={A\bibinitperiod},
+           given={Arsenii},
+           giveni={A\bibinitperiod}}}%
+        {{hash=031436e6d7f2431711b3e0c93a9bdf0f}{%
+           family={Silvestrov},
+           familyi={S\bibinitperiod},
+           given={Aleksei},
+           giveni={A\bibinitperiod}}}%
+        {{hash=64e1eccb8ae64e80ac6e6fcd326492c4}{%
+           family={Kong},
+           familyi={K\bibinitperiod},
+           given={Naejin},
+           giveni={N\bibinitperiod}}}%
+        {{hash=fa33032a49b636972702994897d3b8de}{%
+           family={Goka},
+           familyi={G\bibinitperiod},
+           given={Harshith},
+           giveni={H\bibinitperiod}}}%
+        {{hash=d2784cc0cad18c9213d4df81ee641df0}{%
+           family={Park},
+           familyi={P\bibinitperiod},
+           given={Kiwoong},
+           giveni={K\bibinitperiod}}}%
+        {{hash=a48f60762c88685a899455e12615e1df}{%
+           family={Lempitsky},
+           familyi={L\bibinitperiod},
+           given={Victor},
+           giveni={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{4d64fc1aabfce09c514307c677b72a40}
+      \strng{fullhash}{7badcb7b3ba643f79e1a56e59fda5c88}
+      \strng{fullhashraw}{7badcb7b3ba643f79e1a56e59fda5c88}
+      \strng{bibnamehash}{4d64fc1aabfce09c514307c677b72a40}
+      \strng{authorbibnamehash}{4d64fc1aabfce09c514307c677b72a40}
+      \strng{authornamehash}{4d64fc1aabfce09c514307c677b72a40}
+      \strng{authorfullhash}{7badcb7b3ba643f79e1a56e59fda5c88}
+      \strng{authorfullhashraw}{7badcb7b3ba643f79e1a56e59fda5c88}
+      \field{labelalpha}{Suv+21}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{arXiv preprint arXiv:2109.07161}
+      \field{title}{Resolution-robust Large Mask Inpainting with Fourier Convolutions}
+      \field{year}{2021}
+    \endentry
+    \entry{TeleaFastMarching2004}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=f322605c73518684a37158e3b243dda6}{%
+           family={Telea},
+           familyi={T\bibinitperiod},
+           given={Alexandru},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{f322605c73518684a37158e3b243dda6}
+      \strng{fullhash}{f322605c73518684a37158e3b243dda6}
+      \strng{fullhashraw}{f322605c73518684a37158e3b243dda6}
+      \strng{bibnamehash}{f322605c73518684a37158e3b243dda6}
+      \strng{authorbibnamehash}{f322605c73518684a37158e3b243dda6}
+      \strng{authornamehash}{f322605c73518684a37158e3b243dda6}
+      \strng{authorfullhash}{f322605c73518684a37158e3b243dda6}
+      \strng{authorfullhashraw}{f322605c73518684a37158e3b243dda6}
+      \field{labelalpha}{Tel04}
+      \field{sortinit}{T}
+      \field{sortinithash}{9af77f0292593c26bde9a56e688eaee9}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Graphics Tools}
+      \field{month}{01}
+      \field{title}{An Image Inpainting Technique Based on the Fast Marching Method}
+      \field{volume}{9}
+      \field{year}{2004}
+      \verb{doi}
+      \verb 10.1080/10867651.2004.10487596
+      \endverb
+    \endentry
+    \entry{WangQile2023Asro}{article}{}{}
+      \name{author}{6}{}{%
+        {{hash=490260bd4fd6279dc2ea8c2820ee3fc9}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={Qile},
+           giveni={Q\bibinitperiod}}}%
+        {{hash=4649302e5d64c1dae13a1a0499a3857e}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Qinqi},
+           giveni={Q\bibinitperiod}}}%
+        {{hash=35ceb2ecf57968cc5544097c379c97aa}{%
+           family={Sun},
+           familyi={S\bibinitperiod},
+           given={Weitong},
+           giveni={W\bibinitperiod}}}%
+        {{hash=e6ab04c1ff185900148d41ce97ff336b}{%
+           family={Boulay},
+           familyi={B\bibinitperiod},
+           given={Chadwick},
+           giveni={C\bibinitperiod}}}%
+        {{hash=d685448a407a2e7eae4c527287720c32}{%
+           family={Kim},
+           familyi={K\bibinitperiod},
+           given={Kangsoo},
+           giveni={K\bibinitperiod}}}%
+        {{hash=c2ecc1c712cbdd417b4f32c726e941fd}{%
+           family={Barmaki},
+           familyi={B\bibinitperiod},
+           given={Roghayeh\bibnamedelima Leila},
+           giveni={R\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {London}%
+      }
+      \list{publisher}{1}{%
+        {Springer London}%
+      }
+      \strng{namehash}{7e9a37c98c296e9cdbf8aabf8a48e5ff}
+      \strng{fullhash}{8dd5b5044f5a8628c1df9facac20e97a}
+      \strng{fullhashraw}{8dd5b5044f5a8628c1df9facac20e97a}
+      \strng{bibnamehash}{7e9a37c98c296e9cdbf8aabf8a48e5ff}
+      \strng{authorbibnamehash}{7e9a37c98c296e9cdbf8aabf8a48e5ff}
+      \strng{authornamehash}{7e9a37c98c296e9cdbf8aabf8a48e5ff}
+      \strng{authorfullhash}{8dd5b5044f5a8628c1df9facac20e97a}
+      \strng{authorfullhashraw}{8dd5b5044f5a8628c1df9facac20e97a}
+      \field{labelalpha}{Wan+23}
+      \field{sortinit}{W}
+      \field{sortinithash}{4315d78024d0cea9b57a0c6f0e35ed0d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{The use of multimodal data allows excellent opportunities for human–computer interaction research and novel techniques regarding virtual and augmented reality (VR/AR) experiences. Collecting, coordinating, and synchronizing a large amount of data from multiple VR/AR hardware while maintaining a high framerate can be a daunting task, despite the compelling nature of multimodal data. The Lab Streaming Layer (LSL) is an open-source framework that enables the synchronous collection of various types of multimodal data, unlike existing expensive alternatives. However, despite its potential, this framework has not been fully adopted by the VR/AR research community. In this paper, we present a guideline of the LSL framework’s use in VR/AR research as well as report current trends by performing a comprehensive literature review on the subject. We extract 549 publications using LSL from January 2015 to March 2022. We analyze types of data, displays, and targeted application areas. We describe in-depth reviews of 38 selected papers and provide use of LSL in the VR/AR research community while highlighting benefits, challenges, and future opportunities.}
+      \field{issn}{1359-4338}
+      \field{journaltitle}{Virtual reality : the journal of the Virtual Reality Society}
+      \field{number}{3}
+      \field{title}{A scoping review of the use of lab streaming layer framework in virtual and augmented reality research}
+      \field{volume}{27}
+      \field{year}{2023}
+      \field{pages}{2195\bibrangedash 2210}
+      \range{pages}{16}
+      \keyw{Artificial intelligence ; Augmented reality ; Coincidence ; Computer graphics ; Computer science ; Synchronization ; Virtual reality}
+    \endentry
+    \entry{ZhangYunfan2022IRDI}{article}{}{}
+      \name{author}{6}{}{%
+        {{hash=84c126e3c9f45f4b977cf8398b8058fa}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={Yunfan},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=5871b0dd283e96843e6747dcd1dab09b}{%
+           family={Scargill},
+           familyi={S\bibinitperiod},
+           given={Tim},
+           giveni={T\bibinitperiod}}}%
+        {{hash=0c8356804e71c9a6c8964747b4d97003}{%
+           family={Vaishnav},
+           familyi={V\bibinitperiod},
+           given={Ashutosh},
+           giveni={A\bibinitperiod}}}%
+        {{hash=7566a1e670129c86abdbeabe9de5469f}{%
+           family={Premsankar},
+           familyi={P\bibinitperiod},
+           given={Gopika},
+           giveni={G\bibinitperiod}}}%
+        {{hash=523cc2d77fb1b3e70760e41b324ede9c}{%
+           family={Di\bibnamedelima Francesco},
+           familyi={D\bibinitperiod\bibinitdelim F\bibinitperiod},
+           given={Mario},
+           giveni={M\bibinitperiod}}}%
+        {{hash=b1b771e559904d2a3596efae5976bd8a}{%
+           family={Gorlatova},
+           familyi={G\bibinitperiod},
+           given={Maria},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{56004630ed6cb72a45183e5c0f0cc744}
+      \strng{fullhash}{372f84c61535201fd604591743868776}
+      \strng{fullhashraw}{372f84c61535201fd604591743868776}
+      \strng{bibnamehash}{56004630ed6cb72a45183e5c0f0cc744}
+      \strng{authorbibnamehash}{56004630ed6cb72a45183e5c0f0cc744}
+      \strng{authornamehash}{56004630ed6cb72a45183e5c0f0cc744}
+      \strng{authorfullhash}{372f84c61535201fd604591743868776}
+      \strng{authorfullhashraw}{372f84c61535201fd604591743868776}
+      \field{labelalpha}{Zha+22}
+      \field{sortinit}{Z}
+      \field{sortinithash}{96892c0b0a36bb8557c40c49813d48b3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Mobile Augmented Reality (AR) demands realistic rendering of virtual content that seamlessly blends into the physical environment. For this reason, AR headsets and recent smartphones are increasingly equipped with Time-of-Flight (ToF) cameras to acquire depth maps of a scene in real-time. ToF cameras are cheap and fast, however, they suffer from several issues that affect the quality of depth data, ultimately hampering their use for mobile AR. Among them, scale errors of virtual objects - appearing much bigger or smaller than what they should be - are particularly noticeable and unpleasant. This article specifically addresses these challenges by proposing InDepth, a real-time depth inpainting system based on edge computing. InDepth employs a novel deep neural network (DNN) architecture to improve the accuracy of depth maps obtained from ToF cameras. The DNN fills holes and corrects artifacts in the depth maps with high accuracy and eight times lower inference time than the state of the art. An extensive performance evaluation in real settings shows that InDepth reduces the mean absolute error by a factor of four with respect to ARCore DepthLab. Finally, a user study reveals that InDepth is effective in rendering correctly-scaled virtual objects, outperforming DepthLab.}
+      \field{issn}{2474-9567}
+      \field{journaltitle}{Proceedings of ACM on interactive, mobile, wearable and ubiquitous technologies}
+      \field{number}{1}
+      \field{title}{InDepth: Real-time Depth Inpainting for Mobile Augmented Reality}
+      \field{volume}{6}
+      \field{year}{2022}
+      \field{pages}{1\bibrangedash 25}
+      \range{pages}{25}
+    \endentry
+    \entry{MetaHandtracking}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=b6755d218d5f4e1cef9cce9cc39aeda9}{%
+           family={Meta},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{fullhash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{fullhashraw}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{bibnamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorbibnamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authornamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorfullhash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorfullhashraw}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \field{extraname}{1}
+      \field{labelalpha}{Met24}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{7}
+      \field{month}{11}
+      \field{title}{OpenXR Hand Skeleton in Interaction SDK}
+      \field{urlday}{29}
+      \field{urlmonth}{1}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://developers.meta.com/horizon/documentation/unity/unity-isdk-openxr-hand
+      \endverb
+      \verb{url}
+      \verb https://developers.meta.com/horizon/documentation/unity/unity-isdk-openxr-hand
+      \endverb
+    \endentry
+    \entry{MetaPassthrough}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=b6755d218d5f4e1cef9cce9cc39aeda9}{%
+           family={Meta},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{fullhash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{fullhashraw}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{bibnamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorbibnamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authornamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorfullhash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorfullhashraw}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \field{extraname}{2}
+      \field{labelalpha}{Met25}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{11}
+      \field{month}{12}
+      \field{title}{Passthrough Camera API overview}
+      \field{urlday}{29}
+      \field{urlmonth}{1}
+      \field{urlyear}{2026}
+      \field{year}{2025}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview
+      \endverb
+      \verb{url}
+      \verb https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview
+      \endverb
+    \endentry
+    \entry{MetaOVRSkeleton}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=b6755d218d5f4e1cef9cce9cc39aeda9}{%
+           family={Meta},
+           familyi={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{fullhash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{fullhashraw}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{bibnamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorbibnamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authornamehash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorfullhash}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \strng{authorfullhashraw}{b6755d218d5f4e1cef9cce9cc39aeda9}
+      \field{extraname}{3}
+      \field{labelalpha}{Met26}
+      \field{sortinit}{M}
+      \field{sortinithash}{4625c616857f13d17ce56f7d4f97d451}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{OVRSkeleton Class}
+      \field{urlday}{29}
+      \field{urlmonth}{1}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://developers.meta.com/horizon/reference/unity/v83/class_o_v_r_skeleton/
+      \endverb
+      \verb{url}
+      \verb https://developers.meta.com/horizon/reference/unity/v83/class_o_v_r_skeleton/
+      \endverb
+    \endentry
+    \entry{SchönerBurst}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=7b5c42ca9e8fa66c8bfb2eb76ef0ed74}{%
+           family={Schöner},
+           familyi={S\bibinitperiod},
+           given={Sebastian},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{fullhash}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{fullhashraw}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{bibnamehash}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{authorbibnamehash}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{authornamehash}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{authorfullhash}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \strng{authorfullhashraw}{7b5c42ca9e8fa66c8bfb2eb76ef0ed74}
+      \field{labelalpha}{Sch24}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{12}
+      \field{month}{12}
+      \field{title}{Unity Burst and the kernel theory of video game performance}
+      \field{urlday}{29}
+      \field{urlmonth}{1}
+      \field{urlyear}{2026}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://blog.s-schoener.com/2024-12-12-burst-kernel-theory-game-performance/
+      \endverb
+      \verb{url}
+      \verb https://blog.s-schoener.com/2024-12-12-burst-kernel-theory-game-performance/
+      \endverb
+    \endentry
+    \entry{Statista2024}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=62182ca58a739daa8ddd8a48b7b19abb}{%
+           family={Statista},
+           familyi={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{fullhash}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{fullhashraw}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{bibnamehash}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{authorbibnamehash}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{authornamehash}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{authorfullhash}{62182ca58a739daa8ddd8a48b7b19abb}
+      \strng{authorfullhashraw}{62182ca58a739daa8ddd8a48b7b19abb}
+      \field{labelalpha}{Sta24}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{{Mobile augmented Reality (AR) users worldwide from 2023 to 2028}}
+      \field{urlday}{31}
+      \field{urlmonth}{8}
+      \field{urlyear}{2025}
+      \field{year}{2024}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.statista.com/statistics/1098630/global-mobile-augmented-reality-ar-users/
+      \endverb
+      \verb{url}
+      \verb https://www.statista.com/statistics/1098630/global-mobile-augmented-reality-ar-users/
+      \endverb
+    \endentry
+    \entry{UnityCSharp}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=90be999720b0d0b2a8d5132207c73182}{%
+           family={Technologies},
+           familyi={T\bibinitperiod},
+           given={Unity},
+           giveni={U\bibinitperiod}}}%
+      }
+      \strng{namehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{fullhash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{fullhashraw}{90be999720b0d0b2a8d5132207c73182}
+      \strng{bibnamehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authorbibnamehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authornamehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authorfullhash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authorfullhashraw}{90be999720b0d0b2a8d5132207c73182}
+      \field{extraname}{1}
+      \field{labelalpha}{Tec26}
+      \field{sortinit}{T}
+      \field{sortinithash}{9af77f0292593c26bde9a56e688eaee9}
+      \field{extraalpha}{1}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{28}
+      \field{month}{1}
+      \field{title}{Csharp compiler and language version reference}
+      \field{urlday}{29}
+      \field{urlmonth}{1}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://docs.unity3d.com/Manual/csharp-compiler.html
+      \endverb
+      \verb{url}
+      \verb https://docs.unity3d.com/Manual/csharp-compiler.html
+      \endverb
+    \endentry
+    \entry{UnitySentis}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=90be999720b0d0b2a8d5132207c73182}{%
+           family={Technologies},
+           familyi={T\bibinitperiod},
+           given={Unity},
+           giveni={U\bibinitperiod}}}%
+      }
+      \strng{namehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{fullhash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{fullhashraw}{90be999720b0d0b2a8d5132207c73182}
+      \strng{bibnamehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authorbibnamehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authornamehash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authorfullhash}{90be999720b0d0b2a8d5132207c73182}
+      \strng{authorfullhashraw}{90be999720b0d0b2a8d5132207c73182}
+      \field{extraname}{2}
+      \field{labelalpha}{Tec26}
+      \field{sortinit}{T}
+      \field{sortinithash}{9af77f0292593c26bde9a56e688eaee9}
+      \field{extraalpha}{2}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Sentis overview}
+      \field{urlday}{29}
+      \field{urlmonth}{1}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{dateera}{ce}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://docs.unity3d.com/Packages/com.unity.ai.inference@2.5/manual/index.html
+      \endverb
+      \verb{url}
+      \verb https://docs.unity3d.com/Packages/com.unity.ai.inference@2.5/manual/index.html
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

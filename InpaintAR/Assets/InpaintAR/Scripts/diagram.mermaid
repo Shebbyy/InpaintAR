@@ -1,0 +1,129 @@
+﻿%% Generated with Claude
+classDiagram                                                                                                                                                          
+      direction BT                                                                                                                                                      
+                                                                                                                                                                                                                                                                                                      
+      class AreaSelectionGestureHandler {                                                                                                                               
+          <<MonoBehaviour>>                                                                                                                                             
+          +LeftHandCornerScreenPos: Vector2?                                                                                                                            
+          +RightHandCornerScreenPos: Vector2?                                                                                                                           
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class TextureUtility {                                                                                                                                            
+          <<static>>                                                                                                                                                    
+          +CopyTexture() Texture2D                                                                                                                                      
+          +GetImageWidth() int                                                                                                                                          
+          +FillContour()                                                                                                                                                
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class CameraController {                                                                                                                                          
+          +GetPassthroughTexture() Texture                                                                                                                              
+          +ScreenPointToLocalPoint() Vector3                                                                                                                            
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                        
+      class MaskController {                                                                                                                                            
+          <<static>>                                                                                                                                                    
+          +GetMaskPixelIndices() HashSet~int~                                                                                                                           
+          +ResetSelectionMask()                                                                                                                                         
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class SelectionUiController {                                                                                                                                     
+          <<MonoBehaviour>>                                                                                                                                             
+          +CreateUICanvasAndCorners()                                                                                                                                   
+          +UpdateSelectionMaskPosition()                                                                                                                                
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                    
+      class AreaSelectionVisualizer {                                                                                                                                   
+          <<MonoBehaviour>>                                                                                                                                             
+          +inpaintingAlgorithmSelection                                                                                                                                 
+          -m_abstractInpaintingAlgorithm                                                                                                                                
+          -HandleAlgorithmSwitching()                                                                                                                                   
+          -SwitchAlgorithm()                                                                                                                                            
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                          
+      class InpaintingFactory {                                                                                                                                         
+          <<static>>                                                                                                                                                    
+          +GetInpaintingAlgorithm(enum)                                                                                                                                 
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                
+      class AbstractInpaintingAlgorithm {                                                                                                                               
+          <<abstract>>                                                                                                                                                  
+          #PixelBuffer: Color32[]                                                                                                                                       
+          +Inpaint() Texture2D                                                                                                                                          
+          #InpaintLogic()* Texture2D                                                                                                                                    
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                 
+      class FastMarchingAlgorithm {                                                                                                                                     
+          -DownscaleFactor: 6                                                                                                                                           
+          -Epsilon: 3                                                                                                                                                   
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class EltmAlgorithm {                                                                                                                                             
+          -ConfidenceRegularization: 0.7                                                                                                                                
+          -AlphaExponent: 1.0                                                                                                                                           
+          -BetaExponent: 1.5                                                                                                                                            
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class NltmAlgorithm {                                                                                                                                             
+          -K: 5                                                                                                                                                         
+          -Alpha: 0.15                                                                                                                                                  
+          -cachedCandidates                                                                                                                                             
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class LaMaAlgorithm {                                                                                                                                             
+          -m_model: Model                                                                                                                                               
+          -m_worker: Worker                                                                                                                                             
+          +Dispose()                                                                                                                                                    
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                      
+      class PerformanceEvaluator {                                                                                                                                      
+          <<static>>                                                                                                                                                    
+          +AddInpaintingStats()                                                                                                                                         
+          +GetTotalFPS() float                                                                                                                                          
+          +ResetValues()                                                                                                                                                
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class QualityEvaluator {                                                                                                                                          
+          <<static>>                                                                                                                                                    
+          +EvaluateQuality()                                                                                                                                            
+          +GetAverageQuality() double                                                                                                                                   
+          +ResetValues()                                                                                                                                                
+      }                                                                                                                                                                 
+                                                                                                                                                                        
+      class ClutterEvaluator {                                                                                                                                          
+          <<static>>                                                                                                                                                    
+          +EvaluateClutterReduction()                                                                                                                                   
+          +GetAverageClutterReduction() double                                                                                                                          
+          +ResetValues()                                                                                                                                                
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                         
+      class MetricsUI {                                                                                                                                                 
+          <<MonoBehaviour>>                                                                                                                                             
+          +CurrentAlgorithm                                                                                                                                             
+          -m_isVisible: bool                                                                                                                                            
+          -UpdateMetricUI()                                                                                                                                             
+      }                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                             
+      AreaSelectionGestureHandler <-- AreaSelectionVisualizer                                                                                                           
+      CameraController <-- SelectionUiController                                                                                                                        
+      TextureUtility <-- MaskController                                                                                                                                 
+                                                                                                                                                                        
+      MaskController <-- AreaSelectionVisualizer                                                                                                                        
+      SelectionUiController <-- AreaSelectionVisualizer                                                                                                                 
+                                                                                                                                                                        
+      InpaintingFactory <-- AreaSelectionVisualizer                                                                                                                     
+      InpaintingFactory ..> AbstractInpaintingAlgorithm : creates                                                                                                       
+                                                                                                                                                                        
+      AbstractInpaintingAlgorithm <|-- FastMarchingAlgorithm                                                                                                            
+      AbstractInpaintingAlgorithm <|-- EltmAlgorithm                                                                                                                    
+      AbstractInpaintingAlgorithm <|-- NltmAlgorithm                                                                                                                    
+      AbstractInpaintingAlgorithm <|-- LaMaAlgorithm                                                                                                                    
+                                                                                                                                                                        
+      AbstractInpaintingAlgorithm --> PerformanceEvaluator                                                                                                              
+      AbstractInpaintingAlgorithm --> QualityEvaluator                                                                                                                  
+      AbstractInpaintingAlgorithm --> ClutterEvaluator                                                                                                                  
+                                                                                                                                                                        
+      PerformanceEvaluator <-- MetricsUI                                                                                                                                
+      QualityEvaluator <-- MetricsUI                                                                                                                                    
+      ClutterEvaluator <-- MetricsUI                                                                                                                                    
+                                                                                                                                                                        
+      MetricsUI <.. AreaSelectionVisualizer : updates 

@@ -3,25 +3,25 @@
 
 Visual clutter is a severe problem for AR applications due to information overload and the distraction it causes. Through the use of inpainting and DR, it is possible to hide this clutter from the user. 
 
-To accomplish this, it is important to choose a fitting inpainting method, which provides high performance at an acceptable quality level. To provide such information, several approaches were analyzed in detail and implemented for evaluation through different evaluation and assessment criterias in terms of both performance and quality.
-Whilst the approach of the developed prototype, which evaluates the inpainting algorithm every frame is not practical and should probably be replaced by an event-driven approach for proper use. It serves as a good evaluation of the approaches performance though. In terms of evaluation criterias, for quality the IIQA, which was proposed by Liang et. al. \cite{Liang2019InpaintingQuality}, was implemented.
+To accomplish this, it is important to choose a fitting inpainting method, which provides high performance at an acceptable quality level. To provide such information, several approaches were analyzed in detail and implemented for evaluation through different evaluation and assessment criteria in terms of both performance and quality.
+Whilst the approach of the developed prototype, which evaluates the inpainting algorithm every frame, is not practical and should probably be replaced by an event-driven approach for proper use, it serves as a good evaluation of the approach's performance. In terms of evaluation criteria, for quality, the IIQA, which was proposed by Liang et. al. \cite{Liang2019InpaintingQuality} was implemented.
 
-As NLTM at first seemed unsuited for real-time inpainting, a combination of the PatchMatch algorithm, proposed by Barnes, et. al. in 2009\cite{BarnesConnelly2009Parc}, with the existing NLTM algorithm lead to major performance improvements, although as later proven in chapter \ref{cha:Evaluation}, the performance improvements were still nowhere near enough to achieve real-time performance.
+As NLTM at first seemed unsuited for real-time inpainting, a combination of the PatchMatch algorithm, proposed by Barnes et. al. in 2009\cite{BarnesConnelly2009Parc}, with the existing NLTM algorithm led to major performance improvements, although as later proven in chapter \ref{cha:Evaluation}, the performance improvements were still nowhere near enough to achieve real-time performance.
 
 In general, none of the methods really reached the performance necessary for real-time inpainting, but for cases like the clutter removal in the background, such performance might not be necessary, in case slight delays in reactivity and feedback of the inpainting can be accepted.
 
-In the evaluation it was noticed, that whilst FMM provides the best performance in every scenario by several magnitudes, the ELTM approach provides much higher quality results in many cases, albeit at the cost of performance. Both NLTM and LaMa, as of this moment should not be considered at all.
-Whilst LaMa seemed to scale well with larger masks, it seems the initial overhead of the inference and initialization inside of the model makes a real-time usage infeasible.
+In the evaluation, it was noticed that whilst FMM provides the best performance in every scenario by several magnitudes, the ELTM approach provides much higher quality results in many cases, albeit at the cost of performance. Both NLTM and LaMa, as of this moment, should not be considered at all.
+Whilst LaMa seemed to scale well with larger masks, it seems the initial overhead of the inference and initialization inside the model makes real-time usage infeasible.
 
 \section{Future Work}
 
 Whilst the work done in this thesis serves as a good starting point, it is possible to branch off in many different directions for further exploration of the usages for real-time inpainting
-and clutter removal. The approach for area selection, as presented in \ref{cha:Concept} is easy to use and serves its purpose. However, there are several advancements to automatically detect clutter based
-on a users selection. In 2023 an article by Huynh, Zhou et. al. \cite{HuynhChuong2023SSPC} proposed a methodology to easily detect similar object patterns within an image. This may be used to allow for the user to simply select an object by pointing at it, followed by the SimpSON algorithm creating masks around the image for the necessary inpainting.
+and clutter removal. The approach for area selection, as presented in \ref{cha:Concept}, is easy to use and serves its purpose. However, there are several advancements to automatically detect clutter based
+on a users' selection. In 2023, an article by Huynh, Zhou et. al. \cite{HuynhChuong2023SSPC} proposed a methodology to easily detect similar object patterns within an image. This may be used to allow the user to simply select an object by pointing at it, followed by the SimpSON algorithm creating masks around the image for the necessary inpainting.
 
-In addition to this, it might be interesting to conduct a user study on the effects of hiding distractions using inpainting in AR, how it affects the user and if there are any differences to other methods of hiding objects. Whilst the work of Cheng, et. al \cite{ChengYiFei2022TUDR} has already laid good groundwork on the effects of DR, inpainting was not considered at that time
+In addition to this, it might be interesting to conduct a user study on the effects of hiding distractions using inpainting in AR, how it affects the user and if there are any differences to other methods of hiding objects. Whilst the work of Cheng et. al \cite{ChengYiFei2022TUDR} has already laid good groundwork on the effects of DR, inpainting was not considered at that time
 and may outperform the approaches which were analyzed.
 
-The proposed and implemented evaluation prototype was built in an easily extendable manner, therefore it would be interesting to evaluate more methodologies and algorithms, as there are still many promising algorithms which could not be analyzed in further detail, not to mention newer algorithms and methodologies which might be published over the next years.
+The proposed and implemented evaluation prototype was built in an easily extendable manner, it would be interesting to evaluate more methodologies and algorithms, as there are still many promising algorithms which could not be analyzed in further detail, not to mention newer algorithms and methodologies which might be published over the next few years.
 
-As this thesis was heavily focussed on CPU based methodologies, converting these algorithms into GPU-compatible versions and comparing these should definitely be addressed in the future to ensure the best performance of the algorithms.
+As this thesis was heavily focused on CPU-based methodologies, converting these algorithms into GPU-compatible versions and comparing these should definitely be addressed in the future to ensure the best performance of the algorithms.
