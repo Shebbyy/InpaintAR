@@ -69,39 +69,32 @@ For this, the skeleton of the hand and the positions for each of the fingers nee
 \end{figure}
 
 The tracked bones and joints, as seen in \ref{fig:HandSkeleton} each have their own unique transformation in the world. By using the rotation vectors of these transformations, the direction of the fingers and through these, the angle between two fingers can easily be calculated. 
-\begin{program}[h!]
+
+\begin{algorithm}[h!]
 \caption{Gesture Recognition method}
-\label{prog:LShape}
-\begin{CsCode}
-private bool CheckLShape(OVRSkeleton skeleton, out Vector3 cornerPos) {                                                                                                                 
-    cornerPos = Vector3.zero;                                                                                                                                                                            
-    var bones = skeleton.Bones;                                                                                                                                                                                                                                                                                                                                                                           
-                                                                                                                                                                                                         
-    // Index Finger: Proximal (6) to Distal (8)                                                                                                                                                          
-    var indexKnuckle = bones[6].Transform.position;                                                                                                                                                      
-    var indexTip = bones[8].Transform.position;                                                                                                                                                          
-                                                                                                                                                                                                         
-    // Thumb: Metacarpal/Knuckle (Thumb1) Tip (Thumb3) more stable than proximal/distal                                                                                                                             
-    var thumbKnuckle = bones[3].Transform.position;                                                                                                                                                      
-    var thumbTip = bones[5].Transform.position;                                                                                                                                                          
-                                                                                                                                                                                                         
-    Vector3 indexVector = (indexTip - indexKnuckle).normalized;                                                                                                                                          
-    Vector3 thumbVector = (thumbTip - thumbKnuckle).normalized;                                                                                                                                          
-                                                                                                                                                                                                         
-    float angle = Vector3.Angle(indexVector, thumbVector);                                                                                                                                               
-                                                                                                                                                                                                         
-    // Slight tolerance to allow for fingers to be slightly off angle                                                                                                                                    
-    if (angle >= 75 && angle <= 105) {                                                                                                                                                        
-        cornerPos = thumbKnuckle;                                                                                                                                                                        
-        return true;                                                                                                                                                                                     
-    }                                                                                                                                                                                                    
-                                                                                                                                                                                                         
-    return false;                                                                                                                                                                                        
-}         
-\end{CsCode}
-\end{program}
+\begin{algorithmic}[1]
+\label{alg:LShape}
+\Function{CheckLShape}{skeleton}
+    \State $cornerPos \gets Default Zero Vector$
+    
+    \Comment{Finger Direction Vector Calculation}
+    \State $indexVector \gets \text{Normalize}(Index Distal Position - Index Proximal Position)$
+    \State $thumbVector \gets \text{Normalize}(Thumb Tip Position - Thumb Knuckle Position)$
+    
+    \State $angle \gets \text{Angle}(indexVector, thumbVector)$
+    
+    \Comment{Allow tolerance around 90 degrees for better usability}
+    \If{$75 \le angle \le 105$}
+        \State $cornerPos \gets thumbKnuckle$
+        \State \Return $(\textbf{true},\ cornerPos)$
+    \EndIf
+    
+    \State \Return $(\textbf{false},\ cornerPos)$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
  
-In the example shown in \ref{prog:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
+In the example shown in \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
 As the base-bone of the thumb is the metacarpal, the rectangles' corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
 
 \begin{figure}[htb!]

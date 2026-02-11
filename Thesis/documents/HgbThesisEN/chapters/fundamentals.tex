@@ -22,15 +22,15 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
 \subsubsection{Visual Clutter in Mixed Reality}
 Mixed Reality (MR), as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display". Therefore, AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
 
-As defined by S. Mann and J. Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users' perception \cite{Mann2002}.\\
+As defined by Mann and Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users' perception \cite{Mann2002}.\\
 During the design of traditional software and information visualization, information overload and clear user interfaces need to be carefully considered.
 In these domains, all of the factors which may induce clutter and information overload can be controlled internally in the visualization or software \cite{RosenholtzRuth2007Mvc}.
 
-AR is uniquely flawed in that regard because it enhances the users' surrounding environment. This in turn means there could be a lot of external factors which may cause clutter, starting from the pure concept and interactivity of AR
+AR is uniquely flawed in that regard because it enhances the users' surrounding environment. This in turn means there could be several external factors which may cause clutter, starting from the pure concept and interactivity of AR
 oftentimes allowing objects to be placed freely in the environment and therefore cluttered environments, to the space constraints of the user themselves.
 
 \section{Diminished Reality}
-DR was first introduced as a subsection of MR by Mann \cite{Mann2002}, often also called Mediated Reality (see \cite{mann2002mediated}, \cite{grasset2003interactive} and \cite{PoelmanAkmanLukotsch2012}), due to the concept of software mediating both the physical and virtual objects the user is allowed to see.
+DR was first introduced as a subsection of MR by Mann and Fung \cite{Mann2002}, often also called Mediated Reality (see \cite{mann2002mediated}, \cite{grasset2003interactive} and \cite{PoelmanAkmanLukotsch2012}), due to the concept of software mediating both the physical and virtual objects the user is allowed to see.
 DR aims to remove or diminish real-world objects from the perception of the user by hiding them from their view. This can be accomplished by either completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
 however they perceive its presence less when looking at different objects \cite{ChengYiFei2022TUDR}.
 
@@ -52,7 +52,7 @@ Therefore, this overlay needs to be filled with a plausible background. Inpainti
 \subsubsection{Definition}
 Image inpainting is based on the concept of recovering and completing missing regions in an image or removing objects from it. This concept has been around for many centuries, all the way back to the Renaissance, having been used in image restoration or removing damage caused by deterioration \cite{gillette2006image}.
 In recent years, it has gained more popularity due to the improvement of image processing methodologies and the gradual adoption of digital image editing. To automate the inpainting process, several methods have been developed to create such an effect on an area of the users' choosing without any further input. These range from 
-static sequential algorithms over convolutional neural network (CNN) based approaches, using neural networks with automatic deep learning, up to Generative adversarial network (GAN) based solutions, which train specialized inpainting models using a large number of provided images \cite{ElharroussOmar2020IIAR}.
+static sequential algorithms over convolutional neural network (CNN) based approaches, using neural networks with automatic deep learning, up to generative adversarial network (GAN) based solutions, which train specialized inpainting models using a large number of provided images \cite{ElharroussOmar2020IIAR}.
 
 These categories and many of the provided methods provide adequate results for the inpainting of images. DR requires these methods to perform the inpainting as quickly as possible to adjust to the users' movement and provide believable results.
 This factor is especially relevant when using HMDs, as the micro-movements made by the user are already sufficient to displace the area of interest by several pixels.
@@ -67,7 +67,7 @@ Therefore, there are several methods specifically for the use in real-time inpai
   \end{center}
 \end{figure}
 \subsubsection{Evaluated inpainting methodologies}
-As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and would quickly become outdated. Therefore, only a few select candidates which seem promising for DR are being looked at in detail to provide an overview.
+As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and would quickly become outdated. Therefore, only a few candidates which seem promising for DR are being looked at in detail to provide an overview.
 
 From gaining an understanding, which categories correlate to certain desired benefits, readers may get an overview of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
@@ -85,7 +85,7 @@ The algorithm works by creating an image smoothness estimator, which estimates t
   \end{center}
 \end{figure}
 
-The mathematical formula for the calculation of a single pixels' value can be boiled down to this:
+The mathematical formula for the calculation of a single pixels' value is defined as:
 
 \[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]\\
 By calculating the central differences of all the known neighboring pixels (q) in correlation to the target pixel (p), an image gradient may be estimated, which is in this case displayed as $\Delta I$.\\
@@ -115,13 +115,12 @@ This algorithm alone can only calculate a value for one color channel. By applyi
 The advantages of the algorithm are its easy-to-implement nature, allowing for an easy understanding of the algorithm, as well as its efficiency and quality given its simplicity, whilst its disadvantage is the loss of structural information.
 
 There have been proposals and solutions for this disadvantage for the FMM method, though.
-Nurmala, Horikawa and Du proposed a solution which segments large missing regions through structure propagation to split the missing region into multiple smaller missing image regions \cite{Weiwei2021}. During initial testing, it turned out to reduce the performance of the inpainting
-algorithm too much for real-time usage, which is why it was not implemented in the final prototype despite its quality improvements.
+Sari, Horikawa and Du proposed a solution which segments large missing regions through structure propagation to split the missing region into multiple smaller missing image regions \cite{Weiwei2021}. During initial testing, the performance degradations of these quality improvements were too severe, which is why it was not implemented in the final prototype despite its quality improvements.
 
 \subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
 \label{cha:NonlocalTexture}
 Proposed back in 2019, see \cite{DingRam2019}, this method aims to find existing neighboring areas, which match the existing surrounding texture to find a pixels' value.
-Whilst this approach is a lot more complex compared to the rather simple FMM, it promises higher quality results, due to working through patches of pixels and trying to keep a consistent pattern within them.
+Whilst this approach is a lot more complex compared to the simple FMM, it promises higher quality results, due to working through patches of pixels and trying to keep a consistent pattern within them.
 
 This approach is also known as exemplar-based inpainting and was established as a cheap and effective way to generate textures from known areas of an image to fill missing areas.
 
@@ -148,7 +147,7 @@ As the NLTM algorithm puts a large focus on keeping textures and edges consisten
 \[D(\Psi_p) = \dfrac{\Delta I_p \times n_p}{I_{max}}\]
 \[\Delta I_p = \dfrac{1}{2I_{max}} \{[I(x_p, y_p - 1) - I(x_p, y_p + 1)] \times i + [I(x_p + 1, y_p) - I(x_p - 1, y_p)] \times j\}\]
 
-The isomorph vector function shown above may seem complicated at first, but after breaking it down, it becomes rather simple. The subtractions of the intensity, $I(x_p, y_p - 1) - I(x_p, y_p + 1)$ serves to estimate the intensity change in a vertical dimension, whilst the same subtraction with modifications to x serves to provide the intensity change of the horizontal dimension.
+The isomorph vector function shown above may seem complicated at first, but after breaking it down, it becomes easy to understand. The subtractions of the intensity, $I(x_p, y_p - 1) - I(x_p, y_p + 1)$ serves to estimate the intensity change in a vertical dimension, whilst the same subtraction with modifications to x serves to provide the intensity change of the horizontal dimension.
 
 To actually create a vector, i and j are defined as unit vectors in the x and y direction, which are used to modify the vectors according to the intensities.
 
@@ -176,11 +175,11 @@ To support color, the isophote vector, used for the priority calculation, is com
 \label{cha:ELTMTheory}
 
 This method was first proposed in 2015 by Deng et. al., see \cite{DengLiang-Jian2015EIIU}.\\
-For this method, many approaches are similar to the non-local texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
+For this algorithm, many approaches are similar to the non-local texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
 
 Such exemplar-based algorithms put the focus on the surrounding area of the target pixels, therefore reducing the search area for candidate pixel patches marginally and improving the performance, albeit at a potential loss of quality.
 
-Compared to the approach of the prior chapter, the priority function is overhauled to the following:
+Compared to the approach of the prior algorithm, the priority function is overhauled to the following:
 
 \[
   P(p) = 
@@ -195,7 +194,7 @@ To reduce the computational load of the similarity between two patches, the form
 \[\Psi_q = argmin\ d(\Psi_p, \Psi_q)\]
 $d(\Psi_p, \Psi_q)$ in this case describes the sum of squared differences of the known pixels between the two patches.
 
-After finding the patch with the highest similarity, it is used to fill the missing pixels in the target patch. This is one of the methodologies in which it differs from the NLTS approach of Ding, Ram, Rodriguez and Jeffrey (see section \ref{cha:NonlocalTexture}). Instead of picking multiple source patches and using a mean value, it only considers one \cite{DengLiang-Jian2015EIIU}.
+After finding the patch with the highest similarity, it is used to fill the missing pixels in the target patch. This is one of the methodologies in which it differs from the NLTS approach of Ding, Ram, Rodriguez and Jeffrey (see \cite{DingRam2019}). Instead of picking multiple source patches and using a mean value, it only considers one \cite{DengLiang-Jian2015EIIU}.
 
 This should therefore reduce the runtime of the process. In return, this will cause the method to be more susceptible to inconsistent candidate patches and for the output to potentially be of lower quality.
 
@@ -203,7 +202,7 @@ This should therefore reduce the runtime of the process. In return, this will ca
 Moving away from algorithmic methods, many modern methods also use trained inpainting networks to provide high-quality results.
 Whilst using inpainting models might seem slower than using algorithmic models, most of them provide higher quality images and may handle large masks more efficiently due to the large computational complexity in algorithmic solutions.
 
-One of those networks is the Large Mask (LaMa) inpainting network, which uses Fourier Convolutions to inpaint large masks effectively.
+One of those networks is the Large Mask (LaMa) inpainting network, which uses Fourier Convolutions to inpaint large masks effectively \cite{SuvorovRoman2022RLMI}.
 Whenever large areas need to be filled using inpainting, the global context of images needs to be considered. The Fast Fourier Convolution (FFC), first introduced in 2020 by Chi \cite{Chi2020FastFC}, is an operator which allows the use of global context in early layers of the inpainting pipeline.
 It manages this by splitting into a local and a global branch, evaluating those two branches before merging the results back together.
 
@@ -234,19 +233,21 @@ Based on the concepts of each of the analyzed approaches, it is highly likely fo
 In stark contrast, NLTM should provide the highest quality inpainting, albeit at the cost of performance due to having to analyze the entire image and calculating the average of the candidate pixel values. In this regard, ELTM might provide a good trade-off, using the surrounding pixels similarly to FMM, but still analyzing pixel patches for similarity in a similar manner to NLTM
 \\The LaMa Inpainting Model might prove to be very performant, due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead, which is unlikely. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
 
+All of the above arguments are summarized in table \ref{table:inpaintingExpectations}, in which the plausibility for real-time use based on these arguments is as follows:
+
 \begin{table}[h!]
 \centering
 \begin{tabular}{|p{17em}|c|c|c|}
   \hline
   \textbf{Method}& \textbf{Performance} & \textbf{Quality} & \textbf{Plausibility} \\
   \hline
-  Fast Marching Method & \textcolor{ForestGreen}{High} & \textcolor{red}{Low} & \textcolor{ForestGreen}{High} \\
+  Fast Marching Method (FMM) \cite{TeleaFastMarching2004} & \textcolor{ForestGreen}{High} & \textcolor{red}{Low} & \textcolor{ForestGreen}{High} \\
   \hline
-  Nonlocal Texture Matching and Nonlinear Filtering & \textcolor{red}{Low} & \textcolor{ForestGreen}{High} & \textcolor{red}{Low} \\
+  Nonlocal Texture Matching and Nonlinear Filtering (NLTM) \cite{DingRam2019} & \textcolor{red}{Low} & \textcolor{ForestGreen}{High} & \textcolor{red}{Low} \\
   \hline
-  Exemplar-Based Image Inpainting with modified priorities & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} \\
+  Exemplar-Based Image Inpainting with modified priorities (ELTM) \cite{DengLiang-Jian2015EIIU} & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} & \textcolor{orange}{Medium} \\
   \hline
-  Large Mask Inpainting with Fourier Convolutions & \textcolor{orange}{Medium} & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} \\
+  Large Mask Inpainting with Fourier Convolutions (LaMa) \cite{SuvorovRoman2022RLMI} & \textcolor{orange}{Medium} & \textcolor{ForestGreen}{High} & \textcolor{ForestGreen}{High} \\
   \hline
 \end{tabular}
 \caption{Expected evaluation results considering the conceptual design}

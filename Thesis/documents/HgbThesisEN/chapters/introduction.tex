@@ -1,28 +1,28 @@
 \chapter{Introduction}
 \label{cha:Introduction}
 
-The term Augmented Reality (AR) can be defined as "augmenting natural feedback to the operator with simulated cues". This definition includes not only Head-Mounted-Displays (HMDs), for which the term has been commonly used as of late, but also Monitor-Based systems, in which computer-generated images are overlaid onto live or stored videos \cite{Milgram1994}.
-While many still consider AR a niche, the user numbers tell a different story. In 2023, Statista reported about 983 million users to be using AR on their mobile devices \cite{Statista2024}. This coincides with the release of many new devices, like the Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} and the Apple Vision Pro\footnote{https://www.apple.com/apple-vision-pro/}, which have started to bring AR into the mainstream
+The term Augmented Reality (AR) can be described as "augmenting natural feedback to the operator with simulated cues" \cite{Milgram1994}. This includes not only Head-Mounted-Displays (HMDs), for which the term has been commonly used as of late, but also monitor and other screen based systems, in which computer-generated images are overlaid onto live or stored videos \cite{Milgram1994}.
+While many still consider AR a niche, the user numbers tell a different story. In 2023, Statista reported about 983 million users to be using AR on their mobile devices \cite{Statista2024}. This coincides with the release of many new devices, like the Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} and the Apple Vision Pro\footnote{https://www.apple.com/apple-vision-pro/}, current generation HMDs which support AR beyond mainstream mobile devices.
 
 AR applications are, due to their nature of adding additional objects onto the users' viewing area, very prone to information overload. Whenever users are supposed to focus on the virtual objects at hand, the presence of physical objects may serve as a distraction \cite{ChengYiFei2022TUDR}.
 \\
 An existing solution is Diminished Reality (DR). This concept can be interpreted as a specific use case of AR, which aims to hide or remove certain physical objects from the viewport in real-time \cite{Mann2002} (see \ref{fig:figDR}). By adopting an approach similar to this thesis, DR may be used to reduce the visual clutter caused by the real environment.
 
-To achieve this, the visual clutter from the viewport is intentionally drawn over for each frame. Whilst a fixed color rectangle would prove to be the simplest and most performant overlay for the clutter, it might cause the user to be even more distracted. Therefore, this thesis uses image inpainting to generate a plausible and believable substitute for the overlaid area.
+To achieve this, the visual clutter from the viewport is intentionally drawn over for each frame. Whilst a fixed color rectangle would prove to be the simplest and most performant overlay for the clutter, it might cause the user to be even more distracted. Therefore, this thesis uses image inpainting, which was first pioneered by Efros and Leung as a solution to generate larger textures from a source texture and fill holes in images \cite{EfrosLeung1999}, to produce a plausible and believable substitute for the overlaid area.
 
 \begin{figure}[h!]
   \includegraphics[width=1\textwidth]{figDR.png}
-  \caption{Real and Diminished scene. This is an example of how DR may be used to reduce visual distractions. (A) shows the regular environment, (B) shows the same image with the visual clutter overdrawn with a mask, whilst (C) shows the cleaned up DR image, achieved through inpainting.}
+  \caption{Real and diminished scene. This is an example of how DR may be used to reduce visual distractions. (A) shows the regular environment, (B) shows the same image with the visual clutter overdrawn with a mask, whilst (C) shows the cleaned up DR image, achieved through inpainting.}
   \label{fig:figDR}
 \end{figure}
 
 \section{Motivation}
-Clutter is an ever-present phenomenon in our daily lives. It is still rather difficult to automatically detect visual clutter, as there is still a lack of definite understanding of which factors, features and attributes in objects are relevant and affect a users' attention span negatively \cite{RosenholtzRuth2007Mvc}. It has been shown through multiple experiments and studies that reducing visual distractions such as clutter improves a person's ability to focus and keep a longer attention span, see for example \cite{MaXiaojin2023VDSL}
+Clutter is an ever-present phenomenon in our daily lives. It is rather difficult to automatically detect visual clutter, as there is still a lack of definite understanding of which factors, features and attributes in objects are relevant and affect a users' attention span negatively \cite{RosenholtzRuth2007Mvc}. It has been shown through multiple experiments and studies that reducing visual distractions such as clutter improves a persons' ability to focus and keep a longer attention span, see for example \cite{MaXiaojin2023VDSL}.
 
 Over the last years, there have been several solutions for reducing distractions caused by real-world interference, most of them for sound.
 Whilst there are many solutions available for sound related distractions, like noise-cancellation headphones, at the moment, there is very little awareness of the distraction caused by visual noise, not to mention a severe lack of universal solutions for it. During an experiment on which visual factors might impact focus, next to lighting and motions, information overload, as well as distractions caused by objects such as food, animals, large textures, or bright spots have been pointed out by the participants \cite{HongJunlei2024VNCE}.
 
-There are already a few existing solutions for achieving DR using inpainting, as seen for example in "DeepDR", a project to provide structure-aware RGB-D inpainting for DR \cite{GsaxnerChristina2024DDSR}, the evaluation of which of the existing inpainting methods is viable and could be used for not only this domain, but inpainting in a 3-dimensional real-time environment in general has largely been disregarded as of now.
+There are already a few existing solutions for achieving DR using inpainting, as seen for example in "DeepDR", a project to provide structure-aware Red-Blue-Green and Depth (RGB-D) aware inpainting for DR \cite{GsaxnerChristina2024DDSR}, the evaluation of which of the existing inpainting methods is viable and could be used for not only this domain, but inpainting in a 3-dimensional real-time environment in general has largely been disregarded as of now.
 
 Most publications put the focus on different components of the system, like the detection of objects, depth detection, user studies or optimizations of smaller visual artifacts. At most, there are some evaluations for comparison when presenting new state of the art algorithms and solutions for inpainting, but an overview of existing algorithms and solutions and the evaluation in a real-time DR setting has been missing as of now.
 
@@ -32,7 +32,7 @@ In addition, the program built for this evaluation should be easy to extend for 
 \begin{figure}[htb!]
   \begin{center}
     \includegraphics[width=0.70\textwidth]{clutteredChess.png}
-    \caption{An example of virtual objects enhancing an already cluttered environment and therefore worsening the existing visual clutter}
+    \caption{An example of virtual objects enhancing an already cluttered environment and therefore adding to the existing visual clutter}
     \label{fig:clutteredChess}
   \end{center}
 \end{figure}

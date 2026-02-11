@@ -13,8 +13,8 @@
 \babel@toc {ngerman}{}\relax 
 \babel@toc {english}{}\relax 
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {1.1}{\ignorespaces Real and Diminished scene. This is an example of how DR may be used to reduce visual distractions. (A) shows the regular environment, (B) shows the same image with the visual clutter overdrawn with a mask, whilst (C) shows the cleaned up DR image, achieved through inpainting.}}{2}{figure.caption.5}%
-\contentsline {figure}{\numberline {1.2}{\ignorespaces An example of virtual objects enhancing an already cluttered environment and therefore worsening the existing visual clutter}}{3}{figure.caption.6}%
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Real and diminished scene. This is an example of how DR may be used to reduce visual distractions. (A) shows the regular environment, (B) shows the same image with the visual clutter overdrawn with a mask, whilst (C) shows the cleaned up DR image, achieved through inpainting.}}{2}{figure.caption.5}%
+\contentsline {figure}{\numberline {1.2}{\ignorespaces An example of virtual objects enhancing an already cluttered environment and therefore adding to the existing visual clutter}}{3}{figure.caption.6}%
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {2.1}{\ignorespaces Image taken from \blx@tocontentsinit {0}\cite {RosenholtzRuth2007Mvc}, Page 3; It shows a comparison between reaction time and clutter to predict performance. The difficulty of the given task may also change the increase in reaction time compared to the clutter, therefore 3 curves are provided instead of one.}}{5}{figure.caption.7}%
 \contentsline {figure}{\numberline {2.2}{\ignorespaces An example of inpainting, (a) original image, (b) image with synthetic damage, (c) image fixed with texture synthesis of surrounding area pixels}}{7}{figure.caption.8}%
@@ -29,8 +29,8 @@
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {4.1}{\ignorespaces Simplified UML diagram of the implementation architecture}}{21}{figure.caption.17}%
 \contentsline {figure}{\numberline {4.2}{\ignorespaces A visualization of the bones and joints tracked by the Meta XR Core SDK \blx@tocontentsinit {0}\cite {MetaHandtracking}}}{22}{figure.caption.18}%
-\contentsline {figure}{\numberline {4.3}{\ignorespaces Area Selection of the visualized mask}}{24}{figure.caption.19}%
-\contentsline {figure}{\numberline {4.4}{\ignorespaces Flowchart of the background evaluation job scheduling}}{32}{figure.caption.20}%
+\contentsline {figure}{\numberline {4.3}{\ignorespaces Area Selection of the visualized mask}}{23}{figure.caption.19}%
+\contentsline {figure}{\numberline {4.4}{\ignorespaces Flowchart of the background evaluation job scheduling}}{31}{figure.caption.20}%
 \addvspace {10\p@ }
 \contentsline {figure}{\numberline {5.1}{\ignorespaces Uniform Background Test Scenario Baseline Image}}{34}{figure.caption.21}%
 \contentsline {figure}{\numberline {5.2}{\ignorespaces Uniform Background Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}}{34}{figure.caption.22}%
