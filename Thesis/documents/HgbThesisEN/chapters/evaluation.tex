@@ -18,13 +18,13 @@ difficult usage scenarios, like very large masks and reflective surfaces, which 
     \label{fig:CleanUniformBaseline}
   \end{center}
 \end{figure}
-This serves as a very basic and baseline testcase in which the surroundings should be plain, in the best case, one uniform color. The original baseline image used for the evaluation can be seen in \ref{fig:CleanUniformBaseline}.
+This serves as a very basic and baseline testcase in which the surroundings should be plain, in the best case, one uniform color. The original baseline image used for the evaluation can be seen in figure \ref{fig:CleanUniformBaseline}.
 Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high-quality result. At most, there should be some artifacts in terms of the shading or through the surrounding objects.
 
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{UniformComparison.png}
-    \caption{Uniform background test scenario result image comparison (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \caption{Uniform background test scenario result image comparison for each algorithm (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
     \label{fig:UniformComparison}
   \end{center}
 \end{figure}
@@ -59,25 +59,27 @@ This scenario is done on a wooden desk, as the texture of the wood provides a go
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{BackgroundPatternComparison.png}
-    \caption{Textured Background Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \caption{Textured background test scenario result images for each of the algorithms (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
     \label{fig:BackgroundPatternComparison}
   \end{center}
 \end{figure}
 
+When looking at the results shown in figure \ref{fig:BackgroundPatternComparison}, one can immediately notice the stark contrast in quality between the algorithms. Whilst FMM does not keep any of the pattern detailing, the other algorithms seem to do a reasonably good job. NLTM and ELTM both seem to struggle a bit due to the downscaled input image, although both seem to be able to keep the texture reasonably well. Due to the reuse of the patches in ELTM, it simulates the wood texture a lot better, getting rid of the blurry artifacts of NLTM. LaMa seems the least affected by the low resolution input image, presenting a detailed wood pattern, albeit with a small offset due to the alignment issues, which were mentioned in the limitations chapter \ref{cha:limitations}.
+
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{BackgroundResults.png}
-    \caption{Textured Background Scenario: Evaluation Result Charts}
+    \caption{Textured background scenario quality and performance evaluation result barcharts}
     \label{fig:BackgroundResults}
   \end{center}
 \end{figure}
 
-The performance metrics of this test case are very similar in reference to \ref{sec:UniformBackground}, albeit with the framerate being lower overall. This can be correlated to the larger mask which needs to be inpainted in this test scenario.
+The performance metrics of this test case, as can be seen in figure \ref{fig:BackgroundResults}, are very similar to the metrics of section \ref{sec:UniformBackground}, albeit with the framerate being lower overall. This can be correlated to the larger mask which needs to be inpainted in this test scenario.
 
-In terms of quality, ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction, too, ended up completely different, with NLTM and FMM being about on par with each other. Most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
-NLTM is most probably suffering here from the missing source information due to the downscaled inpainting.
+In terms of the quality metrics, the visual analysis is being confirmed. ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction, too, ended up completely different, with NLTM and FMM being about on par with each other. Most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
+NLTM is most probably suffering here from the missing source information due to the downscaled source image.
 
-ELTM seems to handle the downscaled source image very well though, still delivering a result, which reduces the clutter reasonably well whilst producing a texture which can blend in well. But it is still significantly overtaken by the LaMa model, which pays for its quality with the slow runtime. It lags behind the other methodologies by far.
+ELTM seems to handle the downscaled source image very well though, still delivering a result, which reduces the clutter reasonably well whilst producing a texture which can blend in well. But it is still significantly overtaken by the LaMa model, which pays for its quality with the slow runtime. It lags behind the other methodologies by far as clearly proven by the metrics in figure \ref{fig:BackgroundResults}.
 
 \section{Large Area Inpainting}
 \label{sec:LaIpEval}
@@ -85,7 +87,7 @@ ELTM seems to handle the downscaled source image very well though, still deliver
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.75\textwidth]{LargeMaskBaseline.png}
-    \caption{Large Area Inpainting background test scenario baseline image}
+    \caption{Large area inpainting background test scenario baseline image containing a centered keyboard, which would block and distract from overlaid virtual objects}
     \label{fig:LargeMaskBaseline}
   \end{center}
 \end{figure}
@@ -95,7 +97,7 @@ As the aforementioned test scenarios are focused on small, targeted inpainting m
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{LargeMaskComparison.png}
-    \caption{Large Mask Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \caption{Large mask test scenario result images for each of the analyzed algorithms (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
     \label{fig:LargeMaskComparison}
   \end{center}
 \end{figure}
@@ -107,7 +109,7 @@ It seems like the quality of the NLTM inpainting suffered from it, whilst the EL
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{LargeMaskResults.png}
-    \caption{Large Mask Test Scenario: Evaluation Result Charts}
+    \caption{Large mask test scenario evaluation result charts in terms of both performance and quality}
     \label{fig:LargeMaskResults}
   \end{center}
 \end{figure}
@@ -123,7 +125,7 @@ The other algorithms performed as expected, considering the last test cases, alt
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.75\textwidth]{ReflectionBaseline.png}
-    \caption{Reflective Surroundings Inpainting background test scenario baseline image}
+    \caption{Reflective surroundings inpainting background test scenario baseline image containing clutter surrounded by multiple partially filled and empty glasses of water}
     \label{fig:ReflectionBaseline}
   \end{center}
 \end{figure}
@@ -134,7 +136,7 @@ These objects should preferably be avoided as sources due to the discoloring and
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{ReflectionComparison.png}
-    \caption{Reflection Surroundings Test Scenario Result Images (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
+    \caption{Reflection surroundings test scenario result images for each of the analyzed algorithms (A = FMM, B = NLTM, C = ELTM, D = LaMa)}
     \label{fig:ReflectionComparison}
   \end{center}
 \end{figure}
@@ -145,7 +147,7 @@ In addition ELTM seems to have kept the pattern of the glassware, taking the col
 \begin{figure}[h!]
   \begin{center}
     \includegraphics[width=1\textwidth]{ReflectionResults.png}
-    \caption{Reflection Surroundings Test Scenario: Evaluation Result Charts}
+    \caption{Reflection surroundings test scenario evaluation result charts for performance and quality}
     \label{fig:ReflectionResults}
   \end{center}
 \end{figure}
