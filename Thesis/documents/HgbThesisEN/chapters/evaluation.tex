@@ -8,6 +8,25 @@ The entire testing was conducted on a Meta Quest 3 running on the current releas
 For the evaluation, the first two test scenarios have been prepared, which are aimed at bringing out both the conceptual advantages and disadvantages of the different implemented methodologies, like the texture continuation and edge recognition. The two following scenarios have been designed to stress test the inpainting implementations in
 difficult usage scenarios, like very large masks and reflective surfaces, which some inpainting methods might have difficulties with.
 
+\section{Evaluation Background Jobs}
+
+As the quality and clutter evaluation algorithms need a lot of computational resources, they cannot run in the foreground for each frame, due to it affecting the performance evaluation severely. Therefore, the Unity Job System is used for these evaluations, albeit with the jobs running in the background rather than blocking the main thread like in the inpainting implementations.
+
+This means the quality and clutter evaluation works on a "evaluate if ready" principle, only evaluating frames whenever there is no other frame being evaluated at the moment of the call, as seen on \ref{fig:EvaluationBackgroundSchedule}.
+
+Whilst this reduces the consistency of the evaluation results slightly, it solves the issue of the evaluation impacting the performance of the rest of the program, as it is evaluated in a background thread.
+
+\begin{figure}[htb!]
+  \begin{center}
+    \includegraphics[width=1\textwidth]{EvaluationFlow.PNG}
+    \caption{Flowchart of the background evaluation job scheduling}
+    \label{fig:EvaluationBackgroundSchedule}
+  \end{center}
+\end{figure}
+
+Performance, on the other hand, is easy to calculate and aggregate. Therefore, it can be calculated each frame.
+
+
 \section{Uniform Background}
 \label{sec:UniformBackground}
 
@@ -81,6 +100,8 @@ NLTM is most probably suffering here from the missing source information due to 
 
 ELTM seems to handle the downscaled source image very well though, still delivering a result, which reduces the clutter reasonably well whilst producing a texture which can blend in well. But it is still significantly overtaken by the LaMa model, which pays for its quality with the slow runtime. It lags behind the other methodologies by far as clearly proven by the metrics in figure \ref{fig:BackgroundResults}.
 
+Compared to the last scenario, whilst the performance has decreased slightly due to the larger mask, the relative differences of the algorithms stayed the same. In terms of quality and clutter reduction, FMM achieves much worse results in relation to the other algorithms, when compared with the uniform background scenario, due to it being unable to imitate patterns, whilst ELTM shows its strengths of being able to generate continuous patterns reasonably well, outperforming NLTM and FMM marginally in comparison to the uniform background scenario, in which FMM was still above. For LaMa, all the metrics stayed pretty similar compared to the prior scenario.
+
 \section{Large Area Inpainting}
 \label{sec:LaIpEval}
 
@@ -92,7 +113,7 @@ ELTM seems to handle the downscaled source image very well though, still deliver
   \end{center}
 \end{figure}
 
-As the aforementioned test scenarios are focused on small, targeted inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regard to stress-testing the implementations in a difficult but plausible scenario.
+As the aforementioned test scenarios are focused on small, targeted inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regard to stress-testing the implementations in a difficult but plausible scenario. For this, the keyboard shown in figure \ref{fig:LargeMaskBaseline} should be replaced by the wood texture as even as possible. Such a use-case might be interesting when trying to hide physical objects before placing smaller virtual objects over them to avoid, in this case the keyboard, to distract from the virtual object in front of it.  
 
 \begin{figure}[h!]
   \begin{center}

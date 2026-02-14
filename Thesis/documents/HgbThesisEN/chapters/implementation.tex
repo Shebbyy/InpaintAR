@@ -373,24 +373,6 @@ This output tensor then gets converted back into an array of color values, which
 
 In terms of implementation complexity, it was by far the easiest to integrate, albeit due to all the complexity lying inside the training data of the model.
 
-\section{Evaluation Background Jobs}
-
-As the quality and clutter evaluation algorithms need a lot of computational resources, they cannot run in the foreground for each frame, due to it affecting the performance evaluation severely. Therefore, the Unity Job System is used for these evaluations, albeit with the jobs running in the background rather than blocking the main thread like in the inpainting implementations.
-
-This means the quality and clutter evaluation works on a "evaluate if ready" principle, only evaluating frames whenever there is no other frame being evaluated at the moment of the call, as seen on \ref{fig:EvaluationBackgroundSchedule}.
-
-Whilst this reduces the consistency of the evaluation results slightly, it solves the issue of the evaluation impacting the performance of the rest of the program, as it is evaluated in a background thread.
-
-\begin{figure}[htb!]
-  \begin{center}
-    \includegraphics[width=1\textwidth]{EvaluationFlow.PNG}
-    \caption{Flowchart of the background evaluation job scheduling}
-    \label{fig:EvaluationBackgroundSchedule}
-  \end{center}
-\end{figure}
-
-Performance, on the other hand, is easy to calculate and aggregate. Therefore, it can be calculated each frame.
-
 \section{Limitations}
 \label{cha:limitations}
 
