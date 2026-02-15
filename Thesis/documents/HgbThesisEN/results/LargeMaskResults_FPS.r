@@ -1,6 +1,6 @@
 png(filename = "LaMaPerformance.png", 
     width = 2000, 
-    height = 1400,
+    height = 1600,
     res = 225)
 
 x <- c("FMM", "NLTM", "ELTM", "LaMa")
@@ -19,9 +19,9 @@ bp <- barplot(y,
               ylab = "Frames per Second (FPS)", 
               main = "Framerate (Higher = Better)", 
               ylim = c(0, 15),
-              cex.axis = 1.6,
-              cex.names = 1.6,
-              cex.lab = 1.75,
+              cex.axis = 1.9,
+              cex.names = 1.9,
+              cex.lab = 2,
               cex.main = 2.5,
               space = c(0, 0.3),
               legend.text = FALSE)
@@ -29,13 +29,13 @@ bp <- barplot(y,
 text(x = bp,          
      y = y + 1,      
      labels = y, 
-     cex = 1.6)
+     cex = 1.75)
 
 legend("topright", 
        legend = c("Total", "Inpainting Only"), 
        fill = c("darkblue", "steelblue"),
-       cex = 1.25,      
-       pt.cex = 1.25,     
+       cex = 1.9,      
+       pt.cex = 1.9,     
        bty = "o")
 
 dev.off()

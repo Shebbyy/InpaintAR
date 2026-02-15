@@ -1,6 +1,6 @@
 png(filename = "LaMaClutter.png", 
     width = 2000,   
-    height = 1400, 
+    height = 1600, 
     res = 225)
 
 x <- c("FMM", "NLTM", "ELTM", "LaMa")
@@ -13,15 +13,15 @@ bp <- barplot(y,
               xlab = "Clutter Reduction Metric (0-100%)", 
               main = "Clutter Reduction in % (Higher = Better)", 
               xlim = c(0, 15),
-              cex.axis = 1.6,
-              cex.names = 1.6,
-              cex.lab = 1.74,
+              cex.axis = 2,
+              cex.names = 2,
+              cex.lab = 1.9,
               cex.main = 2.5,
               space = 0.25)
 
 text(x = y + 0.75,  
      y = bp,
      labels = y,
-     cex = 1.6)
+     cex = 2)
 
 dev.off()
