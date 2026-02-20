@@ -1,18 +1,18 @@
 \chapter{Implementation}
 \label{cha:Implementation}
 
-This chapter goes into detail about the implementation of the prototype created for the evaluation.
+This chapter presents the implementation of the prototype created for the evaluation.
 After providing an overview of the hardware and software used during the development, the different components of the program and the implementation details for the inpainting methods are explained in further detail.
 
 \subsubsection{Hardware}
 
-As the focus of this thesis lies on the evaluation of inpainting methodologies in an AR environment, a HMD which supports this technology,
+As the focus of this thesis lies on the evaluation of inpainting methodologies in an AR environment, an HMD which supports this technology,
 as well as provides access to the camera-data is required. In addition, the HMD should have the capabilities of hand-tracking for the area selection component.
 
 A Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} is chosen for this, as it provides all the necessary features, was just recently extended with its new passthrough API\footnote{https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview}, which allows
-for developers to directly access camera data, and was readily on hand. The HMD is equipped with two RGB cameras with 18 Pixels Per Degree for video see-through, whose output is displayed on two 2.064x2.208 pixel displays with a refresh rate of up to 120hz.
+for developers to directly access camera data. The HMD is equipped with two RGB cameras with 18 Pixels Per Degree for video see-through, whose output is displayed on two 2.064x2.208 pixel displays with a refresh rate of up to 120hz.
 
-Whilst the entire implementation in itself is fully device-agnostic, therefore allowing any HMD which has the required features to work, some implementations, like the hand-tracking and controller input or the camera texture source, need to be modified according to the api of the required device.
+Whilst the entire implementation in itself is fully device-agnostic, therefore allowing any HMD which has the required features to work, some implementations, like the hand-tracking and controller input or the camera texture source, need to be modified according to the API of the required device.
 
 \subsubsection{Software}
 The implementation is built in the Unity3D Game Engine\footnote{https://unity.com/products/unity-engine} in Version 6000.1.0f1.
@@ -56,9 +56,9 @@ as well as handing over all the data to the evaluation implementations.
 The selection of which inpainting algorithm to use still happens inside the AreaSelectionVisualizer class, which initializes the algorithm on program startup, or whenever the algorithm gets changed through the controller. This was implemented to ease the comparison of the inpainting methods by keeping the same mask between methodologies.
 
 \section{Area Selection and Tracking}
-As already mentioned in the concept chapter about user input (see \ref{cha:UserInput}), hand-tracking is used for defining the inpainting mask.
+As previously described in the concept chapter about user input (see \ref{cha:UserInput}), hand-tracking is used for defining the inpainting mask.
 
-For this, the skeleton of the hand and the positions for each of the fingers need to be tracked reliably. The Meta XR Core SDK already provides the tracking capabilities and mapping of the user's hand to a skeleton \cite{MetaOVRSkeleton}.
+For this, the skeleton of the hand and the positions for each of the fingers' bones need to be tracked reliably. The Meta XR Core SDK already provides the tracking capabilities and mapping of the user's hand to a skeleton \cite{MetaOVRSkeleton}.
 
 \begin{figure}[htb!]
   \begin{center}
@@ -97,7 +97,7 @@ The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton} each have
 \end{algorithmic}
 \end{algorithm}
  
-In the example shown in listing \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
+In the example shown in listing \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the corner-point for the area selection.
 As the base-bone of the thumb is the metacarpal, the rectangle's corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
 
 \begin{figure}[htb!]
@@ -128,6 +128,18 @@ Both the mask and the current frame camera texture are then handed over to the i
 \section{Inpainting Algorithm Implementation}
 
 The Inpainting algorithms are being called each frame. The reason for this is to allow for an easy comparison of the performance by looking at the Frames per Second (FPS) the application achieves. The target FPS rate for real-time should be at least 60 FPS for HMDs to avoid motion sickness. For regular displays, 30 FPS should also be sufficient \cite{WangQile2023Asro}. 
+The following algorithms were implemented:
+
+\begin{itemize}
+    \item Fast Marching Method (FMM), as defined by Telea \cite{TeleaFastMarching2004} and presented in section \ref{cha:FMMFundamentals}.
+
+    \item Nonlocal Texture Matching and Nonlinear Filtering (NLTM), proposed by Ding, Ram and Rodriguez \cite{DingRam2019} and explained in section \ref{cha:NonlocalTexture}.
+    
+    \item Exemplar-Based Image Inpainting with modified Priorities (ELTM), first presented by Deng et. al. \cite{DengLiang-Jian2015EIIU} and shown in section \ref{cha:ELTMTheory}.
+    
+    \item Large Mask Inpainting with Fourier Convolutions (LaMa), a conceptualized and trained image inpainting model by Suvorov et. al. \cite{SuvorovRoman2022RLMI} which is explained in section \ref{cha:LaMaTheory}.
+    
+\end{itemize}
 
 As both the NLTM and ELTM algorithms require downscaling, this too is applied to the FMM and the LaMa methods to keep the input to the algorithms similar. The default resolution of 1280x1280 would mean 100k+ iterations for the texture matching algorithms for the candidate evaluation, which would make both methodologies infeasible for real-time inpainting with current hardware, but by simply downscaling the image and upscaling it again after the inpainting algorithm finishes,
 the performance can be improved significantly. As the inpainting aims to overlay objects with background predictions, which are not in focus for the user, the quality loss is acceptable and should still be superior in quality compared to FMM due to the texture recognition.

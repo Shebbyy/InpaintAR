@@ -72,6 +72,7 @@ As there are many different methods currently available regarding inpainting, an
 From gaining an understanding, which categories correlate to certain desired benefits, readers may get an overview of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
 \subsubsection{Fast Marching Method}
+\label{cha:FMMFundamentals}
 Having first been proposed back in 1999 by Sethian, see \cite{Sethian1999}, the Fast Marching Method (FMM) is an analytical method, which was first developed to solve boundary problems.
 
 FMM has been proven by Telea to also be applicable to pixel-based problems, like inpainting.
@@ -194,11 +195,12 @@ To reduce the computational load of the similarity between two patches, the form
 \[\Psi_q = argmin\ d(\Psi_p, \Psi_q)\]
 $d(\Psi_p, \Psi_q)$ in this case describes the sum of squared differences of the known pixels between the two patches.
 
-After finding the patch with the highest similarity, it is used to fill the missing pixels in the target patch. This is one of the methodologies in which it differs from the NLTS approach of Ding, Ram, Rodriguez and Jeffrey (see \cite{DingRam2019}). Instead of picking multiple source patches and using a mean value, it only considers one \cite{DengLiang-Jian2015EIIU}.
+After finding the patch with the highest similarity, it is used to fill the missing pixels in the target patch. This is one of the methodologies in which it differs from the NLTS approach of Ding, Ram, Rodriguez (see \cite{DingRam2019}). Instead of picking multiple source patches and using a mean value, it only considers one \cite{DengLiang-Jian2015EIIU}.
 
 This should therefore reduce the runtime of the process. In return, this will cause the method to be more susceptible to inconsistent candidate patches and for the output to potentially be of lower quality.
 
 \subsubsection{Large Mask Inpainting with Fourier Convolutions}
+\label{cha:LaMaTheory}
 Moving away from algorithmic methods, many modern methods also use trained inpainting networks to provide high-quality results.
 Whilst using inpainting models might seem slower than using algorithmic models, most of them provide higher quality images and may handle large masks more efficiently due to the large computational complexity in algorithmic solutions.
 

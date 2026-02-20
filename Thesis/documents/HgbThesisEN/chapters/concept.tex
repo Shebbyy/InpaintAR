@@ -1,7 +1,7 @@
 \chapter{Concept}
 \label{cha:Concept}
 
-In the previous chapter, several approaches and the underlying principles for DR were analyzed in detail. To evaluate the aforementioned methodologies a evaluation program needs to be developed. This implementation will be created for a HMD, as it provides the user with a lot more freedom of movement and interactions compared to a phone camera.
+In the previous chapter, several approaches and the underlying principles for DR were analyzed in detail. To analyze the aforementioned methodologies a evaluation program needs to be developed. This implementation will be created for an HMD, as it provides the user with a lot more freedom of movement and interactions compared to a phone camera.
 
 In this chapter, the design decisions for the program are elaborated upon in further detail.
 
@@ -12,9 +12,9 @@ To achieve this, there are several surrounding factors which need to be addresse
 \begin{itemize}
 \item The user should easily and intuitively be able to select the area to apply the inpainting to by themselves.
 
-\item It should be simple to switch inpainting methodologies on the fly, to compare them on the same mask in as similar an environment as possible
+\item It should be simple to switch inpainting methodologies on the fly. This stabilizes the evaluation results, as the mask and environment stays consistent.
 
-\item The evaluations of quality and clutter reduction should be calculated in the background so as not to affect the inpainting performance marginally
+\item The evaluations of quality and clutter reduction should be calculated in the background to not affect the performance by blocking the main thread.
 
 \item The architecture should be modular and easy to extend, in case other methodologies need to be analyzed.
 
@@ -64,7 +64,7 @@ Since the methodologies analyzed in this thesis have only been conceptualized fo
 Most of the methodologies need to iterate over a large number of pixels. To even make inpainting in a reasonable timespan plausible, an easy solution is to downscale the source image for the inpainting and upscale it again afterwards. Whilst this reduces
 the quality of the inpainting methodologies, it should, in return, end up improving the performance of the inpainting significantly.
 
-Even with this reduction of the image size, the NLTM algorithm is still rather performance-heavy for its candidate-search. For this, the algorithm iterates over every pixel and calculates the similarity to the target pixel patch.
+Even with this reduction of the image size, the NLTM algorithm still takes much performance for its candidate-search. For this, the algorithm iterates over every pixel and calculates the similarity to the target pixel patch.
 Whilst this is intuitive and great if the focus is on quality rather than performance, it makes the algorithm infeasible for real-time use.
 
 \begin{figure}[htb!]
@@ -82,9 +82,11 @@ provide a noticeable performance improvement with little to no quality loss in a
 \section{Evaluation Approach}
 \label{cha:EvaluationApproaches}
 
+The evaluation of the algorithms needs to be fully automated and happen during the runtime. The presented algorithms aid in providing objective and impartial metrics for each of the inpainting algorithms, to compare them to each other without subjective bias.
+
 \subsubsection{Measuring Quality for Inpainting}
 
-The process of evaluating the quality of the inpainted area in an objective manner is more difficult than one might at first expect. Traditional quality evaluations usually focus on the entire image, whilst inpainting is mostly applied to smaller localized areas of the image. In 2019, Liang, Li, Hu and Zhang proposed a new Image Inpainting Quality Assessment (IIQA) to assess the quality of an inpainted image without any additional data \cite{Liang2019InpaintingQuality}.
+The process of evaluating the quality of the inpainted area in an objective manner without a reference image is difficult. Traditional image quality evaluations usually focus on the entire image, whilst inpainting is mostly applied to smaller localized areas of the image. In 2019, Liang, Li, Hu and Zhang proposed a new Image Inpainting Quality Assessment (IIQA) to assess the quality of an inpainted image without any additional data \cite{Liang2019InpaintingQuality}.
 
 \begin{figure}[htb!]
   \begin{center}
@@ -94,9 +96,9 @@ The process of evaluating the quality of the inpainted area in an objective mann
   \end{center}
 \end{figure}
 
-One factor for considering the inpainting quality is to look at the boundaries of the inpainted area. Both the outer boundaries with the original image contents, as well as the inpainted inner contents, are considered and compared for this. After calculating the gradient distributions, the Kullback-Leibler Divergence is used to calculate the distance between the two distributions.
+One factor for considering the inpainting quality is to look at the boundaries of the inpainted area. Both the outer boundaries with the original image contents, as well as the inpainted inner contents, are considered and compared for this. After calculating the gradient distributions, the Kullback-Leibler Divergence \cite{KullbackLeibler} is used to calculate the distance between the two distributions.
 
-In addition to this, the naturalness of the original image and the inpainted image is taken into account, which is based on a thesis by Gong and Sbalzarini from 2015 (see \cite{ImageNaturalness}).
+In addition to this, the naturalness of the original image and the inpainted image is taken into account, which is based on a publication by Gong and Sbalzarini from 2015 (see \cite{ImageNaturalness}).
 
 This calculation takes the gradients of the mask region and compares the weighted combination of the median value and the mean absolute deviation of the original image with the inpainted version.
 
@@ -119,13 +121,13 @@ To accomplish this, the metric considers the color, contrast and the orientation
   This can be recognized, by looking at the Sobel gradient of the image and comparing the angle of edges accordingly. For these orientations, a coherence can be calculated, which can then be used to calculate the congestion.
 \end{itemize}
 
-In the paper, an approach of downscaling the image continuously was used \cite{RosenholtzRuth2007Mvc}.
+In the publication, an approach of downscaling the image continuously was used \cite{RosenholtzRuth2007Mvc}.
 This continuously blurs out smaller features and distractions, leaving only the larger outliers left, which are then applied with a larger weight. Whilst this approach provides a better quality metric, the computational resources required are much higher and would slow down the evaluation to the point of only being able to consider a minority of the frames actually generated by the inpainting algorithm. 
 Therefore, it was left out at the cost of a single scale evaluation approach, which causes the overall values to be slightly lower. As the clutter reduction of the inpainting approaches should be evaluated in correlation to each other, this should not be of consequence.
 
 \subsubsection{How Performance is measured}
 
-In terms of performance, the most common performance metric in real-time graphics applications has been proven to be Frames Per Second (FPS). This defines how many images can be iterated over in a single second and therefore stands in direct correlation to the latency required for the calculation of a single frame.
+In terms of performance, the most common performance metric in real-time graphics applications has been proven to be Frames Per Second (FPS). This defines how many images can be iterated over in a single second and therefore stands in direct correlation to the calculation time required for the calculation of a single frame.
 
 As the Total FPS can be affected by a lot of different external factors, like the mask preparation, receiving data from the camera and other secondary components, the time for inpainting is measured in an isolated manner as well.
 This can then be used to calculate an FPS metric, which only takes the time required for the inpainting algorithm itself into account.
