@@ -72,8 +72,8 @@ The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton} each have
 
 \begin{algorithm}[h!]
 \caption{Gesture Recognition method}
-\begin{algorithmic}[1]
 \label{alg:LShape}
+\begin{algorithmic}[1]
 \Function{CheckLShape}{skeleton}
     \Input{skeleton, the skeleton of a hand containing all the bone positions}
     \Returns{if the shape has been recognized and the corner position}
@@ -97,7 +97,7 @@ The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton} each have
 \end{algorithmic}
 \end{algorithm}
  
-In the example shown in listing \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the corner-point for the area selection.
+In the example shown in algorithm \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the corner-point for the area selection.
 As the base-bone of the thumb is the metacarpal, the rectangle's corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
 
 \begin{figure}[htb!]
@@ -137,14 +137,14 @@ The following algorithms were implemented:
     
     \item Exemplar-Based Image Inpainting with modified Priorities (ELTM), first presented by Deng et. al. \cite{DengLiang-Jian2015EIIU} and shown in section \ref{cha:ELTMTheory}.
     
-    \item Large Mask Inpainting with Fourier Convolutions (LaMa), a conceptualized and trained image inpainting model by Suvorov et. al. \cite{SuvorovRoman2022RLMI} which is explained in section \ref{cha:LaMaTheory}.
+    \item Large Mask Inpainting with Fourier Convolutions (LaMa), a pre-trained image inpainting model by Suvorov et. al. \cite{SuvorovRoman2022RLMI} which is explained in section \ref{cha:LaMaTheory}.
     
 \end{itemize}
 
 As both the NLTM and ELTM algorithms require downscaling, this too is applied to the FMM and the LaMa methods to keep the input to the algorithms similar. The default resolution of 1280x1280 would mean 100k+ iterations for the texture matching algorithms for the candidate evaluation, which would make both methodologies infeasible for real-time inpainting with current hardware, but by simply downscaling the image and upscaling it again after the inpainting algorithm finishes,
 the performance can be improved significantly. As the inpainting aims to overlay objects with background predictions, which are not in focus for the user, the quality loss is acceptable and should still be superior in quality compared to FMM due to the texture recognition.
 
-These inpainting implementations all inherit the public Inpaint method from the AbstractInpaintingAlgorithm, see listing \ref{prog:AbstractInpaintingAlgorithm}, which handles all the evaluation triggers and measurements, whilst the algorithm classes only need to implement the abstract InpaintLogic method. The class for the concrete selected algorithm gets created through a factory method.
+These inpainting implementations all inherit the public Inpaint method from the AbstractInpaintingAlgorithm, see program \ref{prog:AbstractInpaintingAlgorithm}, which handles all the evaluation triggers and measurements, whilst the algorithm classes only need to implement the abstract InpaintLogic method. The class for the concrete selected algorithm gets created through a factory method.
 
 \begin{program}[h!]
 \caption{AbstractInpaintingAlgorithm class, which all the inpainting implementation classes inherit from.}
@@ -180,46 +180,49 @@ public abstract class AbstractInpaintingAlgorithm {
 
 \subsubsection{Fast Marching Method}
 
-\begin{program}[h!]
-\caption{Fast Marching Method MinHeap Stale Entry handling}
-\label{prog:FMMHeap}
-\begin{CsCode}
-private static void RunFmmWithHeap(...) {
-    while (heap.Length > 0) {
-        var node = heap.Pop();
-        int idx = node.Index;
-        // Skip if this is a stale entry (generation mismatch)
-        if (node.Generation != generations[idx]) continue;
-        ...
-        // All Neighbors
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                if (i == 0 && j == 0) continue;
-                int nbY = y + i;
-                int nbX = x + j;
-                if (nbY < 0 || nbY >= height || nbX < 0 || nbX >= width) continue;
-                int nbIdx = nbY * width + nbX;
-                ...
-                // Solve eikonal
-                float newDist = SolveEikonalQuadrants(ref distanceMap, ref flags, nbY, nbX, width, height);
-                if (newDist < distanceMap[nbIdx]) {
-                    distanceMap[nbIdx] = newDist;
-                    // Old entries with lower generation will be skipped
-                    generations[nbIdx]++;
-                    heap.Push(new FmmNode
-                        { Distance = newDist, Index = nbIdx, Generation = generations[nbIdx] });
-                }
-                ...
-            }
-        }
-    }
-}
-\end{CsCode}
-\end{program}
-
-
 One optimization in the algorithms implementation is the min-heap handling in which any stale entries during the inpainting iterations are skipped. This is in regard to the reference pixel distance, which gets updated for neighbor pixels in case the eikonal function result is lower than the prior distance. 
-In the default algorithm, the specific entry inside the heap would need to be looked for and updated accordingly. In this implementation, a new entry is simply added to the heap, as can be seen in listing \ref{prog:FMMHeap}.
+In the default algorithm, the specific entry inside the heap would need to be looked for and updated accordingly. In this implementation, a new entry is simply added to the heap, as can be seen in algorithm \ref{alg:FMMHeap}.
+
+\begin{algorithm}[h!]
+\caption{Fast Marching Method MinHeap Stale Entry handling}
+\label{alg:FMMHeap}
+\begin{algorithmic}[1]
+\Function{RunFmmWithHeap}{heap, flags, distanceMap, pixels}
+\Input{heap, the minHeap containing pixels to process}
+    \Input{flags, state of each pixel (Known, Band, Inside)}
+    \Input{distanceMap, distance values for each pixel}
+    \Input{pixels, image pixel array}
+    \Returns{Modified pixels array}
+
+    \While{heap.Length $>$ 0}
+        \State node $\gets$ heap.Pop()
+        \State idx $\gets$ node.Index
+
+        \Comment{Skip stale entries}
+        \If{node.Generation $\neq$ generations[idx]}
+            \State \textbf{continue}
+        \EndIf
+
+        \Comment{Skip already processed pixels}
+        \If{flags[idx] = Known}
+            \State \textbf{continue}
+        \EndIf
+
+        ....
+        \Comment{For each mask/bounds neighbor of the current pixel}
+        \If{newDist $<$ distanceMap[nbIdx]}
+            \State distanceMap[nbIdx] $\gets$ newDist
+            \State generations[nbIdx] $\gets$ generations[nbIdx] + 1
+            \State heap.Push(FmmNode(newDist, nbIdx, generations[nbIdx]))
+        \EndIf
+        
+        ....
+    \EndWhile
+
+    \State \Return pixels
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
 
 To find out if a heap entry is stale, an id is stored with the heap entry. For each pixel to inpaint, the most current id is stored inside a separate data structure for reference. If this id does not match, the entry is declared stale, reducing the asymptotic runtime of the distance update from O(n) to O(log n)
 
@@ -229,67 +232,83 @@ To find out if a heap entry is stale, an id is stored with the heap entry. For e
 As previously discussed in the Concept chapter (see \ref{cha:InpaintingDesign}), the NLTM algorithm by itself is slow. 
 
 One of the proposed optimizations was the PatchMatch-oriented approach of looking for subsequent frames candidates within the surroundings of the prior frame's candidate pixel patches. One advantage of this is the possibility of parallelization, as the candidate patches are all independent of one another.
-Therefore, this can once again be solved through the implementation of an IJobParallelFor as seen in listing \ref{prog:NltmCachedPositions}
+Therefore, this can once again be solved through the implementation of an IJobParallelFor as seen in algorithm \ref{alg:NltmCachedPositions}
 
-\begin{program}[h!]
+\begin{algorithm}[h!]
 \caption{Nonlocal Texture Matching cached candidate patch search}
-\label{prog:NltmCachedPositions}
-\begin{CsCode}
-// Parallel job for searching specific positions
-[BurstCompile]
-private struct SearchPositionsJob : IJobParallelFor {
-    ...
+\label{alg:NltmCachedPositions}
+\begin{algorithmic}[2]
+\Function{SearchPositionsJobExecution}{SearchPositions, MaskSet, Pixels}
+    \Input{searchPositions, array of candidate patch positions}
+    \Input{maskSet, hash set containing mask pixel indices}
+    \Input{pixels, image pixel array}
+    \Input{gaussianWeights, weights for texture comparison}
+    \Input{targetX, targetY, width, height}
+    \Input{index, SearchPosition index for parallel independent execution}
+    \Returns{results array containing candidate indices and distances}
 
-    public void Execute(int index) {
-        int pos = SearchPositions[index];
-        int sx = pos % Width;
-        int sy = pos / Width;
-        // candidate Patches which contain parts of the mask are not valid
-        if (!IsPatchFullyKnownBurstStatic(sx, sy, MaskSet, Width, Height)) {
-            Results[index] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
-            return;
-        }
-        float distance = CalculateTextureDistanceBurstStatic(
-            TargetX, TargetY, sx, sy, MaskSet, Pixels, GaussianWeights, Width, Height);
-        if (distance >= 0) {
-            Results[index] = new CandidateInfo { Index = pos, Distance = distance };
-        } else {
-            Results[index] = new CandidateInfo { Index = -1, Distance = float.MaxValue };
-        }
-    }
-}
-\end{CsCode}
-\end{program}
+    \State pos $\gets$ searchPositions[index]
+    \State $sx \gets pos \bmod Width$
+    \State $sy \gets \lfloor pos / Width \rfloor$
+
+    \Comment{Reject patches containing unknown pixels}
+    \If{\textbf{not} \Call{IsPatchFullyKnown}{sx, sy, maskSet, width, height}}
+        \State results[index] $\gets$ (Index: $-1$, Distance: $\infty$)
+        \State \Return results
+    \EndIf
+
+    \State distance $\gets$ 
+        \Call{CalculateTextureDistance}{targetX, targetY, sx, sy, 
+        maskSet, pixels, gaussianWeights, width, height}
+
+    \If{$distance \geq 0$}
+        \State results[index] $\gets$ (Index: pos, Distance: distance)
+    \Else
+        \State results[index] $\gets$ (Index: $-1$, Distance: $\infty$)
+    \EndIf
+
+    \State \Return results
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
 
 The NLTM Implementation is only configured to use the best 4 candidate patches for the alpha trimmed mean values.
 This means the found candidates for each target patch need to be sorted in order of texture similarity. As there is a very large number of candidates, of which only the best 4 are required, the overhead of sorting any more candidates is unnecessary.
 
-Therefore, the sort algorithm only uses a partial sort, using the selection sort algorithm, as it is the easiest to implement using deconstruction in C\string#, as can be seen in listing \ref{prog:NLTMSort}.
+Therefore, the sort algorithm only uses a partial sort, using the selection sort algorithm, as it is the easiest to implement using deconstruction in C\string#, as can be seen in algorithm \ref{alg:NLTMSort}.
 
-\begin{program}[h!]
+\begin{algorithm}[h!]
 \caption{Nonlocal Texture Matching candidate Patch Partial Sort}
-\label{prog:NLTMSort}
-\begin{CsCode}
-private static void SortCandidates(ref NativeList<CandidateInfo> candidates) {
-    int n = candidates.Length;
-    // Only find the K smallest using partial selection in the sort, stop sort afterwards
-    for (int i = 0; i < K; i++) {
-        int minIdx = i;
-        float minDist = candidates[i].Distance;
-        for (int j = i + 1; j < n; j++) {
-            if (candidates[j].Distance < minDist) {
-                minDist = candidates[j].Distance;
-                minIdx = j;
-            }
-        }
-        // Swap minimum to position i
-        if (minIdx != i) {
-            (candidates[i], candidates[minIdx]) = (candidates[minIdx], candidates[i]);
-        }
-    }
-}
-\end{CsCode}
-\end{program}
+\label{alg:NLTMSort}
+\begin{algorithmic}[3]
+\Function{SortCandidates}{candidates, $K$}
+    \Input{candidates, candidates list with distance}
+    \Input{K, amount of candidates to sort}
+    \Returns{candidates list with the first $K$ entries being the entries with the smallest distances in the list}
+
+    \State $n \gets$ length(candidates)
+
+    \For{$i \gets 0$ to $K-1$}
+        \State $minIdx \gets i$
+        \State $minDist \gets candidates[i].Distance$
+
+        \For{$j \gets i+1$ to $n-1$}
+            \If{$candidates[j].Distance < minDist$}
+                \State $minDist \gets candidates[j].Distance$
+                \State $minIdx \gets j$
+            \EndIf
+        \EndFor
+
+        \Comment{Swap minimum element to position $i$}
+        \If{$minIdx \neq i$}
+            \State swap$(candidates[i],\ candidates[minIdx])$
+        \EndIf
+    \EndFor
+
+    \State \Return candidates
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
 
 By simply using these optimizations, the Time Per Pixel, which was tracked during the implementation to measure how much time the inpainting algorithm takes in correlation to the pixel count of the mask was reduced by \string~10x.
 
@@ -304,52 +323,53 @@ The implementation of this algorithm is, in large parts, similar to the NLTM Alg
     \item The candidate search is limited to a local area instead of the entire image, although the modified NLTM algorithm uses a similar approach, albeit using the local area of the prior frames candidate patches rather than the target patches local area.
 \end{itemize}
 
-The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search, as seen in listing \ref{prog:ELTMcandidateSearch}.
+The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search. Algorithm \ref{alg:ELTMcandidateSearch} shows the canidate patch distance calculation of ELTM using the sum of squared differences.
 
-\begin{program}[h!]
-\caption{Exemplar-Based Image Inpainting local candidate search}
-\label{prog:ELTMcandidateSearch}
-\begin{CsCode}
-[BurstCompile]
-private struct LocalSearchJob : IJobParallelFor {
-    ...
+\begin{algorithm}[h!]
+\caption{Exemplar-Based Image Inpainting local candidate search difference calculation}
+\label{alg:ELTMcandidateSearch}
+\begin{algorithmic}[4]
+\Function{CalculateSSD}{targetX, targetY, sourceX, sourceY}
+    \Input{targetX, targetY, sourceX, sourceY: patch center pixels of source and target}
+    \Input{pixels, array containing the image pixels}
+    \Input{maskSet, hash set containing the pixel indices of the mask pixels}
+    \Input{width, height of the image}
+    \Returns{candidates list with the first $K$ entries being the entries with the smallest distances in the list}
+    \State \textbf{Input:} patch centers and image data
+    \State \textbf{Output:} normalized SSD distance
 
-    public void Execute(int i) {
-        int pos = SearchPositions[i];
-        int sx = pos % Width;
-        int sy = pos / Width;
-        if (!IsPatchFullyKnownStatic(sx, sy, MaskSet, Width, Height)) {
-            Distances[i] = float.MaxValue;
-            return;
-        }
-        Distances[i] = CalculateSsdStatic(TargetX, TargetY, sx, sy, MaskSet, Pixels, Width, Height);
-    }
+    \State $sum \gets 0$
+    \State $cnt \gets 0$
 
-    ...
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static float CalculateSsdStatic(int targetX, int targetY, int sourceX, int sourceY,
-        NativeParallelHashSet<int> maskSet, NativeArray<Color32> pixels, int width, int height) {
-        float sum = 0f;
-        int cnt = 0;
-        for (int dy = -PatchRadius; dy <= PatchRadius; dy++) {
-            for (int dx = -PatchRadius; dx <= PatchRadius; dx++) {
-                ...
+    \For{$dy \gets -r$ to $r$}
+        \For{$dx \gets -r$ to $r$}
 
-                Color32 targetColor = pixels[targetIdx];
-                Color32 sourceColor = pixels[sourceIdx];
-                float diffRed = targetColor.r - sourceColor.r;
-                float diffGreen = targetColor.g - sourceColor.g;
-                float diffBlue = targetColor.b - sourceColor.b;
-                sum += diffRed * diffRed + diffGreen * diffGreen + diffBlue * diffBlue;
-                cnt++;
-            }
-        }
-        return cnt > 0 ? sum / cnt : float.MaxValue;
-    }
-}
-\end{CsCode}
-\end{program}
+            \Comment{Compute pixel indices (boundary checks omitted)}
+            \State $targetIdx \gets (targetY+dy)\cdot width + (targetX+dx)$
+            \State $sourceIdx \gets (sourceY+dy)\cdot width + (sourceX+dx)$
+
+            \State $t \gets pixels[targetIdx]$
+            \State $s \gets pixels[sourceIdx]$
+
+            \State $d_r \gets t_r - s_r$
+            \State $d_g \gets t_g - s_g$
+            \State $d_b \gets t_b - s_b$
+
+            \State $sum \gets sum + d_r^2 + d_g^2 + d_b^2$
+            \State $cnt \gets cnt + 1$
+
+        \EndFor
+    \EndFor
+
+    \If{$cnt > 0$}
+        \State \Return $sum / cnt$
+    \Else
+        \State \Return $\infty$
+    \EndIf
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
 Each patch gets its texture distance calculated accordingly, of which the patch with the lowest distance and therefore the highest similarity is picked and used to fill out the missing pixels of the target patch with the corresponding pixels of the selected source patch.
 
 \subsubsection{Large Mask Inpainting Model Integration}
@@ -361,7 +381,7 @@ In addition to this, the entire OS would become unresponsive, which made the GPU
 
 This library only offers support for models in the Open Neural Network Exchange (ONNX)\footnote{https://onnx.ai/} format, whilst the provided LaMa model is merely a Checkpoint file. Therefore, this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a Python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to ONNX.
 
-By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the application's runtime, as seen in listing \ref{prog:LaMaImport}.
+By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the application's runtime, as seen in program \ref{prog:LaMaImport}.
 
 \begin{program}[h!]
 \caption{LaMa Model Initialization}
@@ -387,7 +407,7 @@ private void Initialize() {
 Both the source image and the inpainting mask are both put into the model through tensors.
 The size of these needs to be defined during the ONNX export and has been set to 256x256 pixels for the evaluation. Therefore, the input texture and mask need to both be downscaled accordingly and upscaled afterwards, similarly to the NLTM and ELTM implementations.
 
-Running the model is just as simple, with just a few lines of code, as seen in listing \ref{prog:LaMaInference}, to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes.
+Running the model is just as simple, with just a few lines of code, as seen in program \ref{prog:LaMaInference}, to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes.
 
 \begin{program}[h!]
 \caption{LaMa Model Inference}
