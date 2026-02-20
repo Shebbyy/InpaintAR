@@ -30,7 +30,7 @@ To achieve this, there are several surrounding factors which need to be addresse
   \end{center}
 \end{figure}
 
-The entire workflow of the prototype can easily be visualized in a flowchart (see \ref{fig:OverlayPipeline}) and was inspired by the work of Herling and Broll (see \cite{HerlingJ2010Asor}), which made first advancements for object removal through inpainting in AR. As a baseline, a regular AR application in a Video-Based HMD always shows the camera feed in the background. This is most commonly achieved by using the camera feed for the skybox texture.
+The entire workflow of the prototype can easily be visualized in a flowchart (see figure \ref{fig:OverlayPipeline}) and was inspired by the work of Herling and Broll (see \cite{HerlingJ2010Asor}), which made first advancements for object removal through inpainting in AR. As a baseline, a regular AR application in a Video-Based HMD always shows the camera feed in the background. This is most commonly achieved by using the camera feed for the skybox texture.
 
 From this state, the user can start the workflow by selecting an area in their viewport, which is then used as the inpainting mask.
 
@@ -49,7 +49,7 @@ which would, of course, add additional visual clutter to the users' view.
   \end{center}
 \end{figure}
 By positioning their hands on the corners of the area they want to mask, the gesture should remain rather intuitive and easy to understand.
-Since the selection should only be triggered by a certain gesture instead of permanently being active, the L-gesture, as seen in \ref{fig:AreaGesture}, may allow the user to interpret their index finger and thumb as the contours of the mask
+Since the selection should only be triggered by a certain gesture instead of permanently being active, the L-gesture, as seen in figure \ref{fig:AreaGesture}, may allow the user to interpret their index finger and thumb as the contours of the mask
 The selected area can then be kept until the user selects a new area to overlay.
 
 After the selection of the area to inpaint is finished, the constraints of the rectangle are transformed into concrete pixel coordinates on the inpainting overlay image.
@@ -76,10 +76,11 @@ Whilst this is intuitive and great if the focus is on quality rather than perfor
 \end{figure}
 
 In theory, this candidate patch search over the entire image should only be necessary once, though. Since the viewport can only change up to a certain degree per frame, instead of always searching the entire image again, the initial candidates can be re-used.
-This would mean that NLTM would use an approach similar to the ELTM algorithm or the PatchMatch algorithm of Barnes, Shechtman, Finkelstein and Goldman from 2009 (see \cite{BarnesConnelly2009Parc}), albeit looking for candidates in the surrounding areas of the prior frames candidates instead of right next to the target pixel patch. As one can see in \ref{fig:NLTMCachecandidates}, this approach reduces the search area for inpainting candidates decisively and should
+This would mean that NLTM would use an approach similar to the ELTM algorithm or the PatchMatch algorithm of Barnes, Shechtman, Finkelstein and Goldman from 2009 (see \cite{BarnesConnelly2009Parc}), albeit looking for candidates in the surrounding areas of the prior frames candidates instead of right next to the target pixel patch. As one can see in figure \ref{fig:NLTMCachecandidates}, this approach reduces the search area for inpainting candidates decisively and should
 provide a noticeable performance improvement with little to no quality loss in all subsequent frames after the initial full-image search frame.
 
 \section{Evaluation Approach}
+\label{cha:EvaluationApproaches}
 
 \subsubsection{Measuring Quality for Inpainting}
 

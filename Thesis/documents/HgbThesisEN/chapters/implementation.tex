@@ -41,7 +41,7 @@ As for the code itself, it is written in C\string# 9 on the .Net Standard 2.1. T
   \end{center}
 \end{figure}
 
-A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in \ref{fig:UML}. 
+A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in figure \ref{fig:UML}. 
 This allows for components in the implementation to be swapped out independently of each other. Therefore, in case this prototype gets extended and improved on in the future, for example with additional inpainting algorithms or different mask detection solutions, these components may be swapped out without affecting other parts of the system.
 
 The entire control of the system is handled within the AreaSelectionVisualizer class. This script receives the hand-tracking data from the AreaSelectionGestureHandler and then uses the SelectionUiController to visualize the selection area to the user.
@@ -68,7 +68,7 @@ For this, the skeleton of the hand and the positions for each of the fingers nee
   \end{center}
 \end{figure}
 
-The tracked bones and joints, as seen in \ref{fig:HandSkeleton} each have their own unique transformation in the world. By using the rotation vectors of these transformations, the direction of the fingers and through these, the angle between two fingers can easily be calculated. 
+The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton} each have their own unique transformation in the world. By using the rotation vectors of these transformations, the direction of the fingers and through these, the angle between two fingers can easily be calculated. 
 
 \begin{algorithm}[h!]
 \caption{Gesture Recognition method}
@@ -97,7 +97,7 @@ The tracked bones and joints, as seen in \ref{fig:HandSkeleton} each have their 
 \end{algorithmic}
 \end{algorithm}
  
-In the example shown in \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
+In the example shown in listing \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
 As the base-bone of the thumb is the metacarpal, the rectangles' corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
 
 \begin{figure}[htb!]
@@ -109,7 +109,7 @@ As the base-bone of the thumb is the metacarpal, the rectangles' corner is sligh
 \end{figure}
 
 By applying this method to both hands, the selection state can be confirmed. This ends up handing over the position in the users' viewport to the inpainting logic, 
-which then uses it for defining the area to mask of the image, as seen in \ref{fig:AreaSelectionDemo}.
+which then uses it for defining the area to mask of the image, as seen in figure \ref{fig:AreaSelectionDemo}.
 
 The mask display is managed through a simple RectMask2D from Unity, which is positioned and resized according to the hand positions in the SelectionUiController.
 
@@ -173,7 +173,7 @@ private static void RunFmmWithHeap(...) {
 
 
 One optimization in the algorithms implementation is the min-heap handling in which any stale entries during the inpainting iterations are skipped. This is in regard to the reference pixel distance, which gets updated for neighbor pixels in case the eikonal function result is lower than the prior distance. 
-In the default algorithm, the specific entry inside the heap would need to be looked for and updated accordingly. In this implementation, a new entry is simply added to the heap, as can be seen in \ref{prog:FMMHeap}.
+In the default algorithm, the specific entry inside the heap would need to be looked for and updated accordingly. In this implementation, a new entry is simply added to the heap, as can be seen in listing \ref{prog:FMMHeap}.
 
 To find out if a heap entry is stale, an id is stored with the heap entry. For each pixel to inpaint, the most current id is stored inside a separate data structure for reference. If this id does not match, the entry is declared stale, reducing the asymptotic runtime of the distance update from O(n) to O(log n)
 
@@ -218,7 +218,7 @@ private struct SearchPositionsJob : IJobParallelFor {
 The NLTM Implementation is only configured to use the best 4 candidate patches for the alpha trimmed mean values.
 This means the found candidates for each target patch need to be sorted in order of texture similarity. As there is a very large number of candidates, of which only the best 4 are required, the overhead of sorting any more candidates is unnecessary.
 
-Therefore, the sort algorithm only uses a partial sort, using the selection sort algorithm, as it is the easiest to implement using deconstruction in C\string#, as can be seen in \ref{prog:NLTMSort}.
+Therefore, the sort algorithm only uses a partial sort, using the selection sort algorithm, as it is the easiest to implement using deconstruction in C\string#, as can be seen in listing \ref{prog:NLTMSort}.
 
 \begin{program}[h!]
 \caption{Nonlocal Texture Matching candidate Patch Partial Sort}
@@ -252,13 +252,13 @@ By simply using these optimizations, the Time Per Pixel, which was tracked durin
 The implementation of this algorithm is, in large parts, similar to the NLTM Algorithm as discussed prior, although there are several large changes:
 
 \begin{itemize}
-    \item The Priority Function was overhauled according to the thesis presented in \ref{cha:ELTMTheory}. Due to these changes, the fill order of the masked area stays accurate and does not degrade. This means the patches targeted for inpainting are of higher quality, and the overall filled area should be more consistent.
+    \item The Priority Function was overhauled according to the thesis presented in chapter \ref{cha:ELTMTheory}. Due to these changes, the fill order of the masked area stays accurate and does not degrade. This means the patches targeted for inpainting are of higher quality, and the overall filled area should be more consistent.
     \item Instead of using an alpha trimmed mean value for the pixels, the best patch is picked. This makes the algorithm a lot more performant, albeit at the cost of artifacts in case the best matching patch contains any noise or artifacts.
     \item Whilst the NLTM Algorithm used a performance heavy gaussian-weighted distance for its candidate selection, ELTM uses a simple sum of squared differences. This means ELTM will be worse for matching textures, but in return, it should provide superior performance.
     \item The candidate search is limited to a local area instead of the entire image, although the modified NLTM algorithm uses a similar approach, albeit using the local area of the prior frames candidate patches rather than the target patches local area.
 \end{itemize}
 
-The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search, as seen in \ref{prog:ELTMcandidateSearch}.
+The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search, as seen in listing \ref{prog:ELTMcandidateSearch}.
 
 \begin{program}[h!]
 \caption{Exemplar-Based Image Inpainting local candidate search}
@@ -315,7 +315,7 @@ In addition to this, the entire OS would become unresponsive, which made the GPU
 
 This library only offers support for models in the Open Neural Network Exchange (ONNX)\footnote{https://onnx.ai/} format, whilst the provided LaMa model is merely a Checkpoint file. Therefore, this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a Python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to ONNX.
 
-By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the applications' runtime, as seen in \ref{prog:LaMaImport}.
+By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the applications' runtime, as seen in listing \ref{prog:LaMaImport}.
 
 \begin{program}[h!]
 \caption{LaMa Model Initialization}
@@ -341,7 +341,7 @@ private void Initialize() {
 Both the source image and the inpainting mask are both put into the model through tensors.
 The size of these needs to be defined during the ONNX export and has been set to 256x256 pixels for the evaluation. Therefore, the input texture and mask need to both be downscaled accordingly and upscaled afterwards, similarly to the NLTM and ELTM implementations.
 
-Running the model is just as simple, with just a few lines of code, as seen in \ref{prog:LaMaInference}, to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes.
+Running the model is just as simple, with just a few lines of code, as seen in listing \ref{prog:LaMaInference}, to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes.
 
 \begin{program}[h!]
 \caption{LaMa Model Inference}
@@ -376,7 +376,7 @@ In terms of implementation complexity, it was by far the easiest to integrate, a
 \section{Limitations}
 \label{cha:limitations}
 
-As this implementation is meant as a prototype and the Meta Quest Passthrough API is still new, there are several limitations regarding the implementation (see \ref{fig:EvaluationBackgroundSchedule})
+As this implementation is meant as a prototype and the Meta Quest Passthrough API is still new, there are several limitations regarding the implementation:
 
 \begin{itemize}
     \item The Meta Quest Passthrough API, as of this moment, only supports fixed, small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the sky box.

@@ -6,7 +6,7 @@ While many still consider AR a niche, the user numbers tell a different story. I
 
 AR applications are, due to their nature of adding additional objects onto the users' viewing area, very prone to information overload. Whenever users are supposed to focus on the virtual objects at hand, the presence of physical objects may serve as a distraction \cite{ChengYiFei2022TUDR}.
 \\
-An existing solution is Diminished Reality (DR). This concept can be interpreted as a specific use case of AR, which aims to hide or remove certain physical objects from the viewport in real-time \cite{Mann2002} (see \ref{fig:figDR}). By adopting an approach similar to this thesis, DR may be used to reduce the visual clutter caused by the real environment.
+An existing solution is Diminished Reality (DR). This concept can be interpreted as a specific use case of AR, which aims to hide or remove certain physical objects from the viewport in real-time \cite{Mann2002} (see figure \ref{fig:figDR}). By adopting an approach similar to this thesis, DR may be used to reduce the visual clutter caused by the real environment.
 
 To achieve this, the visual clutter from the viewport is intentionally drawn over for each frame. Whilst a fixed color rectangle would prove to be the simplest and most performant overlay for the clutter, it might cause the user to be even more distracted. Therefore, this thesis uses image inpainting, which was first pioneered by Efros and Leung as a solution to generate larger textures from a source texture and fill holes in images \cite{EfrosLeung1999}, to produce a plausible and believable substitute for the overlaid area.
 

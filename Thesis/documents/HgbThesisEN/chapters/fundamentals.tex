@@ -132,7 +132,7 @@ This approach is also known as exemplar-based inpainting and was established as 
   \end{center}
 \end{figure}
 
-It accomplishes this by first prioritizing the patches of the mask to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch, as can be seen in the upper left patch of \ref{fig:NLTMExplanation}.\\
+It accomplishes this by first prioritizing the patches of the mask to be filled. This patch contains both a source region and the unknown part, in which the contour of the missing region is in the center of the patch, as can be seen in the upper left patch of figure \ref{fig:NLTMExplanation}.\\
 The priority function is defined as:
 \[P(\Psi_p) = C(\Psi_p) \times D(\Psi_p), p \in \delta\Omega\]\\
 In this function, $\Psi_p$ is defined as the selected patch, whereas the pixel p is defined as the center point of the patch, which is a part of the unknown area boundaries $\delta\Omega$.
@@ -175,7 +175,7 @@ To support color, the isophote vector, used for the priority calculation, is com
 \label{cha:ELTMTheory}
 
 This method was first proposed in 2015 by Deng et. al., see \cite{DengLiang-Jian2015EIIU}.\\
-For this algorithm, many approaches are similar to the non-local texture matching, see \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
+For this algorithm, many approaches are similar to the non-local texture matching, see chapter \ref{cha:NonlocalTexture}. It was chosen as an additional method, as it was shown to be more performant in the benchmarks in \cite{DingRam2019}, although the results were apparently slightly worse.
 
 Such exemplar-based algorithms put the focus on the surrounding area of the target pixels, therefore reducing the search area for candidate pixel patches marginally and improving the performance, albeit at a potential loss of quality.
 
