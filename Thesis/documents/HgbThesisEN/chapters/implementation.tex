@@ -144,6 +144,40 @@ The following algorithms were implemented:
 As both the NLTM and ELTM algorithms require downscaling, this too is applied to the FMM and the LaMa methods to keep the input to the algorithms similar. The default resolution of 1280x1280 would mean 100k+ iterations for the texture matching algorithms for the candidate evaluation, which would make both methodologies infeasible for real-time inpainting with current hardware, but by simply downscaling the image and upscaling it again after the inpainting algorithm finishes,
 the performance can be improved significantly. As the inpainting aims to overlay objects with background predictions, which are not in focus for the user, the quality loss is acceptable and should still be superior in quality compared to FMM due to the texture recognition.
 
+These inpainting implementations all inherit the public Inpaint method from the AbstractInpaintingAlgorithm, see listing \ref{prog:AbstractInpaintingAlgorithm}, which handles all the evaluation triggers and measurements, whilst the algorithm classes only need to implement the abstract InpaintLogic method. The class for the concrete selected algorithm gets created through a factory method.
+
+\begin{program}[h!]
+\caption{AbstractInpaintingAlgorithm class, which all the inpainting implementation classes inherit from.}
+\label{prog:AbstractInpaintingAlgorithm}
+\begin{CsCode}
+public abstract class AbstractInpaintingAlgorithm {
+    private readonly Stopwatch m_watch = new();
+    protected Color32[] PixelBuffer;
+    private Color32[] m_originalPixelBuffer;
+
+    public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
+        m_watch.Reset();
+        m_watch.Start();
+
+        // Save original pixels before inpainting for quality evaluation
+        m_originalPixelBuffer = source.GetPixels32();
+        PixelBuffer = source.GetPixels32();
+
+        var texture = InpaintLogic(source, maskPixelIndices);
+
+        m_watch.Stop();
+        PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
+        QualityEvaluator.EvaluateQuality(m_originalPixelBuffer, PixelBuffer, source.width, source.height, maskPixelIndices);
+        ClutterEvaluator.EvaluateClutterReduction(m_originalPixelBuffer, PixelBuffer, source.width, source.height, maskPixelIndices);
+
+        return texture;
+    }
+
+    protected abstract Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices);
+}
+\end{CsCode}
+\end{program}
+
 \subsubsection{Fast Marching Method}
 
 \begin{program}[h!]
@@ -264,7 +298,7 @@ By simply using these optimizations, the Time Per Pixel, which was tracked durin
 The implementation of this algorithm is, in large parts, similar to the NLTM Algorithm as discussed prior, although there are several large changes:
 
 \begin{itemize}
-    \item The Priority Function was overhauled according to the thesis presented in chapter \ref{cha:ELTMTheory}. Due to these changes, the fill order of the masked area stays accurate and does not degrade. This means the patches targeted for inpainting are of higher quality, and the overall filled area should be more consistent.
+    \item The Priority Function was overhauled according to the thesis presented in section \ref{cha:ELTMTheory}. Due to these changes, the fill order of the masked area stays accurate and does not degrade. This means the patches targeted for inpainting are of higher quality, and the overall filled area should be more consistent.
     \item Instead of using an alpha trimmed mean value for the pixels, the best patch is picked. This makes the algorithm a lot more performant, albeit at the cost of artifacts in case the best matching patch contains any noise or artifacts.
     \item Whilst the NLTM Algorithm used a performance heavy gaussian-weighted distance for its candidate selection, ELTM uses a simple sum of squared differences. This means ELTM will be worse for matching textures, but in return, it should provide superior performance.
     \item The candidate search is limited to a local area instead of the entire image, although the modified NLTM algorithm uses a similar approach, albeit using the local area of the prior frames candidate patches rather than the target patches local area.
