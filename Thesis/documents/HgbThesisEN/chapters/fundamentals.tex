@@ -3,7 +3,7 @@
 \definecolor{ForestGreen}{rgb}{0.0, 0.5, 0.0}
 
 Before starting with the introduction to the implemented approach, some general knowledge and information needs to be further elaborated upon.
-All of the concepts, as well as which algorithms and methods are being leveraged to reduce the users' distraction through visual clutter, are being presented, starting from a more detailed explanation on visual clutter and why it is relevant in Mixed Reality (MR).
+All of the concepts, as well as which algorithms and methods are being leveraged to reduce the user's distraction through visual clutter, are being presented, starting from a more detailed explanation on visual clutter and why it is relevant in Mixed Reality (MR).
 This is followed by a more detailed introduction to Diminished Reality (DR), inpainting, how those two concepts can be combined, and the inpainting methods analyzed in this thesis.
 
 \section{Visual Clutter}
@@ -22,11 +22,11 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
 \subsubsection{Visual Clutter in Mixed Reality}
 Mixed Reality (MR), as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display". Therefore, AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
 
-As defined by Mann and Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the users' perception \cite{Mann2002}.\\
+As defined by Mann and Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the user's perception \cite{Mann2002}.\\
 During the design of traditional software and information visualization, information overload and clear user interfaces need to be carefully considered.
 In these domains, all of the factors which may induce clutter and information overload can be controlled internally in the visualization or software \cite{RosenholtzRuth2007Mvc}.
 
-AR is uniquely flawed in that regard because it enhances the users' surrounding environment. This in turn means there could be several external factors which may cause clutter, starting from the pure concept and interactivity of AR
+AR is uniquely flawed in that regard because it enhances the user's surrounding environment. This in turn means there could be several external factors which may cause clutter, starting from the pure concept and interactivity of AR
 oftentimes allowing objects to be placed freely in the environment and therefore cluttered environments, to the space constraints of the user themselves.
 
 \section{Diminished Reality}
@@ -34,12 +34,12 @@ DR was first introduced as a subsection of MR by Mann and Fung \cite{Mann2002}, 
 DR aims to remove or diminish real-world objects from the perception of the user by hiding them from their view. This can be accomplished by either completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
 however they perceive its presence less when looking at different objects \cite{ChengYiFei2022TUDR}.
 
-There have already been many experiments using DR, ranging from visually removing the front vehicle, which is being overtaken from a drivers' viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR}, to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
-These works use similar concepts to those implemented for this thesis, working with inpainting algorithms to hide physical objects for the users' benefit, be it decision making for interior designs, increasing driver safety during overtaking, or, in the case of this thesis, in reducing distractions caused by clutter.
+There have already been many experiments using DR, ranging from visually removing the front vehicle, which is being overtaken from a driver's viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR}, to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
+These works use similar concepts to those implemented for this thesis, working with inpainting algorithms to hide physical objects for the user's benefit, be it decision making for interior designs, increasing driver safety during overtaking, or, in the case of this thesis, in reducing distractions caused by clutter.
 
-There have also been user studies to experiment and find out which effects are the most comfortable and effective for users', ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments by Cheng et. al. in \cite{ChengYiFei2022TUDR}, opacity reduction and outlining provide the best results.
+There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments by Cheng et. al. in \cite{ChengYiFei2022TUDR}, opacity reduction and outlining provide the best results.
 This can be interpreted to mean the less a user notices objects, the less they are distracted by them.
-In addition, another experiment measured how users' react to being able to decide which objects should be hidden compared to every object being detected and hidden automatically. The findings of this experiment have shown a preference for the users to decide for themselves which objects should be hidden and which should stay \cite{ChengYiFei2022TUDR}.
+In addition, another experiment measured how users react to being able to decide which objects should be hidden compared to every object being detected and hidden automatically. The findings of this experiment have shown a preference for the users to decide for themselves which objects should be hidden and which should stay \cite{ChengYiFei2022TUDR}.
 
 These findings were taken into account during the planning of the implementation developed in the following chapters, as to how objects should be hidden and allowing for the user to select the areas and therefore the objects they want to hide for themselves instead of the software deciding.
 
@@ -51,10 +51,10 @@ Therefore, this overlay needs to be filled with a plausible background. Inpainti
 
 \subsubsection{Definition}
 Image inpainting is based on the concept of recovering and completing missing regions in an image or removing objects from it. This concept has been around for many centuries, all the way back to the Renaissance, having been used in image restoration or removing damage caused by deterioration \cite{gillette2006image}.
-In recent years, it has gained more popularity due to the improvement of image processing methodologies and the gradual adoption of digital image editing. To automate the inpainting process, several methods have been developed to create such an effect on an area of the users' choosing without any further input. These range from 
+In recent years, it has gained more popularity due to the improvement of image processing methodologies and the gradual adoption of digital image editing. To automate the inpainting process, several methods have been developed to create such an effect on an area of the users choosing without any further input. These range from 
 static sequential algorithms over convolutional neural network (CNN) based approaches, using neural networks with automatic deep learning, up to generative adversarial network (GAN) based solutions, which train specialized inpainting models using a large number of provided images \cite{ElharroussOmar2020IIAR}.
 
-These categories and many of the provided methods provide adequate results for the inpainting of images. DR requires these methods to perform the inpainting as quickly as possible to adjust to the users' movement and provide believable results.
+These categories and many of the provided methods provide adequate results for the inpainting of images. DR requires these methods to perform the inpainting as quickly as possible to adjust to the user's movement and provide believable results.
 This factor is especially relevant when using HMDs, as the micro-movements made by the user are already sufficient to displace the area of interest by several pixels.
 
 Therefore, there are several methods specifically for the use in real-time inpainting. Some examples are the usage of edge-computing to outsource the inpainting work to a separate server, as seen in \cite{ZhangYunfan2022IRDI} or to improve the inpainting process through concepts such as feature re-use and mask propagation, as seen in \cite{LiuWeimin2025Rtai}.
@@ -85,7 +85,7 @@ The algorithm works by creating an image smoothness estimator, which estimates t
   \end{center}
 \end{figure}
 
-The mathematical formula for the calculation of a single pixels' value is defined as:
+The mathematical formula for the calculation of a single pixel's value is defined as:
 
 \[I(p) = \dfrac{\sum_{q \in B\epsilon(p)} w(p, q)[I(q) + \Delta I(q)(p-q)]}{\sum_{q \in B\epsilon(p)} w(p, q)}\]\\
 By calculating the central differences of all the known neighboring pixels (q) in correlation to the target pixel (p), an image gradient may be estimated, which is in this case displayed as $\Delta I$.\\
@@ -119,7 +119,7 @@ Sari, Horikawa and Du proposed a solution which segments large missing regions t
 
 \subsubsection{Nonlocal Texture Matching and Nonlinear Filtering}
 \label{cha:NonlocalTexture}
-Proposed back in 2019, see \cite{DingRam2019}, this method aims to find existing neighboring areas, which match the existing surrounding texture to find a pixels' value.
+Proposed back in 2019, see \cite{DingRam2019}, this method aims to find existing neighboring areas, which match the existing surrounding texture to find a pixel's value.
 Whilst this approach is a lot more complex compared to the simple FMM, it promises higher quality results, due to working through patches of pixels and trying to keep a consistent pattern within them.
 
 This approach is also known as exemplar-based inpainting and was established as a cheap and effective way to generate textures from known areas of an image to fill missing areas.

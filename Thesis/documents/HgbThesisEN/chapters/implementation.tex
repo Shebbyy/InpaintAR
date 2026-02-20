@@ -48,7 +48,7 @@ The entire control of the system is handled within the AreaSelectionVisualizer c
 
 Using this information, the position of the hands can then be used to create a mask for inpainting.
 
-The HMD camera feed can be received through a CameraController class, which delivers it as a RenderTexture\footnote{https://docs.unity3d.com/6000.3/Documentation/ScriptReference/RenderTexture.html} from Metas' PassthroughCameraAccess class.
+The HMD camera feed can be received through a CameraController class, which delivers it as a RenderTexture\footnote{https://docs.unity3d.com/6000.3/Documentation/ScriptReference/RenderTexture.html} from Meta's PassthroughCameraAccess class.
 
 To allow for an easy extension with additional inpainting algorithms, the algorithm is created by the InpaintingFactory class. Every Inpainting Algorithm is a derivative of the AbstractInpaintingAlgorithm, which takes care of handling the preparation for the inpainting itself, 
 as well as handing over all the data to the evaluation implementations.
@@ -58,7 +58,7 @@ The selection of which inpainting algorithm to use still happens inside the Area
 \section{Area Selection and Tracking}
 As already mentioned in the concept chapter about user input (see \ref{cha:UserInput}), hand-tracking is used for defining the inpainting mask.
 
-For this, the skeleton of the hand and the positions for each of the fingers need to be tracked reliably. The Meta XR Core SDK already provides the tracking capabilities and mapping of the users' hand to a skeleton \cite{MetaOVRSkeleton}.
+For this, the skeleton of the hand and the positions for each of the fingers need to be tracked reliably. The Meta XR Core SDK already provides the tracking capabilities and mapping of the user's hand to a skeleton \cite{MetaOVRSkeleton}.
 
 \begin{figure}[htb!]
   \begin{center}
@@ -98,7 +98,7 @@ The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton} each have
 \end{algorithm}
  
 In the example shown in listing \ref{alg:LShape}, the thumb and index finger are compared, based on the directional vector created when comparing the position of the knuckle or proximal with the tip of the finger. If they have an angle of close to 90° between each other, they create an L-like shape, which can then be used as the border-point for the area selection.
-As the base-bone of the thumb is the metacarpal, the rectangles' corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
+As the base-bone of the thumb is the metacarpal, the rectangle's corner is slightly closer to the wrist than the actual corner of the L. This stabilizes the gesture detection, albeit at the cost of a slight displacement.
 
 \begin{figure}[htb!]
   \begin{center}
@@ -108,20 +108,20 @@ As the base-bone of the thumb is the metacarpal, the rectangles' corner is sligh
   \end{center}
 \end{figure}
 
-By applying this method to both hands, the selection state can be confirmed. This ends up handing over the position in the users' viewport to the inpainting logic, 
+By applying this method to both hands, the selection state can be confirmed. This ends up handing over the position in the user's viewport to the inpainting logic, 
 which then uses it for defining the area to mask of the image, as seen in figure \ref{fig:AreaSelectionDemo}.
 
 The mask display is managed through a simple RectMask2D from Unity, which is positioned and resized according to the hand positions in the SelectionUiController.
 
 Behind the RectMask2D component, a 2D Canvas can be found. This canvas is placed according to the camera position during the selection. After the selection, it needs to be rotated to always face the camera, as it is just a 2D display in the 3D Space.
 \\
-In case the camera moves away from the mask, causing it to be outside of the cameras' view frustum, it is frozen in place to avoid any additional unnecessary performance degradation. This is accomplished by comparing the corner points of the mask to the cameras' frustum.
+In case the camera moves away from the mask, causing it to be outside of the camera's view frustum, it is frozen in place to avoid any additional unnecessary performance degradation. This is accomplished by comparing the corner points of the mask to the camera's frustum.
 
 \subsubsection{Rectangle to Image Pixel-Mapping}
 For the inpainting algorithms, this mask rectangle needs to be converted into a list of pixels, which need to be inpainted by the algorithms. Since the mask does not change between frames, this only needs to be calculated once.
 Most algorithms need to regularly check if a pixel is within the masked area. Therefore, a HashMap is used for its fast O(1) access when checking whether it contains a value.
 
-For this conversion, the masks' position needs to be converted into texture coordinates first, which are then used to calculate the array indices for the pixel array returned by the camera texture.
+For this conversion, the mask's position needs to be converted into texture coordinates first, which are then used to calculate the array indices for the pixel array returned by the camera texture.
 
 Both the mask and the current frame camera texture are then handed over to the inpainting algorithm for each frame.
 
@@ -182,7 +182,7 @@ To find out if a heap entry is stale, an id is stored with the heap entry. For e
 
 As previously discussed in the Concept chapter (see \ref{cha:InpaintingDesign}), the NLTM algorithm by itself is slow. 
 
-One of the proposed optimizations was the PatchMatch-oriented approach of looking for subsequent frames candidates within the surroundings of the prior frames' candidate pixel patches. One advantage of this is the possibility of parallelization, as the candidate patches are all independent of one another.
+One of the proposed optimizations was the PatchMatch-oriented approach of looking for subsequent frames candidates within the surroundings of the prior frame's candidate pixel patches. One advantage of this is the possibility of parallelization, as the candidate patches are all independent of one another.
 Therefore, this can once again be solved through the implementation of an IJobParallelFor as seen in listing \ref{prog:NltmCachedPositions}
 
 \begin{program}[h!]
@@ -315,7 +315,7 @@ In addition to this, the entire OS would become unresponsive, which made the GPU
 
 This library only offers support for models in the Open Neural Network Exchange (ONNX)\footnote{https://onnx.ai/} format, whilst the provided LaMa model is merely a Checkpoint file. Therefore, this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a Python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to ONNX.
 
-By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the applications' runtime, as seen in listing \ref{prog:LaMaImport}.
+By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the application's runtime, as seen in listing \ref{prog:LaMaImport}.
 
 \begin{program}[h!]
 \caption{LaMa Model Initialization}
@@ -380,7 +380,7 @@ As this implementation is meant as a prototype and the Meta Quest Passthrough AP
 
 \begin{itemize}
     \item The Meta Quest Passthrough API, as of this moment, only supports fixed, small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the sky box.
-    This means the inpainting area is limited around the middle of the users' viewport and cannot quite reach the edges yet.
+    This means the inpainting area is limited around the middle of the user's viewport and cannot quite reach the edges yet.
 
     \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the skybox causes the overlay of the inpainted texture to be slightly offset in some cases.
     Whilst this could be avoided by calculating the correction transformation and applying it, this would be out of the scope of this thesis, as it is not too visible on the inpainted areas as long as the mask leaves some padding between the edges and the object to be removed
@@ -388,5 +388,5 @@ As this implementation is meant as a prototype and the Meta Quest Passthrough AP
     \item The implementations of the inpainting algorithms and evaluations are built for the CPU, due to the large complexity and, in part, major rewrites which are necessary to get the algorithms and data structures to run on GLSL shader code instead of C\string#.
 
     \item The mask does not adjust to the objects behind it. If a hand is placed behind the mask or the object behind the mask is moved, the mask will not adjust for the change, painting over the hand or the now-empty space. This could be solved by adjusting the mask depending on the objects behind it,
-    but this would once again add more performance degradations and complexity due to needing to track the objects' movements and reacting to changes in the environment.
+    but this would once again add more performance degradations and complexity due to needing to track the object's movements and reacting to changes in the environment.
 \end{itemize}
