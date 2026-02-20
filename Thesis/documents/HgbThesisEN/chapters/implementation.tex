@@ -41,19 +41,27 @@ As for the code itself, it is written in C\string# 9 on the .Net Standard 2.1. T
   \end{center}
 \end{figure}
 
-A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in figure \ref{fig:UML}. 
+A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in figure \ref{fig:UML}.
 This allows for components in the implementation to be swapped out independently of each other. Therefore, in case this prototype gets extended and improved on in the future, for example with additional inpainting algorithms or different mask detection solutions, these components may be swapped out without affecting other parts of the system.
 
-The entire control of the system is handled within the AreaSelectionVisualizer class. This script receives the hand-tracking data from the AreaSelectionGestureHandler and then uses the SelectionUiController to visualize the selection area to the user.
+In general, the entire prototype is split up into 3 larger namespaces with some helper classes to provide a well structured architecture with clearly split responsibilities:
 
-Using this information, the position of the hands can then be used to create a mask for inpainting.
+\begin{itemize}
+    \item The inpainting namespace handles the entire inpainting logic. Everything from the inpainting algorithms themselves. These are separated in one AbstractInpaintingAlgorithm which handles the function calls of the benchmarking classes, as well as the specific implementation classes. These classes merely implement the abstract protected InpaintLogic method, which is provided by the AbstractInpaintingAlgorithm class. Therefore, to inpaint the virtual method Inpaint is called, which calls the InpaintLogic method internally. 
+    In addition to this, the namespace also contains the InpaintingAlgorithms enumerable, which is used to define which inpainting algorithm is currently selected and needs to be created by the InpaintingFactory, which provides a simple static factory method for the AbstractInpaintingAlgorithm classes.
 
-The HMD camera feed can be received through a CameraController class, which delivers it as a RenderTexture\footnote{https://docs.unity3d.com/6000.3/Documentation/ScriptReference/RenderTexture.html} from Meta's PassthroughCameraAccess class.
+    \item The benchmarking namespace handles the evaluation metrics for performance, quality and clutter reduction. These classes are entirely static and provide public methods to both trigger the evaluation, as well as to get their results. The evaluations of each evaluator are done inside of separate background jobs. This allows for the evaluation to occur in the background to avoid them blocking the main thread and impairing performance.
+    The results of these evaluators are fetched by the MetricsUI class, which can be bound to a Unity3D game object. It internally creates the UI elements to display all the necessary information for the evaluation results, which algorithm is active and the current framerate.
 
-To allow for an easy extension with additional inpainting algorithms, the algorithm is created by the InpaintingFactory class. Every Inpainting Algorithm is a derivative of the AbstractInpaintingAlgorithm, which takes care of handling the preparation for the inpainting itself, 
-as well as handing over all the data to the evaluation implementations.
+    \item Lastly, the visualization management namespace serves as the most important one. The AreaSelectionVisualizer class is the orchestrator of the entire system. This class triggers all the controllers in the prototype and manages them, starting from the mask creation from the hand positions of the AreaSelectionGestureHandler inside of the MaskController and SelectionUiController, to the inpainting algorithm function call. It also stores all the state variables, like the displayed inpainted texture, the selected algorithm and the different controllers.
+    In terms of logic, this class checks if the selection area should be adjusted and if the inpainting mask is within the users viewport. If this is the case, the inpainting algorithm is called. It also handles the logic for switching algorithms by listening to the button press from a meta controller to cycle through them.
+    In addition to this class, there is also the SelectionUiController, which handles all the logic concerning the canvas on which the inpainted texture is displayed, as well as the masks position. For this to position it at the correct position according to the passthrough camera, the CameraController helps to translate the 2D screen point of the camera texture to a specific world coordinate in the 3D space. This CameraController also manages both the user's camera, as well as the passthrough camera and is accessed to get the passthrough image texture. This texture is provided as a RenderTexture\footnote{https://docs.unity3d.com/6000.3/Documentation/ScriptReference/RenderTexture.html} from Meta's PassthroughCameraAccess class to use for inpainting.
 
-The selection of which inpainting algorithm to use still happens inside the AreaSelectionVisualizer class, which initializes the algorithm on program startup, or whenever the algorithm gets changed through the controller. This was implemented to ease the comparison of the inpainting methods by keeping the same mask between methodologies.
+\end{itemize}
+
+In addition to these namespaces, there is also the AreaSelectionGestureHandler class. This class is in its own Input namespace and handles all the logic concerning hand and gesture tracking. By constantly tracking the skeleton of both hands, as provided by the Meta XR Core SDK, the position of these skeletons can then be used to create a mask for inpainting.
+
+In terms of performance measurements, the C\string# Stopwatch class is used track the elapsed time between the start of the Inpaint function and the completion of the inpainting algorithm, right before the evaluation scheduling. To avoid mixing up evaluation results, each evaluator class contains a reset method, which resets all the metric storage properties of the evaluator classes. This is mainly called after switching algorithms by the AreaSelectionVisualizer.
 
 \section{Area Selection and Tracking}
 As previously described in the concept chapter about user input (see \ref{cha:UserInput}), hand-tracking is used for defining the inpainting mask.
