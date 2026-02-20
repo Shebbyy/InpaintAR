@@ -1,0 +1,215 @@
+@startuml InpaintAR Architecture
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam groupInheritance 2
+skinparam titleFontSize 60
+skinparam defaultFontSize 65
+skinparam Padding 0
+skinparam BoxPadding 0
+skinparam ParticipantPadding 0
+skinparam SequenceMessageAlign center
+skinparam Margin 0
+skinparam nodesep 15
+skinparam ranksep 2
+skinparam dpi X 500
+
+title InpaintAR Architecture
+
+' ==================== INPAINTING CORE ====================
+package "Inpainting" #LightBlue {
+
+    enum InpaintingAlgorithms {
+        FastMarchingMethod
+        NonLinearTextureMatching
+        ExemplarLocalTextureMatching
+        LargeMaskInpaintingInference
+    }
+
+    abstract class AbstractInpaintingAlgorithm {
+        # PixelBuffer : Color32[]
+        # OriginalPixels : Color32[]
+        # Stopwatch : Stopwatch
+        + Inpaint(source, maskPixelIndices) : Texture2D
+        # {abstract} InpaintLogic(source, maskPixelIndices) : Texture2D
+    }
+
+    class FastMarchingAlgorithm {
+        - DOWNSCALE_FACTOR : int = 6
+        - NEIGHBORHOOD_RADIUS : int = 3
+        # InpaintLogic() : Texture2D
+        - InitializeFmmJob
+        - InpaintPixelBurst()
+        - SolveEikonalQuadrants()
+    }
+
+    class EltmAlgorithm {
+        - PATCH_SIZE : int = 7
+        - OMEGA : float = 0.7
+        - ALPHA : float = 1.0
+        - BETA : float = 1.5
+        # InpaintLogic() : Texture2D
+        - ContourJob
+        - ModifiedPriorityJob
+        - LocalSearchJob
+    }
+
+    class NltmAlgorithm {
+        - K_CANDIDATES : int = 5
+        - ALPHA_TRIM : float = 0.15
+        - CachedCandidates : CandidateInfo[]
+        # InpaintLogic() : Texture2D
+        - BuildContour()
+        - FindKBestCandidates()
+        - TrimmedMeanFill()
+    }
+
+    class LaMaAlgorithm {
+        - INFERENCE_SIZE : int = 256
+        - m_model : Model
+        - m_worker : Worker
+        - m_imageData : float[]
+        - m_maskData : float[]
+        # InpaintLogic() : Texture2D
+        + Dispose()
+    }
+
+    class InpaintingFactory <<static>> {
+        + {static} GetInpaintingAlgorithm(algorithm) : AbstractInpaintingAlgorithm
+    }
+
+    AbstractInpaintingAlgorithm <|-- FastMarchingAlgorithm
+    AbstractInpaintingAlgorithm <|-- EltmAlgorithm
+    AbstractInpaintingAlgorithm <|-- NltmAlgorithm
+    AbstractInpaintingAlgorithm <|-- LaMaAlgorithm
+
+    InpaintingFactory ..> AbstractInpaintingAlgorithm : creates
+    InpaintingFactory ..> InpaintingAlgorithms : uses
+}
+
+' ==================== INPUT ====================
+package "Input" #LightGreen {
+    class AreaSelectionGestureHandler <<MonoBehaviour>> {
+        - leftHandSkeleton : OVRSkeleton
+        - rightHandSkeleton : OVRSkeleton
+        - minAngle : float = 60
+        - maxAngle : float = 120
+        + LeftHandCornerScreenPos : Vector2?
+        + RightHandCornerScreenPos : Vector2?
+        - DetectLShapeGesture()
+        - CalculateAngle()
+    }
+}
+
+' ==================== MASK CREATION ====================
+package "MaskCreation" #LightYellow {
+    class MaskController <<static>> {
+        - cachedBounds : Rect
+        - cachedMask : HashSet<int>
+        + {static} GetMaskPixelIndices(fillImage, rectMask) : HashSet<int>
+        - ConvertToPixelCoordinates()
+    }
+}
+
+' ==================== VISUALIZATION ====================
+package "VisualizationManagement" #LightPink {
+
+    class CameraController {
+        - camera : Camera
+        - passthroughAccess : PassthroughCameraAccess
+        + GetPassthroughTexture() : Texture2D
+        + ScreenPointToLocalPoint() : Vector2
+        + WorldToScreenPoint() : Vector3
+        + WorldToViewportPoint() : Vector3
+    }
+
+    class SelectionUiController <<MonoBehaviour>> {
+        - worldCanvas : Canvas
+        - leftCornerBox : GameObject
+        - rightCornerBox : GameObject
+        - fillRectMask : RectMask2D
+        - fillImage : RawImage
+        + CreateUICanvasAndCorners()
+        + UpdateCanvasWorldPosition()
+        + UpdateSelectionMaskPosition()
+        + UpdatePassthroughImagePosition()
+        + IsSelectionAreaWithinCameraView() : bool
+    }
+
+    class AreaSelectionVisualizer <<MonoBehaviour>> {
+        - gestureHandler : AreaSelectionGestureHandler
+        - cameraController : CameraController
+        - uiController : SelectionUiController
+        - currentAlgorithm : AbstractInpaintingAlgorithm
+        - copiedTexture : Texture2D
+        - inpaintedTexture : Texture2D
+        + Start()
+        + Update()
+        - SwitchAlgorithm()
+        - ProcessFrame()
+    }
+
+    SelectionUiController --> CameraController : uses
+    AreaSelectionVisualizer --> CameraController : owns
+    AreaSelectionVisualizer --> SelectionUiController : owns
+    AreaSelectionVisualizer -u-> AreaSelectionGestureHandler : reads
+    AreaSelectionVisualizer --> AbstractInpaintingAlgorithm : uses
+    AreaSelectionVisualizer .u.> MaskController : calls
+    AreaSelectionVisualizer ..> InpaintingFactory : calls
+}
+
+' ==================== BENCHMARKING ====================
+package "Benchmarking" #LightCyan {
+
+    class PerformanceEvaluator <<static>> {
+        - inpaintingTimes : List<double>
+        - pixelCounts : List<int>
+        + {static} AddInpaintingStats(pixelCount, elapsedMs)
+        + {static} GetTotalFPS() : float
+        + {static} GetAverageInpaintingTime() : double
+        + {static} GetInpaintingIsolatedFPS() : float
+        + {static} GetAverageTimePerPixel() : double
+        + {static} Reset()
+    }
+
+    class QualityEvaluator <<static>> {
+        - qualityScores : List<float>
+        - jobHandle : JobHandle
+        + {static} EvaluateQuality(original, inpainted, mask)
+        + {static} GetAverageQuality() : float
+        + {static} Reset()
+        - ComputeKLDivergence()
+        - ComputeNaturalness()
+    }
+
+    class ClutterEvaluator <<static>> {
+        - clutterReductions : List<float>
+        - jobHandle : JobHandle
+        + {static} EvaluateClutterReduction(original, inpainted, mask)
+        + {static} GetAverageClutterReduction() : float
+        + {static} Reset()
+        - ComputeColorCongestion()
+        - ComputeContrastCongestion()
+        - ComputeOrientationCongestion()
+    }
+
+    class MetricsUI <<MonoBehaviour>> {
+        - metricsCanvas : Canvas
+        - metricsText : Text
+        - isVisible : bool
+        + Update()
+        - ToggleVisibility()
+        - UpdateMetricsDisplay()
+    }
+
+    MetricsUI ..> PerformanceEvaluator : reads
+    MetricsUI ..> QualityEvaluator : reads
+    MetricsUI ..> ClutterEvaluator : reads
+    MetricsUI ..> AreaSelectionVisualizer : reads algorithm
+
+    AbstractInpaintingAlgorithm ..> PerformanceEvaluator : reports to
+    AbstractInpaintingAlgorithm ..> QualityEvaluator : reports to
+    AbstractInpaintingAlgorithm ..> ClutterEvaluator : reports to
+}
+
+@enduml
