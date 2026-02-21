@@ -159,9 +159,7 @@ These inpainting implementations all inherit the public Inpaint method from the 
 \label{prog:AbstractInpaintingAlgorithm}
 \begin{CsCode}
 public abstract class AbstractInpaintingAlgorithm {
-    private readonly Stopwatch m_watch = new();
-    protected Color32[] PixelBuffer;
-    private Color32[] m_originalPixelBuffer;
+    ...
 
     public Texture2D Inpaint(Texture2D source, HashSet<int> maskPixelIndices) {
         m_watch.Reset();
@@ -174,10 +172,9 @@ public abstract class AbstractInpaintingAlgorithm {
         var texture = InpaintLogic(source, maskPixelIndices);
 
         m_watch.Stop();
-        PerformanceEvaluator.AddInpaintingStats(maskPixelIndices.Count, m_watch.ElapsedMilliseconds);
-        QualityEvaluator.EvaluateQuality(m_originalPixelBuffer, PixelBuffer, source.width, source.height, maskPixelIndices);
-        ClutterEvaluator.EvaluateClutterReduction(m_originalPixelBuffer, PixelBuffer, source.width, source.height, maskPixelIndices);
-
+        // Evaluator calls
+        ...
+        
         return texture;
     }
 
@@ -196,7 +193,7 @@ In the default algorithm, the specific entry inside the heap would need to be lo
 \label{alg:FMMHeap}
 \begin{algorithmic}[1]
 \Function{RunFmmWithHeap}{heap, flags, distanceMap, pixels}
-\Input{heap, the minHeap containing pixels to process}
+    \Input{heap, the minHeap containing pixels to process}
     \Input{flags, state of each pixel (Known, Band, Inside)}
     \Input{distanceMap, distance values for each pixel}
     \Input{pixels, image pixel array}
@@ -208,11 +205,6 @@ In the default algorithm, the specific entry inside the heap would need to be lo
 
         \Comment{Skip stale entries}
         \If{node.Generation $\neq$ generations[idx]}
-            \State \textbf{continue}
-        \EndIf
-
-        \Comment{Skip already processed pixels}
-        \If{flags[idx] = Known}
             \State \textbf{continue}
         \EndIf
 
@@ -251,20 +243,14 @@ Therefore, this can once again be solved through the implementation of an IJobPa
     \Input{maskSet, hash set containing mask pixel indices}
     \Input{pixels, image pixel array}
     \Input{gaussianWeights, weights for texture comparison}
-    \Input{targetX, targetY, width, height}
-    \Input{index, SearchPosition index for parallel independent execution}
+    \Input{targetX, targetY, width, height, index (for parallelization)}
     \Returns{results array containing candidate indices and distances}
 
     \State pos $\gets$ searchPositions[index]
     \State $sx \gets pos \bmod Width$
     \State $sy \gets \lfloor pos / Width \rfloor$
-
-    \Comment{Reject patches containing unknown pixels}
-    \If{\textbf{not} \Call{IsPatchFullyKnown}{sx, sy, maskSet, width, height}}
-        \State results[index] $\gets$ (Index: $-1$, Distance: $\infty$)
-        \State \Return results
-    \EndIf
-
+...
+    \Comment{Only patches in which no particle is within the mask is used}
     \State distance $\gets$ 
         \Call{CalculateTextureDistance}{targetX, targetY, sx, sy, 
         maskSet, pixels, gaussianWeights, width, height}
@@ -294,13 +280,11 @@ Therefore, the sort algorithm only uses a partial sort, using the selection sort
     \Input{K, amount of candidates to sort}
     \Returns{candidates list with the first $K$ entries being the entries with the smallest distances in the list}
 
-    \State $n \gets$ length(candidates)
-
     \For{$i \gets 0$ to $K-1$}
         \State $minIdx \gets i$
         \State $minDist \gets candidates[i].Distance$
 
-        \For{$j \gets i+1$ to $n-1$}
+        \For{$j \gets i+1$ to $length(candidates)-1$}
             \If{$candidates[j].Distance < minDist$}
                 \State $minDist \gets candidates[j].Distance$
                 \State $minIdx \gets j$
@@ -422,7 +406,6 @@ Running the model is just as simple, with just a few lines of code, as seen in p
 \label{prog:LaMaInference}
 \begin{CsCode}
 private Tensor<float> RunInference() {
-    // Create fresh tensors from pre-filled arrays
     // Tensors become GPU-bound after inference and can't be rewritten
     var imageShape = new TensorShape(1, 3, ModelSize, ModelSize);
     var maskShape = new TensorShape(1, 1, ModelSize, ModelSize);
@@ -454,7 +437,7 @@ As this implementation is meant as a prototype and the Meta Quest Passthrough AP
 
 \begin{itemize}
     \item The Meta Quest Passthrough API, as of this moment, only supports fixed, small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the sky box.
-    This means the inpainting area is limited around the middle of the user's viewport and cannot quite reach the edges yet.
+    This means the inpainting area is limited around the middle of the user's viewport and cannot reach the edges yet.
 
     \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the skybox causes the overlay of the inpainted texture to be slightly offset in some cases.
     Whilst this could be avoided by calculating the correction transformation and applying it, this would be out of the scope of this thesis, as it is not too visible on the inpainted areas as long as the mask leaves some padding between the edges and the object to be removed
