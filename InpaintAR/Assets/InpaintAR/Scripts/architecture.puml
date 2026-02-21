@@ -3,13 +3,12 @@
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
 skinparam groupInheritance 2
-skinparam titleFontSize 60
+skinparam titleFontSize 150
 skinparam defaultFontSize 65
 skinparam Padding 0
 skinparam BoxPadding 0
 skinparam ParticipantPadding 0
 skinparam SequenceMessageAlign center
-skinparam Margin 0
 skinparam nodesep 15
 skinparam ranksep 2
 skinparam dpi X 500
@@ -175,7 +174,7 @@ package "Benchmarking" #LightCyan {
     class QualityEvaluator <<static>> {
         - qualityScores : List<float>
         - jobHandle : JobHandle
-        + {static} EvaluateQuality(original, inpainted, mask)
+        + {static} EvaluateQuality(orig, res, mask)
         + {static} GetAverageQuality() : float
         + {static} Reset()
         - ComputeKLDivergence()
@@ -185,7 +184,7 @@ package "Benchmarking" #LightCyan {
     class ClutterEvaluator <<static>> {
         - clutterReductions : List<float>
         - jobHandle : JobHandle
-        + {static} EvaluateClutterReduction(original, inpainted, mask)
+        + {static} EvaluateClutterReduction(orig, res, mask)
         + {static} GetAverageClutterReduction() : float
         + {static} Reset()
         - ComputeColorCongestion()
