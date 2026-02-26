@@ -24,7 +24,7 @@ Whilst there are many solutions available for sound related distractions, like n
 
 There are already a few existing solutions for achieving DR using inpainting, as seen for example in "DeepDR", a project to provide structure-aware Red-Blue-Green and Depth (RGB-D) aware inpainting for DR \cite{GsaxnerChristina2024DDSR}, the evaluation of which of the existing inpainting methods is viable and could be used for not only this domain, but inpainting in a 3-dimensional real-time environment in general has largely been disregarded as of now.
 
-Most publications put the focus on different components of the system, like the detection of objects (\cite{RameauFrancois2016ARAR}), depth detection (\cite{GsaxnerChristina2024DDSR}), user studies (\cite{ChengYiFei2022TUDR}) or optimizations of smaller visual artifacts (\cite{KawaiNorihiko2016DRBo}). At most, there are some evaluations for comparison when presenting new state of the art algorithms and solutions for inpainting (\cite{DingRam2019}, \cite{MuziHao2023}), but an overview of existing algorithms and solutions and the evaluation in a real-time DR setting has been missing as of now.
+Most publications put the focus on different components of the system, like the detection of objects, as seen in the work of Rameau et. al. on hiding cars for overtaking using inpainting (\cite{RameauFrancois2016ARAR}), depth detection like in the project of Gsaxner et. al. on depth aware inpainting (\cite{GsaxnerChristina2024DDSR}), user studies, like the one done by Cheng et. al. for evaluating different DR object hiding methodologies (\cite{ChengYiFei2022TUDR}) or optimizations of smaller visual artifacts (see Kawai, Sato and Yokoyas work to background geometry aware inpainting \cite{KawaiNorihiko2016DRBo}). At most, there are some evaluations for comparison when presenting new state of the art algorithms and solutions for inpainting (\cite{DingRam2019}, \cite{MuziHao2023}), but an overview of existing algorithms and solutions and the evaluation in a real-time DR setting has been missing as of now.
 
 The main goal of this analysis is therefore to provide an easy-to-reference comparison of the different methodologies to be compared in terms of both performance and quality in a real-time setting. Through this analysis, developers can make an informed choice about which methodology to use for their implementations, be it high fidelity in use cases like PC-powered AR systems or low energy, low-performance systems, more suited for mobile devices like mobile phones or standalone Mixed-Reality HMDs.
 In addition, the program built for this evaluation should be easy to extend for newer inpainting methods and swap out individual components.
@@ -51,11 +51,11 @@ After providing a short overview of the requirements  for the application, furth
 
 \item \textbf{Chapter 4: Implementation}
 
-The hard and software requirements are presented, as well as an explanation of the software architecture, before presenting the implementation details of each of the components necessary for the workflow and evaluation, as well as a list of the remaining limitations in the implementation.
+The hard- and software requirements are presented, as well as an explanation of the software architecture, before presenting the implementation details of each of the components necessary for the workflow and evaluation, as well as a list of the remaining limitations in the implementation.
 
 \item \textbf{Chapter 5: Evaluation}
 
-The testing setup is presented, followed by the results for each test cases. Each test case is tested with every implemented algorithm and evaluated in terms of performance, quality and clutter reduction.
+The testing setup is presented, followed by the results for each test case. Each test case is tested with every implemented algorithm and evaluated in terms of performance, quality and clutter reduction.
 
 \item \textbf{Chapter 6: Conclusion and Future Work}
 

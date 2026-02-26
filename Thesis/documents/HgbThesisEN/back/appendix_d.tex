@@ -12,12 +12,12 @@ Since the LLVM translation layer does not support the full C\string# language sc
 In terms of the code written, it can be seen as similar to C in its approach. It only supports structs, needs manual memory management and only offers very simple data structures. It is commonly used in the Unity Job system and
 requires a similar approach for calling it in a method, although it is also possible to compile static methods using the burst compiler \cite{SchönerBurst}.
 
-In the FMM inpainting implementation, the job for the initialization is called, as seen in \ref{prog:FmmInitJob}.
+In the FMM inpainting implementation, the job for the initialization is called, as seen in listing \ref{prog:FmmInitJob}.
 
-\begin{program}[h!]
+\begin{listing}[h!]
 \caption{Fast Marching Method Initialization Job call structure}
 \label{prog:FmmInitJob}
-\begin{CsCode}
+\begin{CsCodeCust}
 private void InpaintFmmBurst(HashSet<int> maskPixelIndices) {
     // normal C# Container cannot be used, Unity provides NativeContainer Structs as replacements
     var distanceMap = new NativeArray<float>(m_pixelCount, Allocator.TempJob);
@@ -41,5 +41,5 @@ private struct InitializeFmmJob : IJobParallelFor {
         ...
     }
 }
-\end{CsCode}
-\end{program}
+\end{CsCodeCust}
+\end{listing}

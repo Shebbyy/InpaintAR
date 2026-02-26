@@ -20,7 +20,7 @@ For the evaluation, four test scenarios have been prepared, which are aimed at b
 These scenarios are evaluated on the following metrics:
 
 \begin{itemize}
-  \item For performance the framerate is measured. This framerate is measured both in total and isolated for the inpainting algorithm. This helps to separate the overhead caused by the camera texture segmentation and mask preparation from the actual inpainting compute time.
+  \item For performance, the framerate is measured. This framerate is measured both in total and isolated for the inpainting algorithm. This helps to separate the overhead caused by the camera texture segmentation and mask preparation from the actual inpainting compute time.
 
   \item The quality is evaluated by using the metric presented in chapter \ref{cha:EvaluationApproaches}. This Image Inpainting Quality Assessment (IIQA) considers both the naturalness and the gradients at the masks edge to calculate an estimation of the inpainting quality.
 
@@ -32,7 +32,7 @@ These scenarios are evaluated on the following metrics:
 Since the quality and clutter evaluation algorithms need a lot of computational resources, they cannot run in the foreground for each frame, due to it affecting the performance evaluation severely. Therefore, the Unity Job System is used for these evaluations, albeit with the jobs running in the background rather than blocking the main thread like in the inpainting implementations.
 
 This means the quality and clutter evaluation works on a "evaluate if ready" principle, only evaluating frames whenever there is no other frame being evaluated at the moment of the call, as seen on figure \ref{fig:EvaluationBackgroundSchedule}. Whenever no job is running the data is prepared for the evaluation job by moving them into more efficient data structures for the evaluation algorithms. 
-In case a job is finished between two evaluation scheduling requests, the result of the job is saved before scheduling the next evaluation job. The result cannot be saved into the result data structures from the job itself as the Burst Compiler running the background job does not allow for the usage of C\string# containers and other complex data structures.
+In case a job is finished between two evaluation scheduling requests, the result of the job is saved before scheduling the next evaluation job. The result cannot be saved into the result data structures from the job itself, as the Burst Compiler running the background job does not allow for the usage of C\string# containers and other complex data structures.
 
 Whilst this reduces the consistency of the evaluation results slightly, it solves the issue of the evaluation impacting the performance of the rest of the program, as it is evaluated in a background thread.
 
@@ -50,7 +50,7 @@ Performance, on the other hand, is easy to calculate and aggregate. Therefore, i
 \section{Uniform Background}
 \label{sec:UniformBackground}
 
-A uniform background serves as a baseline testcase in which the surroundings should be plain, in the best case, one uniform color. The original baseline image used for the evaluation can be seen in figure \ref{fig:CleanUniformBaseline}.
+A uniform background serves as a baseline test case in which the surroundings should be plain, in the best case, one uniform color. The original baseline image used for the evaluation can be seen in figure \ref{fig:CleanUniformBaseline}.
 Since the surrounding background does not contain any patterns or textures, it should be reasonably easy for any inpainting method to achieve a high-quality result. At most, there should be some artifacts in terms of the shading or through the surrounding objects.
 
 \begin{figure}[h!]
@@ -107,7 +107,7 @@ The environment of this test scenario is a wooden desk, as the texture of the wo
   \end{center}
 \end{figure}
 
-When looking at the results shown in figure \ref{fig:BackgroundPatternComparison}, one can immediately notice the stark contrast in quality between the algorithms. Whilst FMM does not keep any of the pattern detailing, the other algorithms seem to do a reasonably good job. NLTM and ELTM both seem to struggle a bit due to the downscaled input image, although both seem to be able to keep the texture reasonably well. Due to the reuse of the patches in ELTM, it simulates the wood texture a lot better, getting rid of the blurry artifacts of NLTM. LaMa seems the least affected by the low resolution input image, presenting a detailed wood pattern, albeit with a small offset due to the alignment issues, which were mentioned in the limitations chapter \ref{cha:limitations}.
+When looking at the results shown in figure \ref{fig:BackgroundPatternComparison}, one can immediately notice the stark contrast in quality between the algorithms. Whilst FMM does not keep any of the pattern detailing, the other algorithms seem to do a reasonably good job. NLTM and ELTM both seem to struggle a bit due to the downscaled input image, although both seem to be able to keep the texture reasonably well. Due to the re-use of the patches in ELTM, it simulates the wood texture a lot better, getting rid of the blurry artifacts of NLTM. LaMa seems the least affected by the low resolution input image, presenting a detailed wood pattern, albeit with a small offset due to the alignment issues, which were mentioned in the limitations chapter \ref{cha:limitations}.
 
 \begin{figure}[h!]
   \begin{center}
@@ -119,17 +119,17 @@ When looking at the results shown in figure \ref{fig:BackgroundPatternComparison
 
 The performance metrics of this test case, as can be seen in figure \ref{fig:BackgroundResults}, are very similar to the metrics of section \ref{sec:UniformBackground}, albeit with the framerate being lower overall. This can be correlated to the larger mask which needs to be inpainted in this test scenario.
 
-In terms of the quality metrics, the visual analysis is being confirmed. ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction, too, ended up completely different, with NLTM and FMM being about on par with each other. Most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
+In terms of the quality metrics, the visual analysis is being confirmed. ELTM performed very well in comparison to NLTM and FMM, which both ended up with a worse quality assessment compared to the prior test scenario. The clutter reduction, too, ended up completely different, with NLTM and FMM being about on par with each other, most probably due to not being able to reproduce the background pattern properly and in a high enough quality.
 NLTM is most probably suffering here from the missing source information due to the downscaled source image.
 
-ELTM seems to handle the downscaled source image very well though, still delivering a result, which reduces the clutter reasonably well whilst producing a texture which can blend in well. But it is still significantly overtaken by the LaMa model, which pays for its quality with the slow runtime. It lags behind the other approaches by far as clearly illustrated by the metrics in figure \ref{fig:BackgroundResults}.
+ELTM seems to handle the downscaled source image very well though, still delivering a result which reduces the clutter reasonably well whilst producing a texture which can blend in well. But it is still significantly overtaken by the LaMa model, which pays for its quality with the slow runtime. It lags behind the other approaches by far as clearly illustrated by the metrics in figure \ref{fig:BackgroundResults}.
 
-Compared to the last scenario, whilst the performance has decreased slightly due to the larger mask, the relative differences of the algorithms stayed the same. In terms of quality and clutter reduction, FMM achieves worse results in relation to the other algorithms, when compared with the uniform background scenario, due to it being unable to imitate patterns, whilst ELTM shows its strengths of being able to generate continuous patterns reasonably well, outperforming NLTM and FMM marginally in comparison to the uniform background scenario, in which FMM was still above. For LaMa, all the metrics stayed similar compared to the prior scenario.
+Compared to the last scenario, whilst the performance has decreased slightly due to the larger mask, the relative differences of the algorithms stayed the same. In terms of quality and clutter reduction, FMM achieves worse results in relation to the other algorithms when compared with the uniform background scenario due to it being unable to imitate patterns, whilst ELTM shows its strengths of being able to generate continuous patterns reasonably well, outperforming NLTM and FMM marginally in comparison to the uniform background scenario in which FMM was still above. For LaMa, all the metrics stayed similar compared to the prior scenario.
 
 \section{Large Area Inpainting}
 \label{sec:LaIpEval}
 
-As the aforementioned test scenarios are focused on small, targeted inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regard to stress-testing the implementations in a difficult but plausible scenario. For this, the keyboard shown in figure \ref{fig:LargeMaskBaseline} should be replaced by the wood texture as even as possible. Such a use-case might be interesting when trying to hide physical objects before placing smaller virtual objects over them to avoid, in this case the keyboard, to distract from the virtual object in front of it.  
+As the aforementioned test scenarios are focused on small, targeted inpainting masks, this test case aims to test the performance and quality for larger masks, mostly in regard to stress-testing the implementations in a difficult but plausible scenario. For this, the keyboard shown in figure \ref{fig:LargeMaskBaseline} should be replaced by the wood texture as even as possible. Such a use-case might be interesting when trying to hide physical objects before placing smaller virtual objects over them to avoid in this case the keyboard, to distract from the virtual object in front of it.  
 
 \begin{figure}[h!]
   \begin{center}
@@ -186,7 +186,7 @@ These objects should preferably be avoided as sources due to the discoloring and
   \end{center}
 \end{figure}
 
-Based on the inpainting concepts, the initial assumption was to only see quality degradations for NLTM and ELTM, which were confirmed, as seen in figure \ref{fig:ReflectionComparison}. Surprisingly enough, the results of the LaMa model became a lot more blurry as well. This is most likely because of the slight blurryness caused by the glasses in the surroundings influencing the quality of the generated overlay. Whilst FMM may at first look like it also degraded, the black patch on top is a normal behavior of FMM, as it picked up the pixels of the keyboard above as its reference pixels, as there werent any others in the proximity.
+Based on the inpainting concepts, the initial assumption was to only see quality degradations for NLTM and ELTM, which were confirmed, as seen in figure \ref{fig:ReflectionComparison}. Surprisingly enough, the results of the LaMa model became a lot more blurry as well. This is most likely because of the slight blurryness caused by the glasses in the surroundings influencing the quality of the generated overlay. Whilst FMM may at first look like it also degraded, the black patch on top is a normal behavior of FMM, as it picked up the pixels of the keyboard above as its reference pixels, as there were no others in the proximity.
 
 In addition ELTM seems to have kept the pattern of the glassware, taking the color of the wood but keeping the gradients of the glass, which is quite an interesting behavior.
 \begin{figure}[h!]
@@ -207,6 +207,6 @@ This may be in regard to how the boundaries are considered for quality and clutt
 Whilst FMM performed outstandingly in terms of performance, outperforming the other algorithms by up to 10x of their framerate, it suffered severely in terms of quality outside of a uniform background. NLTM was supposed to provide the best quality, albeit at the cost of performance. Due to the downscaling of the input image to make the algorithm usable, the evaluation showed NLTM losing its advantage, producing mediocre results at best, as shown in the quality metrics, which are the lowest in every scenario except the reflective surroundings.
 
 Both ELTM and LaMa look very promising in terms of quality though, providing high results with scores of 68 to 87 for ELTM and 89 to 94 in the IIQA and outperforming both FMM and NLTM in terms of clutter reduction in every scenario, albeit at the cost of performance in comparison to FMM.
-ELTM might still be manageable for close to real time inpainting, with most scenarios hovering around 1.5 to 5 FPS, but LaMa might not be feasable as of this moment with its lackluster performance. This may change in the future though, whenever the inference time of neural networks decreases further.
+ELTM might still be manageable for close to real time inpainting, with most scenarios hovering around 1.5 to 5 FPS, but LaMa might not be feasable as of this moment with its lackluster performance. This may change in the future though whenever the inference time of neural networks decreases further.
 
 In general, the quality of the inpainting algorithms look really promising and the metrics suggest them being helpful for reducing clutter. None of the algorithms managed to achieve real-time framerate results whilst running on the CPU though. This may possibly be alleviated by migrating the algorithms to GPU compatible code or by changing the system to not require the inpainting to occur every frame, giving up reactivity in the inpainting for a more consistent system performance.

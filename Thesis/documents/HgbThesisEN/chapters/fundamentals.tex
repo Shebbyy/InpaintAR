@@ -20,7 +20,7 @@ a detrimental effect to short-term memory, whereas not only the number of elemen
 \end{figure}
 
 \subsubsection{Visual Clutter in Mixed Reality}
-Mixed Reality (MR), as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display". Therefore, AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
+Mixed Reality (MR), as defined by Paul Milgram in 1994, can be seen as an "environment in which real and virtual objects are presented together through a single display" \cite{Milgram1994MR}. Therefore, AR, DR and Virtual Reality (VR) can all be seen as subcategories of MR, which are placed somewhere in the virtuality continuum. This continuum spans from a completely real environment to a completely virtual one \cite{Milgram1994MR}.
 
 As defined by Mann and Fung back in 2002, AR aims to enhance reality through the addition of virtual objects, whilst DR aims to remove physical objects from the user's perception \cite{Mann2002}.\\
 During the design of traditional software and information visualization, information overload and clear user interfaces need to be carefully considered.
@@ -34,7 +34,7 @@ DR was first introduced as a subsection of MR by Mann and Fung \cite{Mann2002}, 
 DR aims to remove or diminish real-world objects from the perception of the user by hiding them from their view. This can be accomplished by either completely hiding the objects or making them slightly transparent, so the user can still recognize the object when looking directly at it,
 however they perceive its presence less when looking at different objects \cite{ChengYiFei2022TUDR}.
 
-There have already been many experiments using DR, ranging from visually removing the front vehicle, which is being overtaken from a driver's viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR}, to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
+There have already been many experiments using DR, ranging from visually removing the front vehicle, which is being removed from a driver's viewport for safety improvements during overtaking \cite{RameauFrancois2016ARAR}, to interior design previews and furniture placement previews, as seen in \cite{SiltanenSanni2017Drfa}.\\
 These works use similar concepts to those implemented for this thesis, working with inpainting algorithms to hide physical objects for the user's benefit, be it decision making for interior designs, increasing driver safety during overtaking, or, in the case of this thesis, in reducing distractions caused by clutter.
 
 There have also been user studies to experiment and find out which effects are the most comfortable and effective for users, ranging from simply reducing the opacity of objects, to outlining, blurring or desaturating the unwanted objects. According to the experiments by Cheng et. al. in \cite{ChengYiFei2022TUDR}, opacity reduction and outlining provide the best results.
@@ -57,7 +57,7 @@ static sequential algorithms over convolutional neural network (CNN) based appro
 These categories and many of the provided methods provide adequate results for the inpainting of images. DR requires these methods to perform the inpainting as quickly as possible to adjust to the user's movement and provide believable results.
 This factor is especially relevant when using HMDs, as the micro-movements made by the user are already sufficient to displace the area of interest by several pixels.
 
-Therefore, there are several methods specifically for the use in real-time inpainting. Some examples are the usage of edge-computing to outsource the inpainting work to a separate server, as seen in \cite{ZhangYunfan2022IRDI} or to improve the inpainting process through concepts such as feature re-use and mask propagation, as seen in \cite{LiuWeimin2025Rtai}.
+Therefore, there are several methods specifically for the use in real-time inpainting. Some examples are the usage of edge-computing to outsource the inpainting work to a separate server, as seen in \cite{ZhangYunfan2022IRDI}, or to improve the inpainting process through concepts such as feature re-use and mask propagation, as seen in \cite{LiuWeimin2025Rtai}.
 
 \begin{figure}[htb!]
   \begin{center}
@@ -69,7 +69,7 @@ Therefore, there are several methods specifically for the use in real-time inpai
 \subsubsection{Evaluated inpainting methodologies}
 As there are many different methods currently available regarding inpainting, analyzing all of them would require a lot of time and would quickly become outdated. Therefore, only a few candidates which seem promising for DR are being looked at in detail to provide an overview.
 
-From gaining an understanding, which categories correlate to certain desired benefits, readers may get an overview of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
+From gaining an understanding which categories correlate to certain desired benefits, readers may get an overview of how other methodologies from the same category might perform. Of these methodologies, the following have been analyzed:
 
 \subsubsection{Fast Marching Method}
 \label{cha:FMMFundamentals}
@@ -231,9 +231,9 @@ Due to the existence of pre-trained models, the focus of this thesis lies on the
 
 \subsubsection{Expectations for Real-Time Usage}
 
-Based on the concepts of each of the analyzed approaches, it is highly likely for the FMM approach to be the most efficient, due to its relatively low computational cost; In return it should provide the lowest quality inpainting, due to simply stretching the pixels from the surroundings of the mask inwards.
+Based on the concepts of each of the analyzed approaches, it is highly likely for the FMM approach to be the most efficient, due to its relatively low computational cost. In return, it should provide the lowest quality inpainting due to simply stretching the pixels from the surroundings of the mask inwards.
 In stark contrast, NLTM should provide the highest quality inpainting, albeit at the cost of performance due to having to analyze the entire image and calculating the average of the candidate pixel values. In this regard, ELTM might provide a good trade-off, using the surrounding pixels similarly to FMM, but still analyzing pixel patches for similarity in a similar manner to NLTM
-\\The LaMa Inpainting Model might prove to be very performant, due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead, which is unlikely. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
+\\The LaMa Inpainting Model might prove to be very performant due to being optimized for inpainting large masks efficiently. However, this assumes the inference of the model during the runtime does not require much overhead, which is unlikely. Depending on this overhead, the performance may be degraded significantly. Due to being trained on a very large dataset, the model should expectedly end up with the highest quality result.
 
 All of the above arguments are summarized in table \ref{table:inpaintingExpectations}, in which the plausibility for real-time use based on these arguments is as follows:
 

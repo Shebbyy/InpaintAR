@@ -6,7 +6,7 @@ After providing an overview of the hardware and software used during the develop
 
 \subsubsection{Hardware}
 
-As the focus of this thesis lies on the evaluation of inpainting methodologies in an AR environment, an HMD which supports this technology,
+As the focus of this thesis lies on the evaluation of inpainting methodologies in an AR environment, an HMD which supports this technology
 as well as provides access to the camera-data is required. In addition, the HMD should have the capabilities of hand-tracking for the area selection component.
 
 A Meta Quest 3\footnote{https://www.meta.com/en/quest/quest-3/} is chosen for this, as it provides all the necessary features and was just recently extended with its new passthrough API\footnote{https://developers.meta.com/horizon/documentation/spatial-sdk/spatial-sdk-pca-overview}, which allows
@@ -22,7 +22,7 @@ It uses the Meta XR Core SDK\footnote{https://assetstore.unity.com/packages/tool
 The aforementioned Meta Passthrough API is built on top of the Android Camera2 API\footnote{https://developer.android.com/reference/android/hardware/camera2/package-summary}. This allows for the camera to be used in a similar manner to mobile phone cameras, albeit with a few caveats:
 
 \begin{itemize}
-\item As of this moment, the passthrough API is not supported over Meta Quest Link. This means the software can only be evaluated on device, in the Meta Quest's standalone mode.
+\item As of this moment, the passthrough API is not supported over Meta Quest Link. This means the software can only be evaluated on device in the Meta Quest's standalone mode.
 
 \item The Camera Texture returned by the API is smaller than what a user sees in the Quest 3. Whilst there are extensions and improvements over time, as of this moment, it is not possible to cover the entire viewport of the user.
 
@@ -33,13 +33,13 @@ As for the code itself, it is written in C\string# 9 on the .Net Standard 2.1. T
 
 \section{Software Architecture}
 
-\begin{figure}[htb!]
+\begin{sidewaysfigure}
   \begin{center}
-    \includegraphics[width=1\textwidth]{UML.PNG}
+    \includegraphics[width=\textheight,keepaspectratio]{UML.PNG}
     \caption{Simplified UML diagram of the implementation architecture}
     \label{fig:UML}
   \end{center}
-\end{figure}
+\end{sidewaysfigure}
 
 A large focus in the implementation is put on a modular approach in terms of architecture, as can be seen in figure \ref{fig:UML}.
 This allows for components in the implementation to be swapped out independently of each other. Therefore, in case this prototype gets extended and improved on in the future, for example with additional inpainting algorithms or different mask detection solutions, these components may be swapped out without affecting other parts of the system.
@@ -53,16 +53,16 @@ In general, the entire prototype is split up into 3 larger namespaces with some 
     \item The benchmarking namespace handles the evaluation metric implementations for performance, quality and clutter reduction. These classes are entirely static and provide public methods to both trigger the evaluation, as well as to get their results. The evaluations of each evaluator are done inside of separate background jobs. This allows for the evaluation to occur in the background to avoid them blocking the main thread and impairing performance.
     The results of these evaluators are fetched by the MetricsUI class, which can be bound to any Unity3D game object. It internally creates the UI elements to display all the necessary information for the evaluation results, which algorithm is active and the current framerate.
 
-    \item Lastly, the visualization management namespace serves as the most important one. The AreaSelectionVisualizer class serves as the orchestrator of the entire system. This class triggers all the controllers in the prototype and manages them, starting from the mask creation at the hand positions provided by the AreaSelectionGestureHandler which is handled inside of the MaskController and SelectionUiController classes, to the inpainting algorithm function call. It also stores all the state variables, like the displayed inpainted texture, the selected algorithm and the different controllers.
+    \item Lastly, the visualization management namespace serves as the most important one. The AreaSelectionVisualizer class serves as the orchestrator of the entire system. This class triggers all the controllers in the prototype and manages them, starting from the mask creation at the hand positions provided by the AreaSelectionGestureHandler, which is handled inside of the MaskController and SelectionUiController classes, to the inpainting algorithm function call. It also stores all the state variables, like the displayed inpainted texture, the selected algorithm and the different controllers.
     In terms of logic, the AreaSelectionVisualizer class checks if the selection area should be adjusted and if the inpainting mask is within the users viewport. If this is the case, the inpainting algorithm is called. It also handles the logic for switching algorithms by listening to the button press from a meta controller to cycle through them.
     In addition to this class, there is also the SelectionUiController, which handles all the logic concerning the canvas on which the inpainted texture is displayed, as well as the masks position. For this to position it at the correct position according to the passthrough camera, the CameraController helps to translate the 2D screen point of the camera texture to a specific world coordinate in the 3D space. This CameraController also manages both the user's camera, as well as the passthrough camera and is accessed to get the passthrough image texture. This texture is provided as a RenderTexture\footnote{https://docs.unity3d.com/6000.3/Documentation/ScriptReference/RenderTexture.html} from Meta's PassthroughCameraAccess class to use for inpainting.
 
 \end{itemize}
 
-In addition to these namespaces, there is also the AreaSelectionGestureHandler class. This class is in its own Input namespace and handles all the logic concerning hand and gesture tracking in isolation. 
+In addition to these namespaces, there is also the aforementioned AreaSelectionGestureHandler class. This class is in its own Input namespace and handles all the logic concerning hand and gesture-tracking in isolation making it easy to replace for other hand-tracking APIs. 
 By constantly tracking the skeleton of both hands, as provided by the Meta XR Core SDK, the position of these skeletons can then be used to create a mask for inpainting.
 
-In terms of performance measurements, the C\string# Stopwatch class is used track the elapsed time between the start of the Inpaint function and the completion of the inpainting algorithm, right before the evaluation scheduling. 
+In terms of performance measurements, the C\string# Stopwatch class is used track the elapsed time between the start of the Inpaint function and the completion of the inpainting algorithm right before the evaluation scheduling. 
 To avoid mixing up evaluation results, each evaluator class contains a reset method, which resets all the metric storage properties of the evaluator classes. This is mainly called after switching algorithms by the AreaSelectionVisualizer.
 
 \section{Area Selection and Tracking}
@@ -78,7 +78,7 @@ For this, the skeleton of the hand and the positions for each of the fingers' bo
   \end{center}
 \end{figure}
 
-The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton} each have their own unique transformation in the world. By using the rotation vectors of these transformations, the direction of the fingers and through these, the angle between two fingers can easily be calculated. 
+The tracked bones and joints, as seen in figure \ref{fig:HandSkeleton}, each have their own unique transformation in the world. By using the rotation vectors of these transformations, the direction of the fingers and through these, the angle between two fingers can easily be calculated. 
 
 \begin{algorithm}[h!]
 \caption{Gesture Recognition method}
@@ -154,12 +154,12 @@ The following algorithms were implemented:
 As both the NLTM and ELTM algorithms require downscaling, this too is applied to the FMM and the LaMa methods to keep the input to the algorithms similar. The default resolution of 1280x1280 would mean 100k+ iterations for the texture matching algorithms for the candidate evaluation, which would make both methodologies infeasible for real-time inpainting with current hardware, but by simply downscaling the image and upscaling it again after the inpainting algorithm finishes,
 the performance can be improved significantly. As the inpainting aims to overlay objects with background predictions, which are not in focus for the user, the quality loss is acceptable and should still be superior in quality compared to FMM due to the texture recognition.
 
-These inpainting implementations all inherit the public Inpaint method from the AbstractInpaintingAlgorithm, see program \ref{prog:AbstractInpaintingAlgorithm}, which handles all the evaluation triggers and measurements, whilst the algorithm classes only need to implement the abstract InpaintLogic method. The class for the concrete selected algorithm gets created through a factory method.
+These inpainting implementations all inherit the public Inpaint method from the AbstractInpaintingAlgorithm, see listing \ref{prog:AbstractInpaintingAlgorithm}, which handles all the evaluation triggers and measurements, whilst the algorithm classes only need to implement the abstract InpaintLogic method. The class for the concrete selected algorithm gets created through a factory method.
 
-\begin{program}[h!]
+\begin{listing}[htb!]
 \caption{AbstractInpaintingAlgorithm class, which all the inpainting implementation classes inherit from.}
 \label{prog:AbstractInpaintingAlgorithm}
-\begin{CsCode}
+\begin{CsCodeCust}
 public abstract class AbstractInpaintingAlgorithm {
     ...
 
@@ -182,15 +182,15 @@ public abstract class AbstractInpaintingAlgorithm {
 
     protected abstract Texture2D InpaintLogic(Texture2D source, HashSet<int> maskPixelIndices);
 }
-\end{CsCode}
-\end{program}
+\end{CsCodeCust}
+\end{listing}
 
 \subsubsection{Fast Marching Method}
 
 One optimization in the algorithms implementation is the min-heap handling in which any stale entries during the inpainting iterations are skipped. This is in regard to the reference pixel distance, which gets updated for neighbor pixels in case the eikonal function result is lower than the prior distance. 
 In the default algorithm, the specific entry inside the heap would need to be looked for and updated accordingly. In this implementation, a new entry is simply added to the heap, as can be seen in algorithm \ref{alg:FMMHeap}.
 
-\begin{algorithm}[h!]
+\begin{algorithm}[ht!]
 \caption{Fast Marching Method MinHeap Stale Entry handling}
 \label{alg:FMMHeap}
 \begin{algorithmic}[1]
@@ -236,7 +236,7 @@ As previously discussed in the Concept chapter (see \ref{cha:InpaintingDesign}),
 One of the proposed optimizations was the PatchMatch-oriented approach of looking for subsequent frames candidates within the surroundings of the prior frame's candidate pixel patches. One advantage of this is the possibility of parallelization, as the candidate patches are all independent of one another.
 Therefore, this can once again be solved through the implementation of an IJobParallelFor as seen in algorithm \ref{alg:NltmCachedPositions}
 
-\begin{algorithm}[h!]
+\begin{algorithm}[ht!]
 \caption{Nonlocal Texture Matching cached candidate patch search}
 \label{alg:NltmCachedPositions}
 \begin{algorithmic}[2]
@@ -273,7 +273,7 @@ This means the found candidates for each target patch need to be sorted in order
 
 Therefore, the sort algorithm only uses a partial sort, using the selection sort algorithm, as it is the easiest to implement using deconstruction in C\string#, as can be seen in algorithm \ref{alg:NLTMSort}.
 
-\begin{algorithm}[h!]
+\begin{algorithm}[ht!]
 \caption{Nonlocal Texture Matching candidate Patch Partial Sort}
 \label{alg:NLTMSort}
 \begin{algorithmic}[3]
@@ -317,9 +317,9 @@ The implementation of this algorithm is, in large parts, similar to the NLTM Alg
     \item The candidate search is limited to a local area instead of the entire image, although the modified NLTM algorithm uses a similar approach, albeit using the local area of the prior frames candidate patches rather than the target patches local area.
 \end{itemize}
 
-The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search. Algorithm \ref{alg:ELTMcandidateSearch} shows the canidate patch distance calculation of ELTM using the sum of squared differences.
+The local search can once again be implemented as a parallel job, allowing for full parallelization in the candidate search. Algorithm \ref{alg:ELTMcandidateSearch} shows the candidate patch distance calculation of ELTM using the sum of squared differences.
 
-\begin{algorithm}[h!]
+\begin{algorithm}[ht!]
 \caption{Exemplar-Based Image Inpainting local candidate search difference calculation}
 \label{alg:ELTMcandidateSearch}
 \begin{algorithmic}[4]
@@ -373,17 +373,16 @@ As training a new inpainting model lies out of scope for this thesis, the provid
 The Unity developers created the Sentis library\footnote{https://docs.unity3d.com/Packages/com.unity.ai.inference@2.5/manual/index.html} for the integration of pretrained neural network models into applications for real-time use. This library also allows for those models to be run directly on the GPU \cite{UnitySentis}\footnote{There have been attempts to get the model to run on the GPU, but it caused several crashes due to running out of GPU memory whenever a screen recording is running in parallel.
 In addition to this, the entire OS would become unresponsive, which made the GPU computation of this model unusable. Therefore, it was evaluated using the CPU, just like the other approaches.}.
 
-This library only offers support for models in the Open Neural Network Exchange (ONNX)\footnote{https://onnx.ai/} format, whilst the provided LaMa model is merely a Checkpoint file. Therefore, this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a Python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to ONNX.
+This library only offers support for models in the Open Neural Network Exchange (ONNX)\footnote{https://onnx.ai/} format, whilst the provided LaMa model is merely a Checkpoint file. Therefore, this model needs to be converted accordingly. This has already been implemented by Carve-Photos, who provided a Python script\footnote{https://github.com/Carve-Photos/lama/tree/main} to export the model to the ONNX format.
 
-By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the application's runtime, as seen in program \ref{prog:LaMaImport}.
+By using this script and exporting the model with the Opset-Version 15, it can then be imported by the Sentis engine during the application's runtime, as seen in listing \ref{prog:LaMaImport}.
 
-\begin{program}[h!]
+\begin{listing}[ht!]
 \caption{LaMa Model Initialization}
 \label{prog:LaMaImport}
-\begin{CsCode}
+\begin{CsCodeCust}
 private void Initialize() {
     ...
-
     // Load the model asset from Resources folder
     var modelAsset = Resources.Load<ModelAsset>(ModelResourcePath);
 
@@ -392,21 +391,20 @@ private void Initialize() {
 
     // Create worker with CPU backend for Quest, for GPU BackendType.GPUCompute
     m_worker = new Worker(m_model, BackendType.CPU);
-
     ...
 }
-\end{CsCode}
-\end{program}
+\end{CsCodeCust}
+\end{listing}
 
 Both the source image and the inpainting mask are both put into the model through tensors.
 The size of these needs to be defined during the ONNX export and has been set to 256x256 pixels for the evaluation. Therefore, the input texture and mask need to both be downscaled accordingly and upscaled afterwards, similarly to the NLTM and ELTM implementations.
 
-Running the model is just as simple, with just a few lines of code, as seen in program \ref{prog:LaMaInference}, to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes.
+Running the model is just as simple, with just a few lines of code, as seen in listing \ref{prog:LaMaInference}, to create the tensors and schedule the model run. The result can then be retrieved by the PeekOutput method, which blocks the thread until the model finishes.
 
-\begin{program}[h!]
+\begin{listing}[h!]
 \caption{LaMa Model Inference}
 \label{prog:LaMaInference}
-\begin{CsCode}
+\begin{CsCodeCust}
 private Tensor<float> RunInference() {
     // Tensors become GPU-bound after inference and can't be rewritten
     var imageShape = new TensorShape(1, 3, ModelSize, ModelSize);
@@ -425,8 +423,8 @@ private Tensor<float> RunInference() {
     var cpuTensor = tensor.ReadbackAndClone();
     return cpuTensor;
 }
-\end{CsCode}
-\end{program}
+\end{CsCodeCust}
+\end{listing}
 
 This output tensor then gets converted back into an array of color values, which is then used to create a new texture for Unity to handle.
 
@@ -438,7 +436,7 @@ In terms of implementation complexity, it was by far the easiest to integrate, a
 As this implementation is meant as a prototype and the Meta Quest Passthrough API is still new, there are several limitations regarding the implementation:
 
 \begin{itemize}
-    \item The Meta Quest Passthrough API, as of this moment, only supports fixed, small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the sky box.
+    \item The Meta Quest Passthrough API, as of this moment, only supports fixed, small camera feed textures, which do not contain all the content visible in the AR application background, which is applied to the skybox.
     This means the inpainting area is limited around the middle of the user's viewport and cannot reach the edges yet.
 
     \item In addition to the smaller size of the camera textures, they are applied on a 2D plane in the 3D space. Due to the AR background being applied to the skybox, it means the distortion, which is usually not visible on the skybox causes the overlay of the inpainted texture to be slightly offset in some cases.

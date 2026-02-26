@@ -8,7 +8,7 @@ Whilst the approach of the developed prototype, which evaluates the inpainting a
 
 As NLTM at first seemed unsuited for real-time inpainting, a combination of the PatchMatch algorithm, proposed by Barnes et. al. in 2009\cite{BarnesConnelly2009Parc}, with the existing NLTM algorithm led to major performance improvements, although as later proven in chapter \ref{cha:Evaluation}, the performance improvements were still nowhere near enough to achieve real-time performance.
 
-In general, none of the methods really reached the performance necessary for real-time inpainting, but for cases like the clutter removal in the background, such performance might not be necessary, in case slight delays in reactivity and feedback of the inpainting can be accepted.
+In general, none of the methods really reached the performance necessary for real-time inpainting, but for cases like the clutter removal in the background, such performance might not be necessary in case slight delays in reactivity and feedback of the inpainting can be accepted.
 
 In the evaluation, it was noticed that whilst FMM provides the best performance in every scenario by several magnitudes, the ELTM approach provides much higher quality results in many cases, albeit at the cost of performance. Both NLTM and LaMa, as of this moment, should not be considered at all.
 Whilst LaMa seemed to scale well with larger masks, it seems the initial overhead of the inference and initialization inside the model makes real-time usage infeasible.

@@ -20,7 +20,25 @@
 %    Use APA citation style: 'apa'
 %    Page layout: 'oneside' (single-sided, default), 'twoside' (double-sided)
 %%%-----------------------------------------------------------------------------
+\usepackage{rotating}
+\usepackage{minted}
+\usepackage{tcolorbox}
+\tcbuselibrary{minted}
 
+\newtcblisting{CsCodeCust}{
+  listing engine=minted,
+  minted language=csharp,
+  colback=gray!5,
+  colframe=gray!40,
+  listing only,
+  minted options={
+    linenos,
+    numbersep=5pt,
+    xleftmargin=12pt,
+    autogobble,
+    breaklines
+  }
+}
 \graphicspath{{images/}}  % Location of images and graphics
 \bibliography{references} % Biblatex bibliography file (references.bib)
 

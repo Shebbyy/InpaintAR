@@ -1,7 +1,7 @@
 \chapter{Concept}
 \label{cha:Concept}
 
-In the previous chapter, several approaches and the underlying principles for DR were analyzed in detail. To analyze the aforementioned methodologies a evaluation program needs to be developed. This implementation will be created for an HMD, as it provides the user with a lot more freedom of movement and interactions compared to a phone camera.
+In the previous chapter, several approaches and the underlying principles for DR were analyzed in detail. To analyze the aforementioned methodologies, a evaluation program needs to be developed. This implementation will be created for an HMD, as it provides the user with a lot more freedom of movement and interactions compared to a phone camera.
 
 In this chapter, the design decisions for the program are elaborated upon in further detail.
 
@@ -16,7 +16,7 @@ To achieve this, there are several surrounding factors which need to be addresse
 
 \item The evaluations of quality and clutter reduction should be calculated in the background to not affect the performance by blocking the main thread.
 
-\item The architecture should be modular and easy to extend, in case other methodologies need to be analyzed.
+\item The architecture should be modular and easy to extend in case other methodologies need to be analyzed.
 
 \end{itemize}
 
@@ -58,7 +58,7 @@ After the selection of the area to inpaint is finished, the constraints of the r
 
 \subsection{Inpainting Design Decisions}
 \label{cha:InpaintingDesign}
-A black box may prove distracting to the user, especially in brighter areas. This mask needs to be filled with plausible substitute pixels, which can be achieved through inpainting. Since these inpainting algorithms were designed for static images, there are a few design adjustments and optimizations to make them plausible for real-time use.
+A black box may prove distracting to the user, especially in brighter areas. This mask needs to be filled with plausible substitute pixels, which can be achieved through inpainting.
 
 Whilst most of the methodologies analyzed in this thesis have vastly differing implementations, all of them can be boiled down to receiving an array of source pixels and a mask in the form of a list of the pixels to inpaint.
 
@@ -66,25 +66,25 @@ Since the methodologies analyzed in this thesis have only been conceptualized fo
 Most of the methodologies need to iterate over a large number of pixels. To even make inpainting in a reasonable timespan plausible, an easy solution is to downscale the source image for the inpainting and upscale it again afterwards. Whilst this reduces
 the quality of the inpainting methodologies, it should, in return, end up improving the performance of the inpainting significantly.
 
-Even with this reduction of the image size, the NLTM algorithm still takes much performance for its candidate-search. For this, the algorithm iterates over every pixel and calculates the similarity to the target pixel patch.
+Even with this reduction of the image size, the NLTM algorithm still takes much performance for its candidate search. For this, the algorithm iterates over every pixel and calculates the similarity to the target pixel patch.
 Whilst this is intuitive and great if the focus is on quality rather than performance, it makes the algorithm infeasible for real-time use.
 
 \begin{figure}[htb!]
   \begin{center}
     \includegraphics[width=0.5\textwidth]{NLTMCacheCanidates.PNG}
-    \caption{Prior frames candidates are used to reduce the candidate search area decisively}
+    \caption{Prior frames candidates are used to reduce the candidate search area significantly}
     \label{fig:NLTMCachecandidates}
   \end{center}
 \end{figure}
 
 In theory, this candidate patch search over the entire image should only be necessary once, though. Since the viewport can only change up to a certain degree per frame, instead of always searching the entire image again, the initial candidates can be re-used.
-This would mean that NLTM would use an approach similar to the ELTM algorithm or the PatchMatch algorithm of Barnes, Shechtman, Finkelstein and Goldman from 2009 (see \cite{BarnesConnelly2009Parc}), albeit looking for candidates in the surrounding areas of the prior frames candidates instead of right next to the target pixel patch. As one can see in figure \ref{fig:NLTMCachecandidates}, this approach reduces the search area for inpainting candidates decisively and should
+This would mean that NLTM would use an approach similar to the ELTM algorithm or the PatchMatch algorithm of Barnes, Shechtman, Finkelstein and Goldman from 2009 (see \cite{BarnesConnelly2009Parc}), albeit looking for candidates in the surrounding areas of the prior frames candidates instead of right next to the target pixel patch. As one can see in figure \ref{fig:NLTMCachecandidates}, this approach reduces the search area for inpainting candidates significantly and should
 provide a noticeable performance improvement with little to no quality loss in all subsequent frames after the initial full-image search frame.
 
 \section{Evaluation Approach}
 \label{cha:EvaluationApproaches}
 
-The evaluation of the algorithms needs to be fully automated and happen during the runtime. The presented algorithms aid in providing objective and impartial metrics for each of the inpainting algorithms, to compare them to each other without subjective bias.
+The evaluation of the algorithms needs to be fully automated and happen during the runtime. The presented algorithms aid in providing objective and impartial metrics for each of the inpainting algorithms to compare them to each other without subjective bias.
 
 \subsubsection{Measuring Quality for Inpainting}
 
@@ -104,7 +104,7 @@ In addition to this, the naturalness of the original image and the inpainted ima
 
 This calculation takes the gradients of the mask region and compares the weighted combination of the median value and the mean absolute deviation of the original image with the inpainted version.
 
-By combining these two factors, both the local structure of the inpainted area, as well as the overall gradients, are considered when looking at the inpainting quality.
+By combining these two factors, both the local structure of the inpainted area as well as the overall gradients are considered when looking at the inpainting quality.
 
 This approach has been shown to outperform other quality assessment metrics, as seen in \cite{Liang2019InpaintingQuality}
 
@@ -117,19 +117,19 @@ To accomplish this, the metric considers the color, contrast and the orientation
 
 \begin{itemize}
   \item In terms of the color, the areas of the image are compared in terms of covariance and distribution. This means, if the pixels in a given area are close or similar in color, it is assumed to be perceived as little to no clutter. 
-  In case the covariance is high, the area might be distracting from a color standpoint and can be assumed to contain a lot of clutter. As the RGB Color-Space is not very well suited for perceived color values, the CIELab color space is used instead.
+  In case the covariance is high, the area might be distracting from a color standpoint and can be assumed to contain a lot of clutter. As the RGB color-space is not very well suited for perceived color values, the CIELab color-space is used instead.
   \item For the contrast feature, the focus is on how high the variability of the contrast ends up. For this, the contrast of a pixel compared to its neighbors is calculated. These values for a given area are then used to calculate the standard deviation of the contrast, which defines how much features in a given space compete for the users attention.
-  \item Lastly there is the orientation. This is in correlation to objects, which are pointing to different directions, seem more cluttered and distracting, rather than clearly aligned objects.
+  \item Lastly there is the orientation. This correlates to objects, which are oriented in different directions appearing more cluttered and distracting to the user in comparison to neatly aligned objects.
   This can be recognized, by looking at the Sobel gradient of the image and comparing the angle of edges accordingly. For these orientations, a coherence can be calculated, which can then be used to calculate the congestion.
 \end{itemize}
 
 In the publication, an approach of downscaling the image continuously was used \cite{RosenholtzRuth2007Mvc}.
-This continuously blurs out smaller features and distractions, leaving only the larger outliers left, which are then applied with a larger weight. Whilst this approach provides a better quality metric, the computational resources required are much higher and would slow down the evaluation to the point of only being able to consider a minority of the frames actually generated by the inpainting algorithm. 
+This continuously blurs out smaller features and distractions, leaving only the larger outliers, which are then applied with a larger weight. Whilst this approach provides a better quality metric, the computational resources required are much higher and would slow down the evaluation to the point of only being able to consider a minority of the frames actually generated by the inpainting algorithm. 
 Therefore, it was left out at the cost of a single scale evaluation approach, which causes the overall values to be slightly lower. As the clutter reduction of the inpainting approaches should be evaluated in correlation to each other, this should not be of consequence.
 
 \subsubsection{How Performance is measured}
 
-In terms of performance, the most common performance metric in real-time graphics applications has been proven to be Frames Per Second (FPS). This defines how many images can be iterated over in a single second and therefore stands in direct correlation to the calculation time required for the calculation of a single frame.
+In terms of performance, the most common performance metric in real-time graphics applications has been proven to be Frames Per Second (FPS). This defines how many images can be iterated over in a single second and therefore stands in direct correlation to the calculation time required for providing a single frame.
 
 As the Total FPS can be affected by a lot of different external factors, like the mask preparation, receiving data from the camera and other secondary components, the time for inpainting is measured in an isolated manner as well.
 This can then be used to calculate an FPS metric, which only takes the time required for the inpainting algorithm itself into account.
