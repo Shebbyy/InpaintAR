@@ -1,0 +1,252 @@
+// GPU-resident Fast Marching Method inpainting.
+//
+// NOTE: This is NOT the exact heap-based FMM (which is inherently serial and cannot
+// be parallelised on the GPU). The distance field is solved with the parallel
+// Godunov/Jacobi update for the eikonal equation |grad T| = 1, which converges to the
+// same distance field FMM produces. The colour fill (InpaintPixel) is a direct port of
+// FastMarchingAlgorithm.InpaintPixelBurst and is ordered by processing distance "bands"
+// (one dispatch per band), which preserves FMM's causal ordering at band granularity.
+//
+// See FastMarchingAlgorithm.cs for the reference CPU implementation this mirrors.
+
+#pragma kernel Init
+#pragma kernel Eikonal
+#pragma kernel FillBand
+#pragma kernel PromoteBand
+#pragma kernel Composite
+
+#define KNOWN  0u   // From source (outside mask) OR already filled
+#define INSIDE 2u   // Inside inpainting region, not yet filled
+#define MAXVAL 1e6
+#define EPS    1e-6
+#define EPSILON 3   // Radius for neighbourhood of inpainting reference pixels
+
+// --- Dimensions / parameters (set per dispatch from C#) -------------------------------
+uint DsW, DsH;            // downscaled working resolution
+uint FullW, FullH;        // full passthrough resolution
+uint DownscaleFactor;     // keep consistent with CPU DownscaleFactor (6)
+int4 MaskBoundsDs;        // downscaled mask: x=left, y=bottom, z=right(excl), w=top(excl)
+int4 MaskBoundsFull;      // full-res mask (for crisp compositing): same layout
+int  CurrentBand;         // active band for FillBand / PromoteBand
+
+Texture2D<float4> Source;
+SamplerState sampler_LinearClamp;   // Unity-provided inline sampler
+
+RWStructuredBuffer<float>  Distance; // size DsW*DsH
+RWStructuredBuffer<uint>   Flags;    // size DsW*DsH
+RWStructuredBuffer<float4> Working;  // size DsW*DsH, rgb in [0,1]
+RWTexture2D<float4>        Result;   // full-res output
+
+bool InMaskDs(uint x, uint y) {
+    return (int)x >= MaskBoundsDs.x && (int)x < MaskBoundsDs.z &&
+           (int)y >= MaskBoundsDs.y && (int)y < MaskBoundsDs.w;
+}
+
+bool InMaskFull(uint x, uint y) {
+    return (int)x >= MaskBoundsFull.x && (int)x < MaskBoundsFull.z &&
+           (int)y >= MaskBoundsFull.y && (int)y < MaskBoundsFull.w;
+}
+
+float Tat(int x, int y) {
+    if (x < 0 || x >= (int)DsW || y < 0 || y >= (int)DsH) return MAXVAL;
+    return Distance[y * DsW + x];
+}
+
+// Gradient of T (distance field). Port of ComputeGradientTBurst.
+float2 ComputeGradientT(uint x, uint y) {
+    float gY = 0, gX = 0;
+    if (y > 0 && y < DsH - 1)      gY = (Distance[(y + 1) * DsW + x] - Distance[(y - 1) * DsW + x]) * 0.5;
+    else if (y > 0)               gY =  Distance[y * DsW + x] - Distance[(y - 1) * DsW + x];
+    else if (y < DsH - 1)         gY =  Distance[(y + 1) * DsW + x] - Distance[y * DsW + x];
+
+    if (x > 0 && x < DsW - 1)      gX = (Distance[y * DsW + x + 1] - Distance[y * DsW + x - 1]) * 0.5;
+    else if (x > 0)               gX =  Distance[y * DsW + x] - Distance[y * DsW + x - 1];
+    else if (x < DsW - 1)         gX =  Distance[y * DsW + x + 1] - Distance[y * DsW + x];
+
+    return float2(gY, gX);
+}
+
+// Gradient of I (colour). Port of ComputeGradientIBurst. Only Known neighbours contribute.
+void ComputeGradientI(uint y, uint x, out float3 gradY, out float3 gradX) {
+    gradY = 0;
+    gradX = 0;
+    uint idx = y * DsW + x;
+
+    if (y > 0 && y < DsH - 1) {
+        uint up = idx - DsW, down = idx + DsW;
+        bool ku = Flags[up] == KNOWN, kd = Flags[down] == KNOWN;
+        if (ku && kd)  gradY = (Working[down].rgb - Working[up].rgb) * 0.5;
+        else if (ku)   gradY =  Working[idx].rgb - Working[up].rgb;
+        else if (kd)   gradY =  Working[down].rgb - Working[idx].rgb;
+    } else if (y > 0) {
+        uint up = idx - DsW;
+        if (Flags[up] == KNOWN) gradY = Working[idx].rgb - Working[up].rgb;
+    } else if (y < DsH - 1) {
+        uint down = idx + DsW;
+        if (Flags[down] == KNOWN) gradY = Working[down].rgb - Working[idx].rgb;
+    }
+
+    if (x > 0 && x < DsW - 1) {
+        uint l = idx - 1, r = idx + 1;
+        bool kl = Flags[l] == KNOWN, kr = Flags[r] == KNOWN;
+        if (kl && kr)  gradX = (Working[r].rgb - Working[l].rgb) * 0.5;
+        else if (kl)   gradX =  Working[idx].rgb - Working[l].rgb;
+        else if (kr)   gradX =  Working[r].rgb - Working[idx].rgb;
+    } else if (x > 0) {
+        uint l = idx - 1;
+        if (Flags[l] == KNOWN) gradX = Working[idx].rgb - Working[l].rgb;
+    } else if (x < DsW - 1) {
+        uint r = idx + 1;
+        if (Flags[r] == KNOWN) gradX = Working[r].rgb - Working[idx].rgb;
+    }
+}
+
+// Port of InpaintPixelBurst (colours in [0,1] instead of [0,255]).
+float4 InpaintPixel(uint x, uint y) {
+    uint centerIdx = y * DsW + x;
+    float centerDist = Distance[centerIdx];
+    float2 gradT = ComputeGradientT(x, y);
+
+    float denom = 0;
+    float3 num = 0;
+
+    int yMin = max(0, (int)y - EPSILON);
+    int yMax = min((int)DsH - 1, (int)y + EPSILON);
+    int xMin = max(0, (int)x - EPSILON);
+    int xMax = min((int)DsW - 1, (int)x + EPSILON);
+    const float epsilonSq = EPSILON * EPSILON;
+
+    for (int i = yMin; i <= yMax; i++) {
+        int dy = (int)y - i;
+        int dySq = dy * dy;
+        for (int j = xMin; j <= xMax; j++) {
+            if (i == (int)y && j == (int)x) continue;
+
+            uint nbIdx = i * DsW + j;
+            if (Flags[nbIdx] != KNOWN) continue;
+
+            int dx = (int)x - j;
+            float distSq = dySq + dx * dx;
+            if (distSq > epsilonSq) continue;
+
+            float invNorm = rsqrt(max(distSq, EPS * EPS));
+
+            float2 vec = float2(dy, dx);
+            float dir = dot(gradT, vec) * invNorm;
+            dir = max(0.0, dir);
+            if (dir < EPS) continue;
+
+            float invDistSq = 1.0 / distSq;
+            float lev = 1.0 / (1.0 + abs(centerDist - Distance[nbIdx]));
+            float w = dir * invDistSq * lev;
+
+            float3 color = Working[nbIdx].rgb;
+
+            float3 gradIy, gradIx;
+            ComputeGradientI(i, j, gradIy, gradIx);
+
+            float pqY = -dy;
+            float pqX = -dx;
+            float gradMagSq = dot(gradIy, gradIy) + dot(gradIx, gradIx);
+
+            if (gradMagSq > EPS) {
+                float scale = invNorm;
+                float3 gradContrib = scale * (gradIy * pqY + gradIx * pqX);
+                num += w * (color + gradContrib);
+            } else {
+                num += w * color;
+            }
+            denom += w;
+        }
+    }
+
+    if (denom > EPS) {
+        return float4(saturate(num / denom), 1.0);
+    }
+    return Working[centerIdx];
+}
+
+// --- Kernels --------------------------------------------------------------------------
+
+[numthreads(8, 8, 1)]
+void Init(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+
+    float2 uv = float2((id.x + 0.5) / DsW, (id.y + 0.5) / DsH);
+    Working[idx] = float4(Source.SampleLevel(sampler_LinearClamp, uv, 0).rgb, 1.0);
+
+    if (InMaskDs(id.x, id.y)) {
+        Flags[idx] = INSIDE;
+        Distance[idx] = MAXVAL;
+    } else {
+        Flags[idx] = KNOWN;
+        Distance[idx] = 0.0;
+    }
+}
+
+// Godunov/Jacobi eikonal relaxation. Dispatched N times (N = ds mask diameter upper bound).
+// In-place min update is monotone, so cross-group races only affect iteration count, not the
+// converged result.
+[numthreads(8, 8, 1)]
+void Eikonal(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+    if (Flags[idx] == KNOWN) return;   // fixed boundary (outside mask)
+
+    float a = min(Tat((int)id.x - 1, (int)id.y), Tat((int)id.x + 1, (int)id.y));
+    float b = min(Tat((int)id.x, (int)id.y - 1), Tat((int)id.x, (int)id.y + 1));
+
+    float d;
+    if (abs(a - b) >= 1.0) d = min(a, b) + 1.0;
+    else                   d = (a + b + sqrt(2.0 - (a - b) * (a - b))) * 0.5;
+
+    if (d < Distance[idx]) Distance[idx] = d;
+}
+
+// Fill the colour of every Inside pixel in the current band. Reads only KNOWN neighbours
+// (lower bands, already promoted). Does NOT change flags -> no same-band race.
+[numthreads(8, 8, 1)]
+void FillBand(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+    if (Flags[idx] != INSIDE) return;
+    if ((int)ceil(Distance[idx]) != CurrentBand) return;
+    Working[idx] = InpaintPixel(id.x, id.y);
+}
+
+// Promote this band to KNOWN after FillBand has written all of its colours.
+[numthreads(8, 8, 1)]
+void PromoteBand(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+    if (Flags[idx] != INSIDE) return;
+    if ((int)ceil(Distance[idx]) != CurrentBand) return;
+    Flags[idx] = KNOWN;
+}
+
+// Upscale the inpainted mask region (bilinear) and composite over the original passthrough.
+[numthreads(8, 8, 1)]
+void Composite(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= FullW || id.y >= FullH) return;
+
+    if (InMaskFull(id.x, id.y)) {
+        float fx = (float)id.x / DownscaleFactor;
+        float fy = (float)id.y / DownscaleFactor;
+        int x0 = (int)floor(fx), y0 = (int)floor(fy);
+        int x1 = min(x0 + 1, (int)DsW - 1), y1 = min(y0 + 1, (int)DsH - 1);
+        x0 = clamp(x0, 0, (int)DsW - 1);
+        y0 = clamp(y0, 0, (int)DsH - 1);
+        float tx = fx - x0, ty = fy - y0;
+
+        float3 c00 = Working[y0 * DsW + x0].rgb;
+        float3 c10 = Working[y0 * DsW + x1].rgb;
+        float3 c01 = Working[y1 * DsW + x0].rgb;
+        float3 c11 = Working[y1 * DsW + x1].rgb;
+        float3 c = lerp(lerp(c00, c10, tx), lerp(c01, c11, tx), ty);
+        Result[uint2(id.x, id.y)] = float4(c, 1.0);
+    } else {
+        float2 uv = float2((id.x + 0.5) / FullW, (id.y + 0.5) / FullH);
+        Result[uint2(id.x, id.y)] = float4(Source.SampleLevel(sampler_LinearClamp, uv, 0).rgb, 1.0);
+    }
+}
