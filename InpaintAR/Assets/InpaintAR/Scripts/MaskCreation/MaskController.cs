@@ -8,7 +8,7 @@ namespace InpaintAR.Scripts.MaskCreation {
         private static HashSet<int> _cachedMask;
 
         public static HashSet<int> GetMaskPixelIndices(RectTransform fillImagePosition,
-            Texture2D fillImageTexture,
+            Texture fillImageTexture,
             RectTransform fillRectMask) {
 
             if (!fillImageTexture || !fillRectMask) {

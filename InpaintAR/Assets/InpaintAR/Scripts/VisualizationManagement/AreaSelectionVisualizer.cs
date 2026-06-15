@@ -35,19 +35,22 @@ namespace InpaintAR.Scripts.VisualizationManagement {
         [Tooltip("Which algorithm to use for the inpainting")]
         public InpaintingAlgorithms inpaintingAlgorithmSelection;
 
+        [Tooltip("Use the GPU compute / Sentis implementations instead of the CPU (Burst) ones")]
+        public bool useGpuCompute;
+
         [Header("Debug Settings")]
         [Tooltip("Uses a solid red box instead of the camera texture for display")]
         public bool showDebugRect = true;
 
-        [CanBeNull] private Texture2D m_copiedTexture; // Copy of the passthrough texture for inpainting, etc.
         [CanBeNull] private HashSet<int> m_inpaintMask;
-        [CanBeNull] private Texture2D m_inpaintedTexture;
-        private AbstractInpaintingAlgorithm m_abstractInpaintingAlgorithm;
+        [CanBeNull] private Texture m_inpaintedTexture;
+        private IInpaintingAlgorithm m_abstractInpaintingAlgorithm;
+        private IInpaintingFactory m_factory;
         private CameraController m_cameraController;
         private SelectionUiController m_selectionUiController;
 
         // Algorithm switching
-        private bool m_joystickReleased = true;
+        private readonly bool m_joystickReleased = true;
         private static readonly int AlgorithmCount = Enum.GetValues(typeof(InpaintingAlgorithms)).Length;
 
         private void Start() {
@@ -61,16 +64,15 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             m_selectionUiController.SetConfig(m_cameraController, showDebugRect);
             m_selectionUiController.CreateUICanvasAndCorners(canvasWidth, canvasHeight, pixelsPerUnit, cornerSpriteSize, cornerSpriteThickness);
             
-            m_abstractInpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
+            m_factory = useGpuCompute ? new InpaintComputeFactory() : new CpuInpaintingFactory();
+            m_abstractInpaintingAlgorithm = m_factory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
             MetricsUI.CurrentAlgorithm = inpaintingAlgorithmSelection;
         }
         
         private void OnDestroy() {
-            if (m_copiedTexture) {
-                Destroy(m_copiedTexture);
-            }
-            if (m_inpaintedTexture) {
-                Destroy(m_inpaintedTexture);
+            // Only destroy caller-owned textures; GPU algorithms own/reuse their RenderTexture result.
+            if (m_inpaintedTexture is Texture2D inpaintedTex2D) {
+                Destroy(inpaintedTex2D);
             }
 
             // Dispose algorithm if it implements IDisposable (e.g., LaMa with GPU resources)
@@ -144,21 +146,19 @@ namespace InpaintAR.Scripts.VisualizationManagement {
 
             m_selectionUiController.GetFillImage().color = Color.white;
             
+            // Pass the live passthrough texture straight through. The CPU path reads it back to a
+            // Texture2D internally; the GPU path keeps it on the GPU - no more GPU->CPU->GPU round-trip.
             Texture sourceTexture = m_cameraController.GetPassthroughTexture();
-            if (sourceTexture) {
-                if (m_copiedTexture) {
-                    Destroy(m_copiedTexture);
-                }
-                m_copiedTexture = TextureUtility.CopyTexture(sourceTexture);
+            if (!sourceTexture) return;
+
+            m_inpaintMask = MaskController.GetMaskPixelIndices(m_selectionUiController.GetFillImage().rectTransform, sourceTexture, m_selectionUiController.GetFillRectMask());
+
+            // Destroy old inpainted texture before creating new one to prevent memory leak.
+            // GPU algorithms own/reuse their RenderTexture result, so only destroy caller-owned ones.
+            if (m_inpaintedTexture is Texture2D oldInpainted) {
+                Destroy(oldInpainted);
             }
-            
-            m_inpaintMask = MaskController.GetMaskPixelIndices(m_selectionUiController.GetFillImage().rectTransform, m_copiedTexture, m_selectionUiController.GetFillRectMask());
-            
-            // Destroy old inpainted texture before creating new one to prevent memory leak
-            if (m_inpaintedTexture) {
-                Destroy(m_inpaintedTexture);
-            }
-            m_inpaintedTexture = m_abstractInpaintingAlgorithm.Inpaint(m_copiedTexture, m_inpaintMask);
+            m_inpaintedTexture = m_abstractInpaintingAlgorithm.Inpaint(sourceTexture, m_inpaintMask);
             
             m_selectionUiController.GetFillImage().texture = m_inpaintedTexture;
         }
@@ -191,7 +191,7 @@ namespace InpaintAR.Scripts.VisualizationManagement {
             }
 
             inpaintingAlgorithmSelection = newAlgorithm;
-            m_abstractInpaintingAlgorithm = InpaintingFactory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
+            m_abstractInpaintingAlgorithm = m_factory.GetInpaintingAlgorithm(inpaintingAlgorithmSelection);
 
             // Reset all evaluations
             PerformanceEvaluator.ResetValues();

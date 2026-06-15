@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using InpaintAR.Scripts.Benchmarking.Evaluators;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -10,7 +8,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
     //   - colour fill via FMM band ordering (one dispatch per distance band)
     // Benchmarking is kept always-on but never blocks: pixels are pulled back with
     // AsyncGPUReadback and fed to the existing Burst evaluators in the background.
-    public class FastMarchingComputeAlgorithm : IGpuInpaintingAlgorithm {
+    public class FastMarchingComputeAlgorithm : AbstractGpuInpaintingAlgorithm {
         // Keep consistent with FastMarchingAlgorithm.DownscaleFactor.
         private const int DownscaleFactor = 6;
         private const string ShaderResourcePath = "Shaders/FastMarchingCompute";
@@ -25,10 +23,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
         private ComputeBuffer m_working;
         private RenderTexture m_result;
 
-        // Async benchmarking (one read-back cycle in flight at a time).
-        private bool m_evalBusy;
-
-        public FastMarchingComputeAlgorithm() {
+        public FastMarchingComputeAlgorithm() : base("FastMarchingCompute.Inpaint") {
             m_cs = Resources.Load<ComputeShader>(ShaderResourcePath);
             if (m_cs == null) {
                 Debug.LogError($"[FMM-GPU] Compute shader not found at Resources/{ShaderResourcePath}.compute");
@@ -41,7 +36,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_kComposite = m_cs.FindKernel("Composite");
         }
 
-        public RenderTexture Inpaint(RenderTexture source, RectInt maskBounds) {
+        public override RenderTexture Inpaint(RenderTexture source, RectInt maskBounds) {
             if (m_cs == null || source == null) return source;
 
             EnsureResources(source.width, source.height);
@@ -80,6 +75,7 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             int dsGx = Mathf.CeilToInt(m_dsW / 8f), dsGy = Mathf.CeilToInt(m_dsH / 8f);
             int fGx = Mathf.CeilToInt(m_fullW / 8f), fGy = Mathf.CeilToInt(m_fullH / 8f);
 
+            BeginProfile();
             m_cs.Dispatch(m_kInit, dsGx, dsGy, 1);
             for (int i = 0; i < eikonalIters; i++) {
                 m_cs.Dispatch(m_kEikonal, dsGx, dsGy, 1);
@@ -90,8 +86,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
                 m_cs.Dispatch(m_kPromoteBand, dsGx, dsGy, 1);
             }
             m_cs.Dispatch(m_kComposite, fGx, fGy, 1);
+            EndProfileAndReport(maskBounds);
 
-            MaybeRunEvaluation(source, maskBounds);
+            MaybeRunEvaluation(source, m_result, maskBounds);
             return m_result;
         }
 
@@ -124,46 +121,6 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_result.Create();
         }
 
-        // --- Always-on, non-blocking benchmarking ----------------------------------------
-        // Self-throttles to one read-back cycle at a time, exactly like the Burst evaluators
-        // skip frames while a previous job is still running.
-        private void MaybeRunEvaluation(RenderTexture source, RectInt maskBounds) {
-            if (m_evalBusy) return;
-            m_evalBusy = true;
-
-            int w = m_fullW, h = m_fullH;
-            AsyncGPUReadback.Request(source, 0, srcReq => {
-                if (srcReq.hasError) { m_evalBusy = false; return; }
-                var original = srcReq.GetData<Color32>().ToArray();
-
-                AsyncGPUReadback.Request(m_result, 0, resReq => {
-                    if (!resReq.hasError) {
-                        var inpainted = resReq.GetData<Color32>().ToArray();
-                        var maskIndices = RectToIndices(maskBounds, w, h);
-
-                        // PerformanceEvaluator's CPU stopwatch no longer reflects GPU work; feed
-                        // a GPU timing here instead (see ProfilerRecorder note in the dispatcher).
-                        QualityEvaluator.EvaluateQuality(original, inpainted, w, h, maskIndices);
-                        ClutterEvaluator.EvaluateClutterReduction(original, inpainted, w, h, maskIndices);
-                    }
-                    m_evalBusy = false;
-                });
-            });
-        }
-
-        private static HashSet<int> RectToIndices(RectInt r, int width, int height) {
-            int x0 = Mathf.Clamp(r.xMin, 0, width);
-            int x1 = Mathf.Clamp(r.xMax, 0, width);
-            int y0 = Mathf.Clamp(r.yMin, 0, height);
-            int y1 = Mathf.Clamp(r.yMax, 0, height);
-            var set = new HashSet<int>(Mathf.Max(0, (x1 - x0) * (y1 - y0)));
-            for (int y = y0; y < y1; y++) {
-                int row = y * width;
-                for (int x = x0; x < x1; x++) set.Add(row + x);
-            }
-            return set;
-        }
-
         private void ReleaseResources() {
             m_distance?.Release();
             m_flags?.Release();
@@ -175,7 +132,8 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_result = null;
         }
 
-        public void Dispose() {
+        public override void Dispose() {
+            base.Dispose();
             ReleaseResources();
         }
     }

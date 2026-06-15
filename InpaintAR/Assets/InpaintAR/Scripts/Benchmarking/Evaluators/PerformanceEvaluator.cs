@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace InpaintAR.Scripts.Benchmarking.Evaluators {
     public class PerformanceEvaluator : MonoBehaviour {
-        private static readonly List<long> InpaintingTimeMSValues = new();
+        private static readonly List<double> InpaintingTimeMSValues = new();
         private static int _totalInpaintedPixels;
 
         public static double GetTotalFPS() {
@@ -21,10 +21,10 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
         }
 
         public static double GetAverageTimePerPixel() {
-            return _totalInpaintedPixels > 0 ? (double)InpaintingTimeMSValues.Sum() / _totalInpaintedPixels : -1;
+            return _totalInpaintedPixels > 0 ? InpaintingTimeMSValues.Sum() / _totalInpaintedPixels : -1;
         }
 
-        public static void AddInpaintingStats(int inpaintedPixels, long elapsedTimeMs) {
+        public static void AddInpaintingStats(int inpaintedPixels, double elapsedTimeMs) {
             _totalInpaintedPixels += inpaintedPixels;
             InpaintingTimeMSValues.Add(elapsedTimeMs);
         }

@@ -1,0 +1,59 @@
+// Pre/post glue for GPU-resident LaMa inpainting.
+//
+// IMPORTANT: This shader does NOT implement the LaMa network. LaMa is an ONNX model; when the
+// Sentis worker runs on BackendType.GPUCompute, Sentis itself lowers every layer of the network
+// into compute shaders. The only hand-written GPU work is the I/O glue around inference, which
+// is what lives here - a direct port of LaMaAlgorithm.PrepareImageData / PrepareMaskData /
+// ProcessOutput, kept entirely on the GPU so nothing round-trips through the CPU.
+//
+//   BuildInput : downsample the source to 256x256, zero the masked pixels (LaMa input
+//                convention) and emit the single-channel mask (1 = inpaint region).
+//   Normalize  : map the network output (already upscaled by Sentis, in [0,255]) to [0,1]
+//                and write the final result texture.
+//
+// See LaMaAlgorithm.cs for the reference CPU implementation this mirrors.
+
+#pragma kernel BuildInput
+#pragma kernel Normalize
+
+#define MODEL_SIZE 256
+
+uint FullW, FullH;        // full passthrough resolution
+int4 MaskRect256;         // mask region in 256-space, already dilated (x0,y0,x1 excl,y1 excl)
+
+Texture2D<float4> Source;
+SamplerState sampler_LinearClamp;   // Unity-provided inline sampler (bilinear, matches Blit downsample)
+
+Texture2D<float4>   OutputFloat;    // Sentis network output rendered to a full-res float texture
+RWTexture2D<float4> InputTex;       // 256x256, masked-zeroed RGB fed to ToTensor (image input)
+RWTexture2D<float>  MaskTex;        // 256x256, 1 = inpaint region, fed to ToTensor (mask input)
+RWTexture2D<float4> Result;         // full-res output
+
+bool InMask256(uint x, uint y) {
+    return (int)x >= MaskRect256.x && (int)x < MaskRect256.z &&
+           (int)y >= MaskRect256.y && (int)y < MaskRect256.w;
+}
+
+// Port of DownsampleTexture + PrepareImageData + PrepareMaskData (with the rect-dilation folded
+// into MaskRect256). Masked pixels are zeroed in the image; the mask channel is 1 inside.
+[numthreads(8, 8, 1)]
+void BuildInput(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= MODEL_SIZE || id.y >= MODEL_SIZE) return;
+
+    bool masked = InMask256(id.x, id.y);
+
+    float2 uv = float2((id.x + 0.5) / MODEL_SIZE, (id.y + 0.5) / MODEL_SIZE);
+    float3 rgb = Source.SampleLevel(sampler_LinearClamp, uv, 0).rgb;   // already [0,1]
+
+    InputTex[id.xy] = float4(masked ? float3(0, 0, 0) : rgb, 1.0);
+    MaskTex[id.xy] = masked ? 1.0 : 0.0;
+}
+
+// Port of ProcessOutput's clamp/normalize. Sentis has already upscaled OutputFloat to full res;
+// the model emits values in [0,255], so divide to [0,1] for the 8-bit result texture.
+[numthreads(8, 8, 1)]
+void Normalize(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= FullW || id.y >= FullH) return;
+    float3 c = OutputFloat[id.xy].rgb / 255.0;
+    Result[id.xy] = float4(saturate(c), 1.0);
+}

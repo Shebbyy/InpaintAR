@@ -1,0 +1,460 @@
+// GPU-resident Nonlocal Texture Matching (NLTM) inpainting.
+//
+// NOTE: This is NOT a single-pass parallel algorithm. NLTM is a greedy, exemplar-based
+// scheme (Criminisi-style): every iteration picks the single highest-priority contour
+// patch, fills it from the K best-matching source patches, and removes it from the mask
+// before the next iteration. That outer loop is inherently serial and is driven from C#
+// (NltmComputeAlgorithm.Inpaint), exactly like FastMarchingComputeAlgorithm dispatches one
+// band at a time. What is parallelised here is the per-iteration work, and in particular
+// the candidate search (the dominant cost), which maps to one thread per source position.
+//
+// The per-patch math is a direct port of NltmAlgorithm.cs (priority, texture distance,
+// alpha-trimmed-mean fill, confidence update). The only representation changes are:
+//   - the mask is a dense uint buffer (1 = unknown) instead of a NativeParallelHashSet,
+//   - colours live in [0,1] instead of [0,255] (uniform scale -> candidate ordering and
+//     trimmed means are unchanged),
+//   - the global argmax over priorities uses an atomic reduction; on exact ties the GPU may
+//     pick a different equal-priority pixel than the CPU's "first wins", so the fill order
+//     can differ on ties (visually negligible, same spirit as the FMM eikonal race note).
+//
+// See NltmAlgorithm.cs for the reference CPU implementation this mirrors.
+
+#pragma kernel Init
+#pragma kernel MarkCached
+#pragma kernel Priority
+#pragma kernel ResetIter
+#pragma kernel ArgmaxMax
+#pragma kernel ArgmaxPick
+#pragma kernel Search
+#pragma kernel SelectK
+#pragma kernel Fill
+#pragma kernel Update
+#pragma kernel Composite
+
+#define PATCH_RADIUS        4
+#define PATCH_SIZE          9      // 2*PATCH_RADIUS + 1
+#define PATCH_AREA          81     // PATCH_SIZE * PATCH_SIZE
+#define K                   5
+#define ALPHA               0.15
+#define LOCAL_SEARCH_RADIUS 10
+#define MAXVAL              1e20
+#define EPS                 1e-6
+
+// --- Dimensions / parameters (set per dispatch from C#) -------------------------------
+uint DsW, DsH;            // downscaled working resolution
+uint FullW, FullH;        // full passthrough resolution
+uint DownscaleFactor;     // keep consistent with CPU DownscaleFactor (6)
+int4 MaskBoundsDs;        // downscaled mask: x=left, y=bottom, z=right(excl), w=top(excl)
+int4 MaskBoundsFull;      // full-res mask (for crisp compositing): same layout
+uint UseCached;           // 1 if the temporal cache restricts the search this frame
+uint CachedCount;         // number of entries in CachedCandidates
+
+Texture2D<float4> Source;
+SamplerState sampler_PointClamp;    // Unity-provided inline sampler (nearest, matches CPU downscale)
+
+RWStructuredBuffer<uint>   Mask;          // size N, 1 = unknown
+RWStructuredBuffer<float>  Confidence;    // size N
+RWStructuredBuffer<float4> Working;       // size N, rgb in [0,1]
+RWStructuredBuffer<uint>   SearchAllowed; // size N, 1 = position eligible as a candidate
+RWStructuredBuffer<float>  Prio;          // size N, priority or -1
+
+StructuredBuffer<float>    GaussianWeights;   // size PATCH_AREA
+StructuredBuffer<int>      CachedCandidates;  // previous frame's cache (centres)
+
+RWStructuredBuffer<int>    TargetIdx;     // size 1, winning pixel index or -1
+RWStructuredBuffer<uint>   MaxPriority;   // size 1, asuint() of best priority
+
+RWStructuredBuffer<int>    ValidIdx;      // size N, compact list of valid candidate centres
+RWStructuredBuffer<float>  ValidDist;     // size N, matching distances
+RWStructuredBuffer<uint>   ValidCount;    // size 1
+
+RWStructuredBuffer<int>    CandIdx;       // size K, the K best candidate centres
+RWStructuredBuffer<uint>   CandCount;     // size 1
+RWStructuredBuffer<float>  PatchConf;     // size 1, confidence assigned to the filled patch
+RWStructuredBuffer<float4> FillColor;     // size 1, fallback colour (nearest-known)
+
+RWStructuredBuffer<int>    NewCache;      // size N, candidates chosen this frame (next cache)
+RWStructuredBuffer<uint>   NewCacheCount; // size 1
+RWStructuredBuffer<uint>   Remaining;     // size 1, unknown pixels left (early termination)
+
+RWTexture2D<float4>        Result;        // full-res output
+
+// --- Helpers --------------------------------------------------------------------------
+
+bool InMaskFull(uint x, uint y) {
+    return (int)x >= MaskBoundsFull.x && (int)x < MaskBoundsFull.z &&
+           (int)y >= MaskBoundsFull.y && (int)y < MaskBoundsFull.w;
+}
+
+bool InBounds(int x, int y) {
+    return x >= 0 && x < (int)DsW && y >= 0 && y < (int)DsH;
+}
+
+float Gray(float3 rgb) {
+    // Matches Unity Color.grayscale (then /255 like the CPU, a constant that cancels in argmax).
+    return (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255.0;
+}
+
+// Port of CalculateConfidenceStatic: mean confidence over the patch.
+float PatchConfidence(int px, int py) {
+    float sum = 0;
+    int count = 0;
+    for (int dy = -PATCH_RADIUS; dy <= PATCH_RADIUS; dy++) {
+        for (int dx = -PATCH_RADIUS; dx <= PATCH_RADIUS; dx++) {
+            int nx = px + dx, ny = py + dy;
+            if (InBounds(nx, ny)) {
+                sum += Confidence[ny * DsW + nx];
+                count++;
+            }
+        }
+    }
+    return count > 0 ? sum / count : 0;
+}
+
+// Port of EstimateNormalStatic: gradient of the mask field.
+float2 EstimateNormal(int px, int py) {
+    float ml = InBounds(px - 1, py) && Mask[py * DsW + px - 1] != 0 ? 1.0 : 0.0;
+    float mr = InBounds(px + 1, py) && Mask[py * DsW + px + 1] != 0 ? 1.0 : 0.0;
+    float md = InBounds(px, py - 1) && Mask[(py - 1) * DsW + px] != 0 ? 1.0 : 0.0;
+    float mu = InBounds(px, py + 1) && Mask[(py + 1) * DsW + px] != 0 ? 1.0 : 0.0;
+    float gx = (mr - ml) * 0.5;
+    float gy = (mu - md) * 0.5;
+    float2 n = float2(gx, gy);
+    float sqrMag = n.x * n.x + n.y * n.y;
+    return sqrMag > 1e-6 ? normalize(n) : float2(0, 1);
+}
+
+// Port of CalculateDataStatic: isophote . normal via a Sobel on grayscale.
+float DataTerm(int px, int py, float2 normal) {
+    int centerIdx = py * DsW + px;
+    float centerGray = Gray(Working[centerIdx].rgb);
+
+    // GetVal: clamp out-of-bounds and unknown pixels to the centre value.
+    #define GETVAL(gx, gy) ( !InBounds(gx, gy) ? centerGray : \
+        (Mask[(gy) * DsW + (gx)] != 0 ? centerGray : Gray(Working[(gy) * DsW + (gx)].rgb)) )
+
+    float v_nw = GETVAL(px - 1, py - 1), v_n = GETVAL(px, py - 1), v_ne = GETVAL(px + 1, py - 1);
+    float v_w  = GETVAL(px - 1, py),                              v_e  = GETVAL(px + 1, py);
+    float v_sw = GETVAL(px - 1, py + 1), v_s = GETVAL(px, py + 1), v_se = GETVAL(px + 1, py + 1);
+    #undef GETVAL
+
+    float gx = -v_nw + v_ne - 2 * v_w + 2 * v_e - v_sw + v_se;
+    float gy =  v_nw + 2 * v_n + v_ne - v_sw - 2 * v_s - v_se;
+
+    float2 isophote = float2(-gy, gx);
+    float d = abs(isophote.x * normal.x + isophote.y * normal.y);
+    return d / 255.0 + 0.001;
+}
+
+// Port of IsPatchFullyKnownBurstStatic.
+bool IsPatchFullyKnown(int cx, int cy) {
+    for (int dy = -PATCH_RADIUS; dy <= PATCH_RADIUS; dy++) {
+        for (int dx = -PATCH_RADIUS; dx <= PATCH_RADIUS; dx++) {
+            int nx = cx + dx, ny = cy + dy;
+            if (!InBounds(nx, ny)) return false;
+            if (Mask[ny * DsW + nx] != 0) return false;
+        }
+    }
+    return true;
+}
+
+// Port of CalculateTextureDistanceBurstStatic. Returns -1 when no overlap is usable.
+float TextureDistance(int targetX, int targetY, int sourceX, int sourceY) {
+    float sumDistance = 0;
+    float sumWeight = 0;
+    int weightIdx = 0;
+
+    for (int dy = -PATCH_RADIUS; dy <= PATCH_RADIUS; dy++) {
+        for (int dx = -PATCH_RADIUS; dx <= PATCH_RADIUS; dx++) {
+            int tx = targetX + dx, ty = targetY + dy;
+            if (!InBounds(tx, ty)) { weightIdx++; continue; }
+
+            int targetIdx = ty * DsW + tx;
+            if (Mask[targetIdx] != 0) { weightIdx++; continue; }
+
+            int sourceIdx = (sourceY + dy) * DsW + (sourceX + dx);
+            float weight = GaussianWeights[weightIdx++];
+
+            float3 dc = (Working[targetIdx].rgb - Working[sourceIdx].rgb) * 255.0;
+            sumDistance += weight * dot(dc, dc);
+            sumWeight += weight;
+        }
+    }
+    return sumWeight < 1e-6 ? -1.0 : sumDistance / sumWeight;
+}
+
+// --- Kernels --------------------------------------------------------------------------
+
+// Downscale (nearest, matches DownscalePixels), seed mask/confidence, reset frame counters.
+[numthreads(8, 8, 1)]
+void Init(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+
+    int2 src = int2(min((int)(id.x * DownscaleFactor), (int)FullW - 1),
+                    min((int)(id.y * DownscaleFactor), (int)FullH - 1));
+    float2 uv = float2((src.x + 0.5) / FullW, (src.y + 0.5) / FullH);
+    Working[idx] = float4(Source.SampleLevel(sampler_PointClamp, uv, 0).rgb, 1.0);
+
+    bool unknown = (int)id.x >= MaskBoundsDs.x && (int)id.x < MaskBoundsDs.z &&
+                   (int)id.y >= MaskBoundsDs.y && (int)id.y < MaskBoundsDs.w;
+    Mask[idx] = unknown ? 1u : 0u;
+    Confidence[idx] = unknown ? 0.0 : 1.0;
+
+    // No cache -> every position is searchable; with cache MarkCached opens up windows.
+    SearchAllowed[idx] = UseCached != 0 ? 0u : 1u;
+
+    if (idx == 0) {
+        NewCacheCount[0] = 0;
+        Remaining[0] = (uint)max(0, (MaskBoundsDs.z - MaskBoundsDs.x)) *
+                       (uint)max(0, (MaskBoundsDs.w - MaskBoundsDs.y));
+    }
+}
+
+// Open a LOCAL_SEARCH_RADIUS window around each cached candidate (scatter, race-free writes of 1).
+// Mirrors the "visited" marking in SearchCachedParallel. Dispatched over CachedCount.
+[numthreads(64, 1, 1)]
+void MarkCached(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= CachedCount) return;
+    int pos = CachedCandidates[id.x];
+    int cx = pos % (int)DsW, cy = pos / (int)DsW;
+
+    int minX = max(PATCH_RADIUS, cx - LOCAL_SEARCH_RADIUS);
+    int maxX = min((int)DsW - PATCH_RADIUS - 1, cx + LOCAL_SEARCH_RADIUS);
+    int minY = max(PATCH_RADIUS, cy - LOCAL_SEARCH_RADIUS);
+    int maxY = min((int)DsH - PATCH_RADIUS - 1, cy + LOCAL_SEARCH_RADIUS);
+
+    for (int sy = minY; sy <= maxY; sy++)
+        for (int sx = minX; sx <= maxX; sx++)
+            SearchAllowed[sy * DsW + sx] = 1u;
+}
+
+// Contour detection folded into priority: writes conf*data for contour pixels, -1 otherwise.
+[numthreads(8, 8, 1)]
+void Priority(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+    int x = (int)id.x, y = (int)id.y;
+
+    if (Mask[idx] == 0) { Prio[idx] = -1.0; return; }
+
+    bool contour =
+        (x > 0            && Mask[idx - 1]    == 0) ||
+        (x < (int)DsW - 1 && Mask[idx + 1]    == 0) ||
+        (y > 0            && Mask[idx - DsW]  == 0) ||
+        (y < (int)DsH - 1 && Mask[idx + DsW]  == 0);
+
+    if (!contour) { Prio[idx] = -1.0; return; }
+
+    float conf = PatchConfidence(x, y);
+    float2 normal = EstimateNormal(x, y);
+    float data = DataTerm(x, y, normal);
+    Prio[idx] = conf * data;
+}
+
+// Per-iteration reset of the argmax + candidate scratch (single thread).
+// TargetIdx starts at INT_MAX so ArgmaxPick's InterlockedMin selects the lowest index;
+// "no target this iteration" is detected downstream via MaxPriority == 0 (no contour).
+[numthreads(1, 1, 1)]
+void ResetIter(uint3 id : SV_DispatchThreadID) {
+    TargetIdx[0] = 0x7FFFFFFF;
+    MaxPriority[0] = 0u;
+    ValidCount[0] = 0u;
+    CandCount[0] = 0u;
+}
+
+// Atomic max over positive priorities (asuint preserves ordering for >= 0).
+[numthreads(8, 8, 1)]
+void ArgmaxMax(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+    float p = Prio[idx];
+    if (p > 0.0) InterlockedMax(MaxPriority[0], asuint(p));
+}
+
+// Lowest pixel index among the maximal priorities becomes the target (stable tie-break).
+[numthreads(8, 8, 1)]
+void ArgmaxPick(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    uint idx = id.y * DsW + id.x;
+    float p = Prio[idx];
+    if (p > 0.0 && asuint(p) == MaxPriority[0]) InterlockedMin(TargetIdx[0], (int)idx);
+}
+
+// One thread per source position: append valid candidates (centre + distance) to a compact list.
+[numthreads(8, 8, 1)]
+void Search(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    if (MaxPriority[0] == 0u) return;   // no contour -> nothing to fill this iteration
+    int target = TargetIdx[0];
+    uint idx = id.y * DsW + id.x;
+    if (SearchAllowed[idx] == 0) return;
+
+    int tx = target % (int)DsW, ty = target / (int)DsW;
+    int sx = (int)id.x, sy = (int)id.y;
+
+    // Skip positions overlapping the target patch.
+    if (abs(sx - tx) <= PATCH_RADIUS && abs(sy - ty) <= PATCH_RADIUS) return;
+    if (!IsPatchFullyKnown(sx, sy)) return;
+
+    float dist = TextureDistance(tx, ty, sx, sy);
+    if (dist < 0.0) return;
+
+    uint slot;
+    InterlockedAdd(ValidCount[0], 1u, slot);
+    ValidIdx[slot] = (int)idx;
+    ValidDist[slot] = dist;
+}
+
+// Single thread: K-smallest selection (mirrors SortCandidates' partial selection), patch
+// confidence, nearest-known fallback colour, and appending the chosen centres to NewCache.
+[numthreads(1, 1, 1)]
+void SelectK(uint3 id : SV_DispatchThreadID) {
+    if (MaxPriority[0] == 0u) return;
+    int target = TargetIdx[0];
+    int tx = target % (int)DsW, ty = target / (int)DsW;
+
+    PatchConf[0] = PatchConfidence(tx, ty);
+
+    uint valid = ValidCount[0];
+    uint chosen = 0;
+    for (uint k = 0; k < K; k++) {
+        float best = MAXVAL;
+        int bestSlot = -1;
+        for (uint i = 0; i < valid; i++) {
+            if (ValidDist[i] < best) { best = ValidDist[i]; bestSlot = (int)i; }
+        }
+        if (bestSlot < 0) break;
+        CandIdx[k] = ValidIdx[bestSlot];
+        ValidDist[bestSlot] = MAXVAL;   // consumed; ValidDist is rewritten next iteration
+        chosen++;
+    }
+    CandCount[0] = chosen;
+
+    if (chosen == 0) {
+        // Port of FillPatchFromNearestBurst: nearest known pixel within 2*PATCH_RADIUS of target.
+        int nearestIdx = -1;
+        float nearestDist = MAXVAL;
+        for (int dy = -PATCH_RADIUS * 2; dy <= PATCH_RADIUS * 2; dy++) {
+            for (int dx = -PATCH_RADIUS * 2; dx <= PATCH_RADIUS * 2; dx++) {
+                int nx = tx + dx, ny = ty + dy;
+                if (!InBounds(nx, ny)) continue;
+                int nIdx = ny * DsW + nx;
+                if (Mask[nIdx] != 0) continue;
+                float d = dx * dx + dy * dy;
+                if (d >= nearestDist) continue;
+                nearestDist = d;
+                nearestIdx = nIdx;
+            }
+        }
+        FillColor[0] = nearestIdx < 0 ? float4(0, 0, 0, 1) : Working[nearestIdx];
+    } else {
+        for (uint c = 0; c < chosen; c++) {
+            uint slot;
+            InterlockedAdd(NewCacheCount[0], 1u, slot);
+            if (slot < DsW * DsH) NewCache[slot] = CandIdx[c];
+        }
+    }
+}
+
+// Alpha-trimmed mean of one channel across the chosen candidates (port of AlphaTrimmedMeanBurst).
+float AlphaTrimmedMean(float vals[K], uint n, int trimCount) {
+    if (n == 0) return 0.0;
+    if (n == 1) return vals[0];
+
+    // Insertion sort.
+    for (uint i = 1; i < n; i++) {
+        float key = vals[i];
+        int j = (int)i - 1;
+        while (j >= 0 && vals[j] > key) { vals[j + 1] = vals[j]; j--; }
+        vals[j + 1] = key;
+    }
+
+    int start = min(trimCount, (int)n / 2);
+    int end = max((int)n - trimCount, (int)n / 2 + 1);
+    float sum = 0;
+    int count = 0;
+    for (int i = start; i < end; i++) { sum += vals[i]; count++; }
+    return count > 0 ? sum / count : vals[n / 2];
+}
+
+// One thread per pixel; fills the masked pixels inside the target patch.
+[numthreads(8, 8, 1)]
+void Fill(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    if (MaxPriority[0] == 0u) return;
+    int target = TargetIdx[0];
+    int tx = target % (int)DsW, ty = target / (int)DsW;
+    int x = (int)id.x, y = (int)id.y;
+
+    int dx = x - tx, dy = y - ty;
+    if (abs(dx) > PATCH_RADIUS || abs(dy) > PATCH_RADIUS) return;
+    uint idx = id.y * DsW + id.x;
+    if (Mask[idx] == 0) return;
+
+    uint n = CandCount[0];
+    if (n == 0) {
+        Working[idx] = FillColor[0];
+        return;
+    }
+
+    int trimCount = max(1, (int)round(ALPHA * n));
+    float rVals[K], gVals[K], bVals[K];
+    for (uint i = 0; i < n; i++) {
+        int center = CandIdx[i];
+        int cx = center % (int)DsW, cy = center / (int)DsW;
+        float3 c = Working[(cy + dy) * DsW + (cx + dx)].rgb;
+        rVals[i] = c.r; gVals[i] = c.g; bVals[i] = c.b;
+    }
+    float r = AlphaTrimmedMean(rVals, n, trimCount);
+    float g = AlphaTrimmedMean(gVals, n, trimCount);
+    float b = AlphaTrimmedMean(bVals, n, trimCount);
+    Working[idx] = float4(saturate(float3(r, g, b)), 1.0);
+}
+
+// Confidence propagation + mask clearing for the target patch (port of UpdateConfidenceBurst).
+[numthreads(8, 8, 1)]
+void Update(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= DsW || id.y >= DsH) return;
+    if (MaxPriority[0] == 0u) return;
+    int target = TargetIdx[0];
+    int tx = target % (int)DsW, ty = target / (int)DsW;
+    int x = (int)id.x, y = (int)id.y;
+
+    if (abs(x - tx) > PATCH_RADIUS || abs(y - ty) > PATCH_RADIUS) return;
+    uint idx = id.y * DsW + id.x;
+    if (Mask[idx] == 0) return;
+
+    Confidence[idx] = PatchConf[0];
+    Mask[idx] = 0u;
+    uint prev;
+    InterlockedAdd(Remaining[0], 0xFFFFFFFFu, prev);   // -1
+}
+
+// Upscale the inpainted mask region (bilinear, matches UpscalePixels) and composite.
+[numthreads(8, 8, 1)]
+void Composite(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= FullW || id.y >= FullH) return;
+
+    if (InMaskFull(id.x, id.y)) {
+        float scaleX = (float)((int)DsW - 1) / max(1, (int)FullW - 1);
+        float scaleY = (float)((int)DsH - 1) / max(1, (int)FullH - 1);
+        float fx = id.x * scaleX;
+        float fy = id.y * scaleY;
+        int x0 = (int)floor(fx), y0 = (int)floor(fy);
+        int x1 = min(x0 + 1, (int)DsW - 1), y1 = min(y0 + 1, (int)DsH - 1);
+        x0 = clamp(x0, 0, (int)DsW - 1);
+        y0 = clamp(y0, 0, (int)DsH - 1);
+        float tx = fx - x0, ty = fy - y0;
+
+        float3 c00 = Working[y0 * DsW + x0].rgb;
+        float3 c10 = Working[y0 * DsW + x1].rgb;
+        float3 c01 = Working[y1 * DsW + x0].rgb;
+        float3 c11 = Working[y1 * DsW + x1].rgb;
+        float3 c = lerp(lerp(c00, c10, tx), lerp(c01, c11, tx), ty);
+        Result[uint2(id.x, id.y)] = float4(c, 1.0);
+    } else {
+        float2 uv = float2((id.x + 0.5) / FullW, (id.y + 0.5) / FullH);
+        Result[uint2(id.x, id.y)] = float4(Source.SampleLevel(sampler_PointClamp, uv, 0).rgb, 1.0);
+    }
+}
