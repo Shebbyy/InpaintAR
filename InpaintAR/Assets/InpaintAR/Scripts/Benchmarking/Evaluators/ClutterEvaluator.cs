@@ -37,16 +37,19 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
                 ClutterReductionResults.Add(clutterReduction);
             }
 
-            _nativeOriginal  = new NativeArray<Color32>(originalImage, Allocator.TempJob);
-            _nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
+            // Persistent (not TempJob): on the GPU path this is driven by the throttled
+            // AsyncGPUReadback callback, so these can live many frames before the next call disposes
+            // them - well past TempJob's 4-frame limit. Persistent has no frame lifetime.
+            _nativeOriginal  = new NativeArray<Color32>(originalImage, Allocator.Persistent);
+            _nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.Persistent);
 
-            _nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
+            _nativeMask = new NativeArray<byte>(width * height, Allocator.Persistent);
             foreach (int index in maskPixelIndices) {
                 _nativeMask[index] = 1;
             }
 
-            _originalClutter = new NativeArray<float>(1, Allocator.TempJob);
-            _inpaintedClutter = new NativeArray<float>(1, Allocator.TempJob);
+            _originalClutter = new NativeArray<float>(1, Allocator.Persistent);
+            _inpaintedClutter = new NativeArray<float>(1, Allocator.Persistent);
 
             var clutterJob = new ClutterEvaluationJob {
                 OriginalPixels = _nativeOriginal,

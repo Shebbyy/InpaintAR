@@ -1,49 +1,54 @@
 using System;
-using Unity.Profiling;
+using System.Diagnostics;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace InpaintAR.Scripts.Benchmarking {
     // Measures the GPU execution time of a compute driver's dispatch block, in milliseconds.
     //
-    // A stopwatch around ComputeShader.Dispatch only captures CPU submission time (dispatches are
-    // async), which would under-report GPU cost. Instead, two tiny command buffers emit a GPU
-    // profiler sample that brackets the existing direct Dispatch calls (GPU submission order is
-    // preserved, so the sample encloses them), and a ProfilerRecorder in GPU mode reads the elapsed
-    // GPU time. The reading lags by ~1 frame because the GPU finishes after the CPU submits the frame
-    // - irrelevant for a running average. If GPU recording is unavailable on the platform the recorder
-    // is simply invalid and LastMilliseconds returns -1 (no stats are recorded).
+    // ComputeShader.Dispatch is asynchronous, so a plain Stopwatch around the dispatches would only
+    // capture CPU submission time and under-report GPU cost. Instead we force the GPU to finish the
+    // submitted work before stopping the timer: a synchronous ComputeBuffer.GetData stalls the calling
+    // thread until every preceding GPU command has completed (the GPU executes in submission order, so
+    // a readback issued after the dispatches can only return once they are done). The elapsed
+    // wall-clock time then includes the actual GPU execution.
+    //
+    // This blocks the main thread for the duration of one inpaint - acceptable here: it is a
+    // benchmarking build, the timings need to be comparable per algorithm, and the exemplar drivers
+    // (ELTM/NLTM) already sync mid-loop anyway. We read a tiny dedicated dummy buffer rather than the
+    // result texture so the sync itself stays cheap and adds no meaningful transfer cost to the sample.
+    //
+    // An earlier version bracketed the dispatches with CommandBuffer.BeginSample/EndSample + a GPU
+    // ProfilerRecorder; that could not stay balanced on-device because the mid-loop readbacks split the
+    // begin/end markers across render-thread frame boundaries (and GpuRecorder was rejected outright on
+    // some backends). The Stopwatch + sync approach is uniform and robust across all four drivers.
     public sealed class GpuInpaintProfiler : IDisposable {
-        private readonly CommandBuffer m_begin;
-        private readonly CommandBuffer m_end;
-        private ProfilerRecorder m_recorder;
+        private readonly Stopwatch m_watch = new();
+        private readonly ComputeBuffer m_syncBuffer = new(1, sizeof(uint));
+        private readonly uint[] m_syncReadback = new uint[1];
+        private double m_lastMs = -1;
 
-        public GpuInpaintProfiler(string markerName) {
-            m_begin = new CommandBuffer { name = markerName + ".Begin" };
-            m_begin.BeginSample(markerName);
-            m_end = new CommandBuffer { name = markerName + ".End" };
-            m_end.EndSample(markerName);
-            m_recorder = ProfilerRecorder.StartNew(
-                ProfilerCategory.Render, markerName, 1, ProfilerRecorderOptions.GpuRecorder);
+        // markerName is no longer used for measurement; kept for API parity / future logging.
+        public GpuInpaintProfiler(string markerName) { }
+
+        // Call immediately before the first Dispatch.
+        public void Begin() {
+            m_watch.Reset();
+            m_watch.Start();
         }
 
-        // Call immediately before the first Dispatch and immediately after the last one.
-        public void Begin() => Graphics.ExecuteCommandBuffer(m_begin);
-        public void End() => Graphics.ExecuteCommandBuffer(m_end);
-
-        // Last measured GPU time in milliseconds, or -1 when no sample is available yet / unsupported.
-        public double LastMilliseconds {
-            get {
-                if (!m_recorder.Valid) return -1;
-                long ns = m_recorder.LastValue;       // ProfilerRecorder time samples are nanoseconds
-                return ns > 0 ? ns * 1e-6 : -1;
-            }
+        // Call immediately after the last Dispatch. The GetData readback stalls until all preceding
+        // GPU work has completed, so the stopwatch captures GPU execution and not just submission.
+        public void End() {
+            m_syncBuffer.GetData(m_syncReadback);
+            m_watch.Stop();
+            m_lastMs = m_watch.Elapsed.TotalMilliseconds;
         }
+
+        // Last measured GPU time in milliseconds, or -1 before the first completed sample.
+        public double LastMilliseconds => m_lastMs;
 
         public void Dispose() {
-            if (m_recorder.Valid) m_recorder.Dispose();
-            m_begin?.Release();
-            m_end?.Release();
+            m_syncBuffer?.Release();
         }
     }
 }

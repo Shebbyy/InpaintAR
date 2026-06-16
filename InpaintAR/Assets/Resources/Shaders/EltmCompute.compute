@@ -43,8 +43,10 @@ uint DownscaleFactor;     // keep consistent with CPU DownscaleFactor (6)
 int4 MaskBoundsDs;        // downscaled mask: x=left, y=bottom, z=right(excl), w=top(excl)
 int4 MaskBoundsFull;      // full-res mask (for crisp compositing): same layout
 
+// Source is read with Load (integer texel fetch) rather than Sample: inline SamplerState objects
+// do not bind reliably in compute shaders on the Quest's Vulkan/GLES backend - sampling returns
+// black. All reads here are nearest/point reads, so Load is an exact equivalent.
 Texture2D<float4> Source;
-SamplerState sampler_PointClamp;    // Unity-provided inline sampler (nearest, matches CPU downscale)
 
 RWStructuredBuffer<uint>   Mask;          // size N, 1 = unknown
 RWStructuredBuffer<float>  Confidence;    // size N
@@ -175,8 +177,7 @@ void Init(uint3 id : SV_DispatchThreadID) {
 
     int2 src = int2(min((int)(id.x * DownscaleFactor), (int)FullW - 1),
                     min((int)(id.y * DownscaleFactor), (int)FullH - 1));
-    float2 uv = float2((src.x + 0.5) / FullW, (src.y + 0.5) / FullH);
-    Working[idx] = float4(Source.SampleLevel(sampler_PointClamp, uv, 0).rgb, 1.0);
+    Working[idx] = float4(Source.Load(int3(src, 0)).rgb, 1.0);
 
     bool unknown = (int)id.x >= MaskBoundsDs.x && (int)id.x < MaskBoundsDs.z &&
                    (int)id.y >= MaskBoundsDs.y && (int)id.y < MaskBoundsDs.w;
@@ -372,7 +373,6 @@ void Composite(uint3 id : SV_DispatchThreadID) {
         float3 c = lerp(lerp(c00, c10, tx), lerp(c01, c11, tx), ty);
         Result[uint2(id.x, id.y)] = float4(c, 1.0);
     } else {
-        float2 uv = float2((id.x + 0.5) / FullW, (id.y + 0.5) / FullH);
-        Result[uint2(id.x, id.y)] = float4(Source.SampleLevel(sampler_PointClamp, uv, 0).rgb, 1.0);
+        Result[uint2(id.x, id.y)] = float4(Source.Load(int3((int)id.x, (int)id.y, 0)).rgb, 1.0);
     }
 }

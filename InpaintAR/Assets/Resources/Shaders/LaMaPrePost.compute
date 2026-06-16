@@ -21,8 +21,11 @@
 uint FullW, FullH;        // full passthrough resolution
 int4 MaskRect256;         // mask region in 256-space, already dilated (x0,y0,x1 excl,y1 excl)
 
+// Source is read with Load (integer texel fetch) rather than Sample: inline SamplerState objects
+// do not bind reliably in compute shaders on the Quest's Vulkan/GLES backend - sampling returns
+// black. The full-res -> 256 downsample becomes nearest (was bilinear); acceptable for the masked
+// network input.
 Texture2D<float4> Source;
-SamplerState sampler_LinearClamp;   // Unity-provided inline sampler (bilinear, matches Blit downsample)
 
 Texture2D<float4>   OutputFloat;    // Sentis network output rendered to a full-res float texture
 RWTexture2D<float4> InputTex;       // 256x256, masked-zeroed RGB fed to ToTensor (image input)
@@ -42,8 +45,9 @@ void BuildInput(uint3 id : SV_DispatchThreadID) {
 
     bool masked = InMask256(id.x, id.y);
 
-    float2 uv = float2((id.x + 0.5) / MODEL_SIZE, (id.y + 0.5) / MODEL_SIZE);
-    float3 rgb = Source.SampleLevel(sampler_LinearClamp, uv, 0).rgb;   // already [0,1]
+    int sx = min((int)(((id.x + 0.5) / MODEL_SIZE) * FullW), (int)FullW - 1);
+    int sy = min((int)(((id.y + 0.5) / MODEL_SIZE) * FullH), (int)FullH - 1);
+    float3 rgb = Source.Load(int3(sx, sy, 0)).rgb;   // already [0,1]
 
     InputTex[id.xy] = float4(masked ? float3(0, 0, 0) : rgb, 1.0);
     MaskTex[id.xy] = masked ? 1.0 : 0.0;

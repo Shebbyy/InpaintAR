@@ -38,11 +38,14 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
                 QualityResults.Add(overallQuality);
             }
 
-            _nativeOriginal  = new NativeArray<Color32>(originalImage, Allocator.TempJob);
-            _nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.TempJob);
+            // Persistent (not TempJob): on the GPU path EvaluateQuality is driven by the throttled
+            // AsyncGPUReadback callback, so these can live many frames before the next call disposes
+            // them - well past TempJob's 4-frame limit. Persistent has no frame lifetime.
+            _nativeOriginal  = new NativeArray<Color32>(originalImage, Allocator.Persistent);
+            _nativeInpainted = new NativeArray<Color32>(inpaintedImage, Allocator.Persistent);
 
             // Needs to be NativeArray to allow for Burst Compiled Job
-            _nativeMask = new NativeArray<byte>(width * height, Allocator.TempJob);
+            _nativeMask = new NativeArray<byte>(width * height, Allocator.Persistent);
             for (int i = 0; i < width * height; i++) {
                 _nativeMask[i] = 0;
             }
@@ -51,8 +54,8 @@ namespace InpaintAR.Scripts.Benchmarking.Evaluators {
                 _nativeMask[index] = 1;
             }
 
-            _structuralSimilarity = new NativeArray<float>(1, Allocator.TempJob);
-            _naturalness          = new NativeArray<float>(1, Allocator.TempJob);
+            _structuralSimilarity = new NativeArray<float>(1, Allocator.Persistent);
+            _naturalness          = new NativeArray<float>(1, Allocator.Persistent);
 
             var qualityJob = new QualityEvaluationJob {
                 OriginalPixels = _nativeOriginal,

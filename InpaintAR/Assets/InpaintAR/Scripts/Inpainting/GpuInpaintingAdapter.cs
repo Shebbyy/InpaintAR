@@ -37,7 +37,11 @@ namespace InpaintAR.Scripts.Inpainting {
 
             m_width = width;
             m_height = height;
-            m_sourceRT = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
+            // Linear (non-sRGB): the compute drivers write their result via a UAV (RWTexture2D),
+            // which does NOT apply sRGB encoding. Keeping the whole GPU chain linear avoids the
+            // double sRGB decode that otherwise darkens the output, and keeps this source consistent
+            // with the (also-linear) result for the benchmarking read-back comparison.
+            m_sourceRT = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             m_sourceRT.Create();
         }
 

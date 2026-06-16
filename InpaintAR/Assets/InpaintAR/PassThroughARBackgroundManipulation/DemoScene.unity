@@ -1293,6 +1293,7 @@ MonoBehaviour:
   canvasHeight: 1.5
   pixelsPerUnit: 1000
   inpaintingAlgorithmSelection: 0
+  useGpuCompute: 1
   showDebugRect: 0
 --- !u!4 &1324206872
 Transform:

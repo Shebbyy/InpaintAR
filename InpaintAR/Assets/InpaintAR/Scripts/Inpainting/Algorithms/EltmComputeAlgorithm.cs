@@ -166,7 +166,9 @@ namespace InpaintAR.Scripts.Inpainting.Algorithms {
             m_fillColor = new ComputeBuffer(1, sizeof(float) * 4);
             m_remaining = new ComputeBuffer(1, sizeof(uint));
 
-            m_result = new RenderTexture(fullW, fullH, 0, RenderTextureFormat.ARGB32) {
+            // Linear (non-sRGB): UAV writes do not sRGB-encode, so a default sRGB RT would be
+            // double-decoded on display and look too dark. See GpuInpaintingAdapter.
+            m_result = new RenderTexture(fullW, fullH, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear) {
                 enableRandomWrite = true
             };
             m_result.Create();
